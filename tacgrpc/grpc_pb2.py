@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='grpc.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\ngrpc.proto\"G\n\nXmlMessage\x12\x0f\n\x07\x63ounter\x18\x01 \x01(\x05\x12\x12\n\nrawMessage\x18\x02 \x01(\t\x12\x14\n\x0cparsedInJava\x18\x03 \x01(\x08\"\x16\n\x05\x42ooly\x12\r\n\x05value\x18\x01 \x01(\x08\"A\n\x0c\x43ontrolEvent\x12\x1e\n\x05value\x18\x01 \x01(\x0e\x32\x0f.ControlMessage\x12\x11\n\ttimestamp\x18\x02 \x01(\x03*3\n\x0e\x43ontrolMessage\x12\t\n\x05\x41\x42ORT\x10\x00\x12\t\n\x05PAUSE\x10\x01\x12\x0b\n\x07RELEASE\x10\x02\x32s\n\x14ServerMessagesStream\x12+\n\x10registerListener\x12\x06.Booly\x1a\x0b.XmlMessage\"\x00\x30\x01\x12.\n\x13registerEventSource\x12\x0b.XmlMessage\x1a\x06.Booly\"\x00(\x01\x32\x44\n\x13\x43ontrolEventHandler\x12-\n\x12submitControlEvent\x12\r.ControlEvent\x1a\x06.Booly\"\x00\x42$\n org.powertac.broker.adapter.grpcP\x01\x62\x06proto3')
+  serialized_pb=_b('\n\ngrpc.proto\"G\n\nXmlMessage\x12\x0f\n\x07\x63ounter\x18\x01 \x01(\x05\x12\x12\n\nrawMessage\x18\x02 \x01(\t\x12\x14\n\x0cparsedInJava\x18\x03 \x01(\x08\"\x16\n\x05\x42ooly\x12\r\n\x05value\x18\x01 \x01(\x08\"A\n\x0c\x43ontrolEvent\x12\x1e\n\x05value\x18\x01 \x01(\x0e\x32\x0f.ControlMessage\x12\x11\n\ttimestamp\x18\x02 \x01(\x03*3\n\x0e\x43ontrolMessage\x12\t\n\x05\x41\x42ORT\x10\x00\x12\t\n\x05PAUSE\x10\x01\x12\x0b\n\x07RELEASE\x10\x02\x32s\n\x14ServerMessagesStream\x12+\n\x10registerListener\x12\x06.Booly\x1a\x0b.XmlMessage\"\x00\x30\x01\x12.\n\x13registerEventSource\x12\x0b.XmlMessage\x1a\x06.Booly\"\x00(\x01\x32\x44\n\x13\x43ontrolEventHandler\x12-\n\x12submitControlEvent\x12\r.ControlEvent\x1a\x06.Booly\"\x00\x42\"\n\x1eorg.powertac.samplebroker.grpcP\x01\x62\x06proto3')
 )
 
 _CONTROLMESSAGE = _descriptor.EnumDescriptor(
@@ -199,7 +199,7 @@ _sym_db.RegisterMessage(ControlEvent)
 
 
 DESCRIPTOR.has_options = True
-DESCRIPTOR._options = _descriptor._ParseOptions(descriptor_pb2.FileOptions(), _b('\n org.powertac.broker.adapter.grpcP\001'))
+DESCRIPTOR._options = _descriptor._ParseOptions(descriptor_pb2.FileOptions(), _b('\n\036org.powertac.samplebroker.grpcP\001'))
 
 _SERVERMESSAGESSTREAM = _descriptor.ServiceDescriptor(
   name='ServerMessagesStream',

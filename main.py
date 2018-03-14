@@ -1,13 +1,10 @@
-# Starting the GRPC listeners
-import grpc
-import tacgrpc.grpc_pb2_grpc as tac
-import tacgrpc.grpc_pb2 as model
+import util.powertac_communication as comm
 
-channel = grpc.insecure_channel('localhost:1234')
-message_stub = tac.ServerMessagesStreamStub(channel)
 
-# for props in context_stub.handlePBProperties(model.PBRequestStream(msg="Properties")):
-#    print(props)
+comm.connect()
 
-for msg in message_stub.registerListener(model.XmlMessage()):
+comm.put('<order id="200000181" timeslot="383" mWh="56.49883376466506" limitPrice="-24.152165920135392"><broker>slytherin_v1</broker></order>')
+
+while True:
+    msg = comm.get()
     print(msg)
