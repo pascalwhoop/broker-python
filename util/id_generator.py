@@ -31,6 +31,13 @@ def create_id():
     return multiplier * prefix + cnt
 
 
+def broker_accept_intercept(msg: str):
+    import util.powertac_communication as comm #importing inside function because of circular deps
+    if msg.startswith("<broker-accept"):
+        handle_broker_accept_line(msg)
+        # removing itself from interceptors after handling it once
+        comm.interceptors.remove(broker_accept_intercept)
+
 def handle_broker_accept_line(line: str):
     line_xml = ET.fromstring(line)
 

@@ -4,8 +4,9 @@ from threading import Thread
 
 import util.id_generator as idg
 import grpc
-import tacgrpc.grpc_pb2_grpc as tac
+
 import tacgrpc.grpc_pb2 as model
+import tacgrpc.grpc_pb2_grpc as tac
 
 _channel = grpc.insecure_channel('localhost:1234')
 _message_stub = tac.ServerMessagesStreamStub(_channel)
@@ -13,6 +14,9 @@ _message_stub = tac.ServerMessagesStreamStub(_channel)
 _out_counter = 0
 _out_queue = Queue()
 _in_queue = Queue()
+
+# more interceptors can be added if so desired. They need to be able to handle xml as string
+interceptors = [idg.broker_accept_intercept]
 
 
 def reset():
@@ -42,9 +46,15 @@ def connect():
     return in_thread, out_thread
 
 
+def intercept_maybe(msg):
+    for i in interceptors:
+        i(msg)
+
+
 def _connect_incoming():
     # handle incoming messages
     for msg in _message_stub.registerListener(model.Booly(value=True)):
+        intercept_maybe(msg.rawMessage)
         _in_queue.put(msg.rawMessage)
 
 
