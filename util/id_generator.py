@@ -11,10 +11,10 @@ see `PowerTacBroker.java#handleMessage` for details
 """
 import xml.etree.ElementTree as ET
 
-prefix      = 0 #invalid default value
-cnt         = 0
-multiplier  = 100000000
-key         = "x"
+prefix = 0  # invalid default value
+cnt = 0
+multiplier = 100000000
+key = "x"
 
 
 def get_string(_id):
@@ -32,11 +32,12 @@ def create_id():
 
 
 def broker_accept_intercept(msg: str):
-    import util.powertac_communication as comm #importing inside function because of circular deps
+    import util.powertac_communication as comm  # importing inside function because of circular deps
     if msg.startswith("<broker-accept"):
         handle_broker_accept_line(msg)
         # removing itself from interceptors after handling it once
         comm.interceptors.remove(broker_accept_intercept)
+
 
 def handle_broker_accept_line(line: str):
     line_xml = ET.fromstring(line)

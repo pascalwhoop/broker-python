@@ -1,14 +1,22 @@
+"""
+A parser of state files to continuously parse one or many state files and feed
+them into a consumer
+"""
 import os
 import re
 
-from model import Environment
-from model.Tariff import Tariff
+from model import environment
 
 _root_dir = "/home/pascalwhoop/tank/Technology/Thesis/past_games"
 logs_home = "extracted/"
 
+ignored_states = set()
+
 
 def get_state_files(root_dir=_root_dir):
+    """
+    returns a list of state file paths
+    """
     base = os.path.join(root_dir, logs_home)
     records = os.listdir(base)
     state_files = [os.path.join(base, r, "log", r + ".state") for r in records]
@@ -25,6 +33,7 @@ def get_states_from_file(file, states=None):
                 state_messages.append(line)
 
     return state_messages
+
 
 
 def get_method(msg: str):
@@ -44,9 +53,10 @@ def parse_state_lines(messages):
         msg = msg.strip()
         class_ = get_class(msg)
         method = get_method(msg)
-        try: #why tryexcept?
+        try:  # why tryexcept?
             line_parsers[class_][method](msg)
-        except :
+        except:
+            ignored_states.add((class_, method))
             pass
 
 
@@ -56,8 +66,8 @@ def get_class(msg: str):
     return origin.group(0)
 
 
-"""
-Mapping between state origins and corresponding handlers. Most will be None but some are important to the agents learning algorithms and will therefore be processed. 
+"""Mapping between state origins and corresponding handlers. Most will be None but some are important to the agents
+learning algorithms and will therefore be processed.
 
 Received through `cat *.state | egrep "org[^:]*" -o | sort -u`
 """
@@ -83,7 +93,7 @@ line_parsers = {
     "org.powertac.common.msg.SimPause": None,
     "org.powertac.common.msg.SimResume": None,
     "org.powertac.common.msg.SimStart": None,
-    "org.powertac.common.msg.TariffRevoke": None,
+    "org.powertac.common.msg.TariffRevoke": {"new": environment.handle_tariff_revoke_from_state_line},
     "org.powertac.common.msg.TariffStatus": None,
     "org.powertac.common.msg.TimeslotUpdate": None,
     "org.powertac.common.Order": None,
@@ -94,7 +104,7 @@ line_parsers = {
     "org.powertac.common.RegulationCapacity": None,
     "org.powertac.common.RegulationRate": None,
     "org.powertac.common.Tariff": None,
-    "org.powertac.common.TariffSpecification": {"-rr": Environment.add_tariff_from_state_line},
+    "org.powertac.common.TariffSpecification": {"-rr": environment.add_tariff_from_state_line},
     "org.powertac.common.TariffSubscription": None,
     "org.powertac.common.TariffTransaction": None,
     "org.powertac.common.TimeService": None,

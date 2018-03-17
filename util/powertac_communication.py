@@ -46,7 +46,7 @@ def connect():
     return in_thread, out_thread
 
 
-def intercept_maybe(msg):
+def call_interceptors(msg):
     for i in interceptors:
         i(msg)
 
@@ -54,7 +54,7 @@ def intercept_maybe(msg):
 def _connect_incoming():
     # handle incoming messages
     for msg in _message_stub.registerListener(model.Booly(value=True)):
-        intercept_maybe(msg.rawMessage)
+        call_interceptors(msg.rawMessage)
         _in_queue.put(msg.rawMessage)
 
 
