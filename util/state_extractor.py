@@ -124,11 +124,11 @@ line_parsers = {
     "org.powertac.common.Orderbook":                            None,
     "org.powertac.common.OrderbookOrder":                       None,
     "org.powertac.common.RandomSeed":                           None,# not needed
-    "org.powertac.common.Rate":                                 {"new": environment.handle_rate_new, "withValue": environment.handle_rate_withValue, "setTariffId": environment.handle_rate_setTariffId},
+    "org.powertac.common.Rate":                                 {"-rr": environment.handle_rate_rr, "new": environment.handle_rate_new, "withValue": environment.handle_rate_withValue, "setTariffId": environment.handle_rate_setTariffId},
     "org.powertac.common.RegulationCapacity":                   None,
     "org.powertac.common.RegulationRate":                       None,
     "org.powertac.common.Tariff":                               None,
-    "org.powertac.common.TariffSpecification":                  {"-rr": environment.handle_tariff_rr},
+    "org.powertac.common.TariffSpecification":                  {"new": environment.handle_tariff_new, "-rr": environment.handle_tariff_rr},
     "org.powertac.common.TariffSubscription":                   None,
     "org.powertac.common.TariffTransaction":                    {"new":environment.handle_TariffTransaction_new},
     "org.powertac.common.TimeService":                          None,

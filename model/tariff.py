@@ -6,6 +6,7 @@ from enum    import Enum
 from typing  import List
 import numpy as np
 import config as cfg
+from model.rate import Rate
 from model.tariff_transaction import TariffTransaction, TransactionType
 from model.StatelineParser import StatelineParser
 
@@ -91,7 +92,7 @@ class Tariff(StatelineParser):
              * &nbsp;&nbsp;double periodicPayment, List<tariffId> supersedes</code>
 
         """
-        self.id                   = id_
+        self.id_                   = id_
         self.status               = Status.PENDING
         self.brokerId             = brokerId
         self.powerType            = powerType
@@ -99,6 +100,12 @@ class Tariff(StatelineParser):
         self.signupPayment        = signupPayment
         self.earlyWithdrawPayment = earlyWithdrawPayment
         self.periodicPayment      = periodicPayment
+
+        # python specific
+        self._rates = []
+
+    def add_rate(self, rate: Rate):
+        self._rates.append(rate)
 
     @staticmethod
     def from_state_line(line: str) -> "Tariff":

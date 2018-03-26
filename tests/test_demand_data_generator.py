@@ -43,12 +43,12 @@ class TestDemandDataGenerator(unittest.TestCase):
             game0 = l.consume_data[0]
             self.assertEqual(200, len(game0))
             self.assertEqual(4, len(game0.values()[0]))
-            raise Exception
+            raise WindowsError
 
 
     def test_generate_onehundred(self):
 
         try:
             l.se.run_through_all_files(self._tick_callback, l.round_callback)
-        except:
+        except WindowsError as e:
             pass

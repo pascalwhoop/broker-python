@@ -86,6 +86,13 @@ class TestEnvironment(unittest.TestCase):
         self.assertEqual(-2.2344, stats.timeslot_stats[1][5])
         self.assertEqual(5.1235, stats.timeslot_stats[1][2])
 
+    def test_add_transaction(self):
+        trans = tt.TariffTransaction(customerInfo= "foo")
+        env.current_timestep = 1
+        env._add_transaction(trans)
+
+        self.assertEqual(env.transactions["foo"][0][0], trans)
+
     def test_handle_timeslotUpdate_new(self):
         lines = [l for l in strings.STATE_LINES if "TimeslotUpdate" in l]
         env.handle_timeslotUpdate_new(lines[0])
@@ -118,11 +125,17 @@ class TestEnvironment(unittest.TestCase):
         # testing if the date times are calculated appropriately
         # a powertac day 3 is a wednesday but its a python thursday
         transaction1 = tt.TariffTransaction(tariffSpec="1", when=4+48) #4h after midnight on sunday
-        transaction2 = tt.TariffTransaction(tariffSpec="2", when=12+3*24) # noon on monday
-        transaction3 = tt.TariffTransaction(tariffSpec="3", when=4+24) # 4h after midnight on satruday
+        transaction2 = tt.TariffTransaction(tariffSpec="1", when=12+3*24) # noon on monday
+        transaction3 = tt.TariffTransaction(tariffSpec="1", when=4+24) # 4h after midnight on satruday
         rate1 = Rate(id_="r1", tariffId="1", weeklyBegin=7, weeklyEnd=7, dailyBegin=4, dailyEnd=7) # sunday nights
-        rate2 = Rate(id_="r2", tariffId="2", weeklyBegin=1, weeklyEnd=5, dailyBegin=-1, dailyEnd=-1) #all day weekdays
-        rate3 = Rate(id_="r3", tariffId="3", weeklyBegin=6, weeklyEnd=6, dailyBegin=4, dailyEnd=7) #saturday nights
+        rate2 = Rate(id_="r2", tariffId="1", weeklyBegin=1, weeklyEnd=5, dailyBegin=-1, dailyEnd=-1) #all day weekdays
+        rate3 = Rate(id_="r3", tariffId="1", weeklyBegin=6, weeklyEnd=6, dailyBegin=4, dailyEnd=7) #saturday nights
+
+        tariff = Tariff(id_="1")
+        tariff.add_rate(rate1)
+        tariff.add_rate(rate2)
+        tariff.add_rate(rate3)
+        env.tariffs[tariff.id_] = tariff
 
         env.rates[rate1.id_] = rate1
         env.rates[rate2.id_] = rate2

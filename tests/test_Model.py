@@ -11,7 +11,7 @@ class TestTariff(unittest.TestCase):
         self.assertEqual(-1.5, tariffs[0]  .periodicPayment)
         self.assertEqual(0.0, tariffs[2]   .signupPayment)
         self.assertEqual(93.269, tariffs[3].signupPayment)
-        self.assertEqual("701130306", tariffs[-1].id)
+        self.assertEqual("701130306", tariffs[-1].id_)
 
     def test_TariffStats_get_timeslot_stats(self):
         stats = TariffStats(5)

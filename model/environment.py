@@ -39,7 +39,8 @@ tariff_stats = {}
 
 
 def get_rate_for_customer_transaction(transaction: tt.TariffTransaction) -> Rate:
-    potential_rates = [r for r in rates.values() if r.tariffId == transaction.tariffSpec] #tariff and TariffSpec have same id (luckily)
+
+    potential_rates = tariffs[transaction.tariffSpec]._rates  #tariff and TariffSpec have same id (luckily)
     time_of_transaction = get_datetime_for_timeslot(transaction.when)
     potential_rates = [r for r in potential_rates if r.is_applicable(time_of_transaction)]
     if len(potential_rates) > 1:
@@ -58,7 +59,19 @@ def get_datetime_for_timeslot(timeslot: int) -> datetime:
 
 def handle_tariff_rr(line: str):
     tariff = t.Tariff.from_state_line(line)
-    tariffs[tariff.id] = tariff
+    tariffs[tariff.id_] = tariff
+
+
+def handle_tariff_new(line: str):
+    parts = StatelineParser.split_line(line)
+    tariff = t.Tariff(id_ = parts[1], brokerId =parts[3], powerType=parts[4])
+    tariffs[tariff.id_] = tariff
+
+
+def handle_tariff_addRate(line: str):
+    parts = StatelineParser.split_line(line)
+    tariff = tariffs[parts[1]]
+    tariff.add_rate(rates[3])
 
 
 def handle_tariffStatus_new(line: str):
@@ -91,6 +104,7 @@ def handle_rate_setTariffId(line: str):
     rate = rates[parts[1]]
     if rate is not None:
         rate.tariffId = parts[3]
+        tariffs[rate.tariffId].add_rate(rate)
 
 
 # handling CustomerInfo
@@ -109,7 +123,6 @@ def handle_customerInfo(line: str):
     method_call = "_jsm_" + parts[2]
     if method == "new":
         info = ci.CustomerInfo(id_ = parts[1], name=parts[3], population=parts[4])
-        print(info)
         customers[parts[1]] = info
     else:
         target = customers[parts[1]]
@@ -168,7 +181,11 @@ def _add_transaction(trans: tt.TariffTransaction):
     customer_id = trans.customerInfo
     if customer_id not in transactions:
         transactions[customer_id] = []
-    transactions[customer_id].append(trans)
+    cust_trans = transactions[customer_id]
+    if len(cust_trans)<current_timestep:
+        cust_trans.append([])
+    trans_now = cust_trans[-1]
+    trans_now.append(trans)
 
 
 def _handle_transaction_stats(trans: tt.TariffTransaction):
@@ -222,7 +239,6 @@ def handle_timeslotUpdate_new(line: str):
 
 
 def handle_weatherReport_new(line: str):
-    parts       = StatelineParser.split_line(line)
     report = WeatherReport.from_state_line(line)
     weather_reports[report.currentTimeslot] = report
 
@@ -230,3 +246,7 @@ def handle_weatherReport_new(line: str):
     #TODO keep reports
     return None
 
+
+def handle_rate_rr(line: str):
+    rate = Rate.from_state_line(line)
+    rates[rate.id_] = rate
