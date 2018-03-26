@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tariff-spec earlyWithdrawPayment="0.0" id="1878" minDuration="0" periodicPayment="0.0" powerType="CONSUMPTION" signupPayment="0.0">
+ <broker>
+  default broker
+ </broker>
+ <rates>
+  <rate dailyBegin="-1" dailyEnd="-1" expectedMean="0.0" fixed="true" id="1879" maxCurtailment="0.0" maxValue="0.0" minValue="-0.5" noticeInterval="0" tariffId="1878" tierThreshold="0.0" weeklyBegin="-1" weeklyEnd="-1">
+   <rateHistory/>
+  </rate>
+  <regulation-rate downRegulationPayment="-0.5" id="1887" response="MINUTES" tariffId="1884" upRegulationPayment="0.01"/>
+ </rates>
+</tariff-spec>

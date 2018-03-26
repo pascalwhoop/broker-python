@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<trade executionMWh="635.983844860553" executionPrice="37.77736640838274" id="6882" timeslot="361">
+ <dateExecuted>
+  <iMillis>
+   1256432400000
+  </iMillis>
+ </dateExecuted>
+</trade>

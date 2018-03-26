@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<capacity-tx charge="0.0" id="408171" kWh="0.0" peakTimeslot="528" postedTimeslot="528" threshold="8.614305590230403E8">
+ <broker>
+  slytherin_v1
+ </broker>
+</capacity-tx>

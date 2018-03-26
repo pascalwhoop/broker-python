@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<properties>
+ <property name="distributionutility.distributionUtilityService.useMeterFee" value="true"/>
+ <property name="balancemkt.balancingMarketService.rmPremium" value="2.0"/>
+ <property name="distributionutility.distributionUtilityService.mSmall" value="-0.015"/>
+ <property name="distributionutility.distributionUtilityService.stdCoefficient" value="1.2"/>
+ <property name="auctioneer.auctionService.sellerMaxMargin" value="0.05"/>
+ <property name="auctioneer.auctionService.sellerSurplusRatio" value="0.5"/>
+ <property name="balancemkt.balancingMarketService.settlementProcess" value="static"/>
+ <property name="distributionutility.distributionUtilityService.balancingCost" value="-0.0031034695143962645"/>
+ <property name="tariffmarket.tariffMarketService.publicationFee" value="-3879.2962728050884"/>
+ <property name="distributionutility.distributionUtilityService.defaultSpotPrice" value="75.0"/>
+ <property name="auctioneer.auctionService.mktPosnLimitFinal" value="220.0"/>
+ <property name="tariffmarket.tariffMarketService.revocationFee" value="-221.6445290937635"/>
+ <property name="distributionutility.distributionUtilityService.useCapacityFee" value="true"/>
+ <property name="distributionutility.distributionUtilityService.assessmentInterval" value="168"/>
+ <property name="balancemkt.balancingMarketService.balancingCost" value="-0.0031034695143962645"/>
+ <property name="distributionutility.distributionUtilityService.assessmentCount" value="3"/>
+ <property name="distributionutility.distributionUtilityService.distributionFee" value="0.0"/>
+ <property name="balancemkt.balancingMarketService.pMinusPrime" value="-1.0E-6"/>
+ <property name="distributionutility.distributionUtilityService.feePerPoint" value="-18.0"/>
+ <property name="balancemkt.balancingMarketService.defaultSpotPrice" value="75.0"/>
+ <property name="distributionutility.distributionUtilityService.pPlusPrime" value="1.0E-6"/>
+ <property name="balancemkt.balancingMarketService.pPlusPrime" value="1.0E-6"/>
+ <property name="auctioneer.auctionService.mktPosnLimitInitial" value="180.0"/>
+ <property name="accounting.accountingService.bankInterest" value="0.11921426324508663"/>
+ <property name="auctioneer.auctionService.defaultMargin" value="0.2"/>
+ <property name="distributionutility.distributionUtilityService.mLarge" value="-0.05"/>
+ <property name="distributionutility.distributionUtilityService.pMinusPrime" value="-1.0E-6"/>
+ <property name="distributionutility.distributionUtilityService.useTransportFee" value="false"/>
+ <property name="auctioneer.auctionService.defaultClearingPrice" value="40.0"/>
+</properties>

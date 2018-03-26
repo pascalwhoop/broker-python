@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<distribution-tx charge="0.0" id="5580" kWh="0.0" nLarge="0" nSmall="0" postedTimeslot="360">
+ <broker>
+  slytherin_v1
+ </broker>
+</distribution-tx>

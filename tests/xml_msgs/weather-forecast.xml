@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<weather-forecast currentTimeslot="360" id="602">
+ <prediction cloudCover="0.0" forecastTime="1" id="26" temperature="13.3" windDirection="236.0" windSpeed="6.07"/>
+ <prediction cloudCover="0.0" forecastTime="2" id="27" temperature="14.4" windDirection="231.0" windSpeed="6.07"/>
+ <prediction cloudCover="0.467" forecastTime="3" id="28" temperature="13.2" windDirection="218.0" windSpeed="5.98"/>
+ <prediction cloudCover="1.0" forecastTime="4" id="29" temperature="12.0" windDirection="218.0" windSpeed="3.52"/>
+ <prediction cloudCover="0.103" forecastTime="5" id="30" temperature="12.8" windDirection="207.0" windSpeed="6.36"/>
+ <prediction cloudCover="0.015" forecastTime="6" id="31" temperature="14.0" windDirection="215.0" windSpeed="5.5"/>
+ <prediction cloudCover="0.0" forecastTime="7" id="32" temperature="14.7" windDirection="209.0" windSpeed="5.26"/>
+ <prediction cloudCover="0.0" forecastTime="8" id="33" temperature="15.9" windDirection="206.0" windSpeed="6.13"/>
+ <prediction cloudCover="0.294" forecastTime="9" id="34" temperature="15.2" windDirection="204.0" windSpeed="6.85"/>
+ <prediction cloudCover="0.559" forecastTime="10" id="35" temperature="15.4" windDirection="212.0" windSpeed="6.75"/>
+ <prediction cloudCover="0.849" forecastTime="11" id="36" temperature="14.9" windDirection="213.0" windSpeed="8.04"/>
+ <prediction cloudCover="0.924" forecastTime="12" id="37" temperature="15.1" windDirection="228.0" windSpeed="8.03"/>
+ <prediction cloudCover="0.646" forecastTime="13" id="38" temperature="14.6" windDirection="230.0" windSpeed="7.98"/>
+ <prediction cloudCover="0.27" forecastTime="14" id="39" temperature="13.6" windDirection="228.0" windSpeed="7.84"/>
+ <prediction cloudCover="0.05" forecastTime="15" id="40" temperature="12.6" windDirection="220.0" windSpeed="7.05"/>
+ <prediction cloudCover="0.071" forecastTime="16" id="41" temperature="11.8" windDirection="222.0" windSpeed="6.79"/>
+ <prediction cloudCover="0.454" forecastTime="17" id="42" temperature="11.9" windDirection="225.0" windSpeed="6.4"/>
+ <prediction cloudCover="0.93" forecastTime="18" id="43" temperature="11.3" windDirection="207.0" windSpeed="5.66"/>
+ <prediction cloudCover="0.957" forecastTime="19" id="44" temperature="11.7" windDirection="220.0" windSpeed="6.85"/>
+ <prediction cloudCover="0.697" forecastTime="20" id="45" temperature="10.4" windDirection="224.0" windSpeed="6.92"/>
+ <prediction cloudCover="0.945" forecastTime="21" id="46" temperature="10.6" windDirection="226.0" windSpeed="6.9"/>
+ <prediction cloudCover="0.583" forecastTime="22" id="47" temperature="10.1" windDirection="226.0" windSpeed="5.95"/>
+ <prediction cloudCover="0.954" forecastTime="23" id="48" temperature="9.7" windDirection="218.0" windSpeed="6.27"/>
+ <prediction cloudCover="0.839" forecastTime="24" id="49" temperature="10.0" windDirection="226.0" windSpeed="7.37"/>
+</weather-forecast>
