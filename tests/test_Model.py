@@ -1,7 +1,29 @@
 import unittest
 
 from model.rate import Rate
-from model.tariff import Tariff
+from model.tariff import Tariff, TariffStats
+
+
+class TestTariff(unittest.TestCase):
+
+    def test_Tariff_from_state_line(self):
+        tariffs = [Tariff.from_state_line(l) for l in tariff_lines]
+        self.assertEqual(-1.5, tariffs[0]  .periodicPayment)
+        self.assertEqual(0.0, tariffs[2]   .signupPayment)
+        self.assertEqual(93.269, tariffs[3].signupPayment)
+        self.assertEqual("701130306", tariffs[-1].id)
+
+    def test_TariffStats_get_timeslot_stats(self):
+        stats = TariffStats(5)
+        # assume at the beginning we haven't saved for a single timeslot yet
+        self.assertEqual(0, len(stats.timeslot_stats))
+
+
+    def test_Rate_from_state_line(self):
+        rates = [Rate.from_state_line(l) for l in rate_lines]
+        self.assertEqual(14, rates[1].dailyBegin)
+        self.assertEqual(-0.099, rates[-1].minValue)
+
 
 tariff_lines = [
     "5551284:org.powertac.common.TariffSpecification::300007040::-rr::4807::CONSUMPTION::154800000::1.0::-3.0::-1.5::(300006850)",
@@ -41,17 +63,3 @@ rate_lines = [
     "7302693:org.powertac.common.Rate::200140767::-rr::200140766::-1::-1::0::23::0.0::true::-0.09877534421976514::0.0::0::0.0::0.0"]
 
 
-class TestTariff(unittest.TestCase):
-
-    def test_Tariff_from_state_line(self):
-        tariffs = [Tariff.from_state_line(l) for l in tariff_lines]
-        print(tariffs)
-        self.assertEqual(-1.5, tariffs[0].periodic_payment)
-        self.assertEqual(0.0, tariffs[2].signup_payment)
-        self.assertEqual(93.269, tariffs[3].signup_payment)
-        self.assertEqual("701130306", tariffs[-1].id)
-
-    def test_Rate_from_state_line(self):
-        rates = [Rate.from_state_line(l) for l in rate_lines]
-        self.assertEqual(14, rates[1].daily_begin)
-        self.assertEqual(-0.099, rates[-1].min_value)

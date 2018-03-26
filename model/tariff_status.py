@@ -4,15 +4,15 @@ from model.StatelineParser import StatelineParser
 
 
 class Status(Enum):
-    success = 1
-    noSuchTariff = 2
-    noSuchUpdate = 3
+    success          = 1
+    noSuchTariff     = 2
+    noSuchUpdate     = 3
     illegalOperation = 4
-    invalidTariff = 5
-    invalidUpdate = 6
-    duplicateId = 7
+    invalidTariff    = 5
+    invalidUpdate    = 6
+    duplicateId      = 7
     invalidPowerType = 8
-    unsupported = 9
+    unsupported      = 9
 
 
 class TariffStatus(StatelineParser):

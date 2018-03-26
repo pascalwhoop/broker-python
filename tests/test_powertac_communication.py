@@ -23,3 +23,7 @@ class TestPowertacCommunication(unittest.TestCase):
         comm.put(self.xml_)
         g_xml = comm._out_queue.get()
         self.assertEqual("chicken" + self.xml_, g_xml.rawMessage)
+
+    def test_auto_reconnect(self):
+        #comm.connect()
+        pass

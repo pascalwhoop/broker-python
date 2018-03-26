@@ -1,46 +1,99 @@
-import Config as cfg
+from datetime import datetime
+import config as cfg
+from model.model_root import ModelRoot
 
 
-class Rate:
+class Rate(ModelRoot):
     """
+    Holds a rate from powertac tariffs.
     * State log fields for readResolve():<br>
  * <code>new(long tariffId,  weeklyBegin,  weeklyEnd,<br>
- * &nbsp;&nbsp; dailyBegin,  dailyEnd, double tierThreshold,<br>
- * &nbsp;&nbsp;boolean fixed, double minValue, double maxValue,<br>
- * &nbsp;&nbsp;long noticeInterval, double expectedMean, double maxCurtailment)</code>
+ *    dailyBegin,  dailyEnd, double tierThreshold,<br>
+ *   boolean fixed, double minValue, double maxValue,<br>
+ *   long noticeInterval, double expectedMean, double maxCurtailment)</code>
     """
 
-    def __init__(self, tariff_id, weekly_begin, weekly_end, daily_begin, daily_end, tier_threshold, fixed, min_value,
-                 max_value, notice_interval, expected_mean, max_curtailment):
-        self.tariff_id = tariff_id
-        self.weekly_begin = weekly_begin
-        self.weekly_end = weekly_end
-        self.daily_begin = daily_begin
-        self.daily_end = daily_end
-        self.tier_threshold = tier_threshold
-        self.fixed = fixed
-        self.min_value = min_value
-        self.max_value = max_value
-        self.notice_interval = notice_interval
-        self.expected_mean = expected_mean
-        self.max_curtailment = max_curtailment
+    def __init__(self,
+                 id_,
+                 tariffId       = None,
+                 weeklyBegin    = -1,
+                 weeklyEnd      = -1,
+                 dailyBegin     = -1,
+                 dailyEnd       = -1,
+                 tierThreshold  = 0.0,
+                 fixed          = True,
+                 minValue       = 0.0,
+                 maxValue       = 0.0,
+                 noticeInterval = 0,
+                 expectedMean   = 0.0,
+                 maxCurtailment = 0.0):
+
+        self.id_            = id_
+        self.tariffId       = tariffId
+        self.weeklyBegin    = weeklyBegin
+        self.weeklyEnd      = weeklyEnd
+        self.dailyBegin     = dailyBegin
+        self.dailyEnd       = dailyEnd
+        self.tierThreshold  = tierThreshold
+        self.fixed          = fixed
+        self.minValue       = minValue
+        self.maxValue       = maxValue
+        self.noticeInterval = noticeInterval
+        self.expectedMean   = expectedMean
+        self.maxCurtailment = maxCurtailment
 
     @staticmethod
     def from_state_line(line, ):
         parts = line.split("::")
 
-        _tariff_id = parts[3]
-        _weekly_begin = int(parts[4])
-        _weekly_end = int(parts[5])
-        _daily_begin = int(parts[6])
-        _daily_end = int(parts[7])
-        _tier_threshold = round(float(parts[8]), cfg.ROUNDING_PRECISION)
-        _fixed = parts[9] == 'true'  # boolean value
-        _min_value = round(float(parts[10]), cfg.ROUNDING_PRECISION)
-        _max_value = round(float(parts[11]), cfg.ROUNDING_PRECISION)
-        _notice_interval = int(parts[12])
-        _expected_mean = round(float(parts[13]), cfg.ROUNDING_PRECISION)
-        _max_curtailment = round(float(parts[14]), cfg.ROUNDING_PRECISION)
+        id_            =             parts[1]
+        tariffId       =             parts[3]
+        weeklyBegin    =         int(parts[4])
+        weeklyEnd      =         int(parts[5])
+        dailyBegin     =         int(parts[6])
+        dailyEnd       =         int(parts[7])
+        tierThreshold  = round(float(parts[8]),  cfg.ROUNDING_PRECISION)
+        fixed          =             parts[9] == 'true'  # boolean value
+        minValue       = round(float(parts[10]), cfg.ROUNDING_PRECISION)
+        maxValue       = round(float(parts[11]), cfg.ROUNDING_PRECISION)
+        noticeInterval =         int(parts[12])
+        expectedMean   = round(float(parts[13]), cfg.ROUNDING_PRECISION)
+        maxCurtailment = round(float(parts[14]), cfg.ROUNDING_PRECISION)
 
-        return Rate(_tariff_id, _weekly_begin, _weekly_end, _daily_begin, _daily_end, _tier_threshold, _fixed,
-                    _min_value, _max_value, _notice_interval, _expected_mean, _max_curtailment)
+        return Rate(id_,
+                    tariffId,
+                    weeklyBegin,
+                    weeklyEnd,
+                    dailyBegin,
+                    dailyEnd,
+                    tierThreshold,
+                    fixed,
+                    minValue,
+                    maxValue,
+                    noticeInterval,
+                    expectedMean,
+                    maxCurtailment)
+
+    def is_applicable(self, d: datetime) -> bool:
+        """Code taken from PowerTAC server"""
+        applies_weekly = False
+        applies_daily = False
+
+        # // check # weekly # applicability
+        if self.weeklyBegin is -1 or self.weeklyEnd is -1:
+            applies_weekly = True
+        elif self.weeklyEnd >= self.weeklyBegin:
+            applies_weekly = (self.weeklyBegin <= d.isoweekday() <= self.weeklyEnd)
+        else:
+            applies_weekly = d.isoweekday() >= self.weeklyBegin or d.isoweekday() <= self.weeklyEnd
+
+
+        # // check # daily # applicability
+        if self.dailyBegin is -1 or self.dailyEnd is -1:
+            applies_daily = True
+        elif self.dailyEnd > self.dailyBegin:
+            applies_daily = self.dailyBegin <= d.hour <= self.dailyEnd
+        else:
+           applies_daily = d.hour >= self.dailyBegin or d.hour <= self.dailyEnd
+
+        return applies_daily and applies_weekly
