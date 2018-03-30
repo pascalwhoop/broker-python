@@ -15,6 +15,8 @@
 # save all weather forecasts / usage profiles / ...
 # save usage profiles somewhere in customer? 
 import pickle
+import logging
+import random
 from functools import reduce
 from typing import List
 
@@ -24,19 +26,19 @@ from model.tariff_transaction import TransactionType, TariffTransaction
 import util.state_extractor as se
 
 # holds time series for consume data for several customers
-# game []
-#    customer {}
-#       [training, result]
+# customer {}
+#       [training[rounds][10], result[rounds[1]]]
 from util.function_timer import time_function
-
-consume_data = [{}]
+consume_data = {}
 
 
 game_counter = 0
 def round_callback():
     env.reset()
-    consume_data.append({})
+    global consume_data
+    consume_data = {}
     global game_counter
+    tick = 0
     game_counter +=1
 
 
@@ -49,7 +51,7 @@ def _ensure_customer(game, customer: CustomerInfo):
 
 def make_training_rows(env):
     """iterating over the current snapshot of the state of the game and getting relevant data to build samples"""
-    game = consume_data[game_counter]
+    game = consume_data
 
     #we take a sample for each customer at each timeslot
     for customer in env.customers.values():
@@ -66,17 +68,28 @@ def make_training_rows(env):
         if len(customer_transactions) == 0:
             return
         transactions = [t for t in customer_transactions[-1] if t.txType == TransactionType.CONSUME or TransactionType.PRODUCE]
+
         add_rate_data(row, transactions)
+
+        #more metadata (tod, dow, weather)
+        add_time_data(row)
+        add_weather_data(row)
 
         #getting consume of today
         add_consume_data(row, transactions)
 
-        #let's check if this is worth adding. if so, we add the input to list0 and the result to list1
-        #[0,6] customer_data
-        #[7,
-        if len(row) is 12:
+        #let's  check if this is worth adding. if so, we add the input to list0 and the result to list1
+        #[0,4]  customer_metadata
+        #[5,9] rate_metadata
+        #[10,11]time
+        #[13,17]weather
+        #[18]   consume_row
+        if len(row) is 18:
             game[customer.id_][0].append(row[0:-1])
             game[customer.id_][1].append(row[-1])
+        else:
+            logging.warning("wrong length {}".format(len(row)))
+            logging.warning(row)
 
 
 def add_consume_data(row, transactions:List[TariffTransaction]):
@@ -84,14 +97,43 @@ def add_consume_data(row, transactions:List[TariffTransaction]):
     # charge = reduce(lambda sum, i: sum + i.charge, transactions)
     row.append(kWh)
 
+def add_time_data(row):
+    tod = env.current_tod
+    if not tod:
+        #in the first timeslot the current_tod is not yet set
+        tod = env.first_tod
+    if not tod:
+        logging.warning("no tod {}".format(env.current_timestep))
+        return
+    row.append(tod.hour)
+    row.append(tod.isoweekday())
+
+def add_weather_data(row):
+    # we are adding a random forecast from the forecasts we have + we tell the algorithm how far into the future this is
+    # this way the algorithm learns to handle any kind of forecast distance and adapts the weight of it according to
+    # the distance of the forecast
+    #fc_dist = random.randint(1, 24)
+    fc_dist = 24
+    origin  = env.current_timestep-fc_dist
+    if(origin <= env.first_timestep):
+        origin = env.first_timestep
+
+    key ="{}+{}".format(origin, fc_dist)
+    if key in env.weather_predictions:
+        fc = env.weather_predictions[key]
+        row.extend(fc.get_values_list()[:-1]) # ignoring origin value
+    else:
+        logging.warning("no forecast found! why?{} first: {}".format(key, env.first_timestep))
+
+    #weather never has to be larger than 360.... But it's always 0 in the states anyways
+    if row[15] > 360:
+        raise ValueError
+
+
 
 def add_rate_data(row, transactions: List[TariffTransaction]):
-    txs = [t for t in transactions if t.txType == TransactionType.CONSUME]
-    # if no transaction of type consume existed yet, no rate --> no extension
-    if not txs:
-        return
-    first_consume = txs[0]
-    rate = env.get_rate_for_customer_transaction(first_consume)
+    first_consume = transactions[0]
+    rate = env.get_rate_for_customer_transactions([first_consume])
     if not rate:
         return
     vals = rate.get_values_list()
@@ -101,7 +143,9 @@ def add_rate_data(row, transactions: List[TariffTransaction]):
 def add_customer_data(customer: CustomerInfo, game):
     # getting customer metadata (first few columns)
     _ensure_customer(game, customer)
-    row = customer.get_values_list()[2:8] #adding only relevant things
+    row = customer.get_values_list()[2:8] #adding only relevant things (ignoring customer powerType!
+    del row[1]
+    row[1] = row[1].value #overwriting this as a raw value so we don't pickle objects
     return row
 
 
@@ -109,6 +153,7 @@ tick = 0
 def tick_callback():
     global tick
     tick += 1
-    print("tick {}".format(tick))
-    time_function(make_training_rows, [env])
-    #make_training_rows(env)
+    if tick % 100 == 0:
+        logging.info("tick {}".format(tick))
+    #time_function(make_training_rows, [env])
+    make_training_rows(env)

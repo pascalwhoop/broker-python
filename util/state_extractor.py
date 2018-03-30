@@ -6,7 +6,6 @@ import os
 import re
 from typing import List
 
-
 from model import environment
 from util.function_timer import time_function
 
@@ -15,10 +14,12 @@ logs_home = "extracted/"
 
 ignored_states = set()
 
+
 def run_through_all_files(tickcallback=None, roundcallback=None):
     """high level function to hook into parsing and get messages from environment"""
     files = get_state_files()
     for f in files:
+        print("parsing file {}".format(f))
         states = get_states_from_file(f)
 
         parse_state_lines(states, tickcallback)
@@ -65,23 +66,23 @@ def parse_state_lines(messages, callback=None):
     for msg in messages:
         # allow for callback after every timeslot is complete
         if "TimeslotUpdate" in msg and callback is not None and callable(callback):
-
             callback()
 
         msg = msg.strip()
         class_ = get_class(msg)
         method = get_method(msg)
-        try:
-            class_handler = line_parsers[class_]
-            if callable(class_handler):
-                class_handler(msg)
-            elif method in class_handler:
-                class_handler[method](msg)
-        except Exception:
+
+        if class_ not in line_parsers:
             ignored_states.add((class_, method))
+            continue
 
-
-
+        class_handler = line_parsers[class_]
+        if callable(class_handler):
+            class_handler(msg)
+        elif class_handler is not None and method in class_handler and callable(class_handler[method]):
+            class_handler[method](msg)
+        else:
+            ignored_states.add((class_, method))
 
 
 def get_class(msg: str):
@@ -96,50 +97,56 @@ learning algorithms and will therefore be processed.
 Received through `cat *.state | egrep "org[^:]*" -o | sort -u`
 """
 line_parsers = {
-    "org.powertac.common.BalancingTransaction":                 None,
-    "org.powertac.common.BankTransaction":                      None,
-    "org.powertac.common.Broker":                               None,
-    "org.powertac.common.CapacityTransaction":                  None,
-    "org.powertac.common.CashPosition":                         None,
-    "org.powertac.common.ClearedTrade":                         None,
-    "org.powertac.common.Competition":                          {"withSimulationBaseTime": environment.handle_competition_withSimulationBaseTime},
-    "org.powertac.common.CustomerInfo":                         environment.handle_customerInfo,
-    "org.powertac.common.DistributionTransaction":              None,
-    "org.powertac.common.MarketPosition":                       None,
-    "org.powertac.common.MarketTransaction":                    None,
-    "org.powertac.common.msg.BalanceReport":                    None,
-    "org.powertac.common.msg.BalancingControlEvent":            None,
-    "org.powertac.common.msg.BalancingOrder":                   None,
-    "org.powertac.common.msg.DistributionReport":               None,
-    "org.powertac.common.msg.EconomicControlEvent":             None,
-    "org.powertac.common.msg.OrderStatus":                      None,
-    "org.powertac.common.msg.SimEnd":                           None,# not needed
-    "org.powertac.common.msg.SimPause":                         None,# not needed
-    "org.powertac.common.msg.SimResume":                        None,# not needed
-    "org.powertac.common.msg.SimStart":                         None,
-    "org.powertac.common.msg.TariffRevoke":                     {"new": environment.handle_tariffRevoke_new},
-    "org.powertac.common.msg.TariffStatus":                     {"new": environment.handle_tariffStatus_new},
-    "org.powertac.common.msg.TimeslotUpdate":                   {"new": environment.handle_timeslotUpdate_new} ,
-    "org.powertac.common.Order":                                None,
-    "org.powertac.common.Orderbook":                            None,
-    "org.powertac.common.OrderbookOrder":                       None,
-    "org.powertac.common.RandomSeed":                           None,# not needed
-    "org.powertac.common.Rate":                                 {"-rr": environment.handle_rate_rr, "new": environment.handle_rate_new, "withValue": environment.handle_rate_withValue, "setTariffId": environment.handle_rate_setTariffId},
-    "org.powertac.common.RegulationCapacity":                   None,
-    "org.powertac.common.RegulationRate":                       None,
-    "org.powertac.common.Tariff":                               None,
-    "org.powertac.common.TariffSpecification":                  {"new": environment.handle_tariff_new, "-rr": environment.handle_tariff_rr},
-    "org.powertac.common.TariffSubscription":                   None,
-    "org.powertac.common.TariffTransaction":                    {"new":environment.handle_TariffTransaction_new},
-    "org.powertac.common.TimeService":                          None,
-    "org.powertac.common.WeatherForecast":                      None, # not needed
-    "org.powertac.common.WeatherForecastPrediction":            {"new":environment.handle_weatherForecastPrediction_new},
-    "org.powertac.common.WeatherReport":                        {"new": environment.handle_weatherReport_new},
-    "org.powertac.du.DefaultBroker":                            None,
-    "org.powertac.du.DefaultBrokerService":                     None,
-    "org.powertac.evcustomer.customers.EvCustomer":             None,
-    "org.powertac.genco.Buyer":                                 None,
-    "org.powertac.genco.CpGenco":                               None,
-    "org.powertac.genco.Genco":                                 None,
-    "org.powertac.genco.MisoBuyer":                             None,
+    "org.powertac.common.BalancingTransaction": None,
+    "org.powertac.common.BankTransaction": None,
+    "org.powertac.common.Broker": None,
+    "org.powertac.common.CapacityTransaction": None,
+    "org.powertac.common.CashPosition": None,
+    "org.powertac.common.ClearedTrade": None,
+    "org.powertac.common.Competition": {
+        "withBootstrapTimeslotCount": environment.handle_competition_withBootstrapTimeslotCount,
+        "withBootstrapDiscardedTimeslots": environment.handle_competition_withBootstrapDiscardedTimeslots,
+        "withSimulationBaseTime": environment.handle_competition_withSimulationBaseTime},
+    "org.powertac.common.CustomerInfo": environment.handle_customerInfo,
+    "org.powertac.common.DistributionTransaction": None,
+    "org.powertac.common.MarketPosition": None,
+    "org.powertac.common.MarketTransaction": None,
+    "org.powertac.common.msg.BalanceReport": None,
+    "org.powertac.common.msg.BalancingControlEvent": None,
+    "org.powertac.common.msg.BalancingOrder": None,
+    "org.powertac.common.msg.DistributionReport": None,
+    "org.powertac.common.msg.EconomicControlEvent": None,
+    "org.powertac.common.msg.OrderStatus": None,
+    "org.powertac.common.msg.SimEnd": None,  # not needed
+    "org.powertac.common.msg.SimPause": None,  # not needed
+    "org.powertac.common.msg.SimResume": None,  # not needed
+    "org.powertac.common.msg.SimStart": None,
+    "org.powertac.common.msg.TariffRevoke": {"new": environment.handle_tariffRevoke_new},
+    "org.powertac.common.msg.TariffStatus": {"new": environment.handle_tariffStatus_new},
+    "org.powertac.common.msg.TimeslotUpdate": {"new": environment.handle_timeslotUpdate_new},
+    "org.powertac.common.Order": None,
+    "org.powertac.common.Orderbook": None,
+    "org.powertac.common.OrderbookOrder": None,
+    "org.powertac.common.RandomSeed": None,  # not needed
+    "org.powertac.common.Rate": {"-rr": environment.handle_rate_rr, "new": environment.handle_rate_new,
+                                 "withValue": environment.handle_rate_withValue,
+                                 "setTariffId": environment.handle_rate_setTariffId},
+    "org.powertac.common.RegulationCapacity": None,
+    "org.powertac.common.RegulationRate": None,
+    "org.powertac.common.Tariff": None,
+    "org.powertac.common.TariffSpecification": {"new": environment.handle_tariff_new,
+                                                "-rr": environment.handle_tariff_rr},
+    "org.powertac.common.TariffSubscription": None,
+    "org.powertac.common.TariffTransaction": {"new": environment.handle_TariffTransaction_new},
+    "org.powertac.common.TimeService": None,
+    "org.powertac.common.WeatherForecast": {"new": environment.handle_weatherForecast_new},  # not needed
+    "org.powertac.common.WeatherForecastPrediction": {"new": environment.handle_weatherForecastPrediction_new},
+    "org.powertac.common.WeatherReport": {"new": environment.handle_weatherReport_new},
+    "org.powertac.du.DefaultBroker": None,
+    "org.powertac.du.DefaultBrokerService": None,
+    "org.powertac.evcustomer.customers.EvCustomer": None,
+    "org.powertac.genco.Buyer": None,
+    "org.powertac.genco.CpGenco": None,
+    "org.powertac.genco.Genco": None,
+    "org.powertac.genco.MisoBuyer": None,
 }

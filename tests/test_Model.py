@@ -1,7 +1,21 @@
 import unittest
 
+from model.model_root import ModelRoot
 from model.rate import Rate
 from model.tariff import Tariff, TariffStats
+
+class ModelRootTestInheritance(ModelRoot):
+    def __init__(self):
+        self.foo = "Foo"
+        self.bar = "Bar"
+
+
+
+class TestModelRoot(unittest.TestCase):
+    def test__str__(self):
+        mr = ModelRootTestInheritance()
+        string = mr.__str__()
+        self.assertEqual("foo : Foo, bar : Bar, ", string)
 
 
 class TestTariff(unittest.TestCase):

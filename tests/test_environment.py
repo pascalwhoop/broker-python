@@ -99,14 +99,42 @@ class TestEnvironment(unittest.TestCase):
 
         self.assertEqual(383, env.first_enabled)
         self.assertEqual(406, env.last_enabled)
-        self.assertEqual(1, env.current_timestep)
+        self.assertEqual(382, env.current_timestep)
 
         for l in lines:
             env.handle_timeslotUpdate_new(l)
 
-        self.assertEqual(1+len(lines), env.current_timestep)
+        self.assertEqual(381+len(lines), env.current_timestep)
         date = datetime(year=2014, month=12, day=27, hour=11) #2014-12-27T11:00:00.000Z
         self.assertEqual(date, env.current_tod)
+
+    def test_handle_weatherForecastPrediction_new(self):
+        """test if we parse the forecasts correctly. that is because they all get created at the beginning and it's hard
+        to get them ID'd so that they are easily retrievable from a map. we need to parse 2 state lines to get that
+        done. 
+        1. store weatherPrediction by ID
+        2. when Forecasts are built, replace them with a "origin+time" key
+        """
+        lines = [
+            "6428:org.powertac.common.WeatherForecastPrediction::26::new::1::-11.0::20.0::0.0::1.0",
+            "6428:org.powertac.common.WeatherForecastPrediction::27::new::1::-11.0::20.0::0.0::1.0",
+            "6551:org.powertac.common.WeatherForecastPrediction::242::new::1::-11.0::14.0::0.0::1.0",
+            "6551:org.powertac.common.WeatherForecastPrediction::243::new::1::-11.0::14.0::0.0::1.0",
+            "6651:org.powertac.common.WeatherForecast::602::new::360::(26,27)",
+            "6673:org.powertac.common.WeatherForecast::611::new::369::(242,243)"
+            ]
+        #adding the predictions to environment
+        env.handle_weatherForecastPrediction_new(lines[0])
+        env.handle_weatherForecastPrediction_new(lines[1])
+        env.handle_weatherForecastPrediction_new(lines[2])
+        env.handle_weatherForecastPrediction_new(lines[3])
+        self.assertIn("26", env.weather_predictions)
+        self.assertIn("242", env.weather_predictions)
+        env.handle_weatherForecast_new(lines[4])
+        env.handle_weatherForecast_new(lines[5])
+        self.assertIn("360+1", env.weather_predictions)
+        self.assertIn("369+1", env.weather_predictions)
+
 
     def test_handle_weatherReport_new(self):
         lines = [l for l in strings.STATE_LINES if "WeatherReport" in l]
@@ -114,12 +142,32 @@ class TestEnvironment(unittest.TestCase):
 
         self.assertEqual(1, len(env.weather_reports))
 
-    def test_handle_timeslotUpdate_new(self):
+    def test_handle_timeslotUpdate_new2(self):
         line = "4668:org.powertac.common.Competition::0::withSimulationBaseTime::1418256000000"
         env.handle_competition_withSimulationBaseTime(line)
         expected = datetime(2014, 12, 11, 1, 0)
 
         self.assertEqual(expected, env.first_tod)
+
+    def test_rate_left_over(self):
+        # sometimes rates have the same ID. Also, they get added to multiple tariffs under the same ID. That's dirty as hell
+        # but we gotta deal with it. So let's test for the case
+        # 1. rate 1 creation TariffA
+        # 2. rate 1 creation TariffB
+        # 3. Tariff creation
+        # 4. Rate not being added to Tariff --> still applicable though
+        lines = [
+            "681592:org.powertac.common.Rate::700111446::-rr::700111445::-1::-1::-1::-1::0.0::true::0.0495::0.0::0::0.0::0.0",
+            "681593: org.powertac.common.Rate::700111446::-rr::700111448::-1::-1::-1::-1::0.0::true::0.0495::0.0::0::0.0::0.0",
+            "681592:org.powertac.common.TariffSpecification::700111445::-rr::4803::SOLAR_PRODUCTION::432000000::0.0::-10.0::-6.0::null"
+        ]
+        env.handle_rate_rr(lines[0])
+        env.handle_rate_rr(lines[1])
+        env.handle_tariff_rr(lines[2])
+
+        self.assertEqual("700111446", env.tariffs["700111445"]._rates[0].id_)
+
+
 
     def test_get_rate_for_customer_transaction(self):
         # testing if the date times are calculated appropriately
@@ -141,7 +189,7 @@ class TestEnvironment(unittest.TestCase):
         env.rates[rate2.id_] = rate2
         env.rates[rate3.id_] = rate3
         env.first_tod = datetime(year=2010, month=1, day=1, hour=0, minute=0) #friday
-        self.assertEqual(rate1, env.get_rate_for_customer_transaction(transaction1))
-        self.assertEqual(rate2, env.get_rate_for_customer_transaction(transaction2))
-        self.assertEqual(rate3, env.get_rate_for_customer_transaction(transaction3))
+        self.assertEqual(rate1, env.get_rate_for_customer_transactions([transaction1]))
+        self.assertEqual(rate2, env.get_rate_for_customer_transactions([transaction2]))
+        self.assertEqual(rate3, env.get_rate_for_customer_transactions([transaction3]))
 

@@ -1,4 +1,5 @@
 import util.powertac_communication as comm
+import sys
 import util.make_xml_collection as mxc
 
 
@@ -20,3 +21,15 @@ def create_sample_xml():
         if msg_counter % 1000 == 0:
             print("pickling")
             mxc.pickle_xml()
+
+
+if __name__ == '__main__':
+    what = sys.argv[1]
+    print("running command {}".format(what))
+
+    if what == "connect":
+        pass
+    elif what == "demanddata":
+        import agent_components.demand.make_pickled_matrix as pm
+        pm.run()
+

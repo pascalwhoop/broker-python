@@ -27,7 +27,7 @@ class TestDemandDataGenerator(unittest.TestCase):
         transactions = [TariffTransaction(txType="CONSUME", tariffSpec="123")]
 
         mock_grfct = Mock(return_value=Rate(id_="123"))
-        env_mock = Bunch(get_rate_for_customer_transaction=mock_grfct)
+        env_mock = Bunch(get_rate_for_customer_transactions=mock_grfct)
 
         row = []
         with patch('agent_components.demand.data_generator.env', new=env_mock):
@@ -46,9 +46,5 @@ class TestDemandDataGenerator(unittest.TestCase):
             raise WindowsError
 
 
-    def test_generate_onehundred(self):
-
-        try:
-            l.se.run_through_all_files(self._tick_callback, l.round_callback)
-        except WindowsError as e:
-            pass
+#       def test_generate_onehundred(self):
+#        l.se.run_through_all_files(self._tick_callback, l.round_callback)

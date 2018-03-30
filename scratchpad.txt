@@ -1,0 +1,23 @@
+What state messages do I need to parse?
+
+To get a MARKET OFFERING OVERVIEW:
+__________________________________
+- TariffSpec (get info about tariff)
+    - -rr --> from broker
+    - addRate
+- TariffStatus (Tariff is active
+- TariffRevoke (when tariff is dead)
+- Rate (creation of rate (with ID)
+    - new
+    - withValue
+    - setTariffId
+ 
+To get a Market PERFORMANCE OVERVIEW:
+_____________________________________
+
+- TariffSubscription
+- TariffTransaction
+
+
+to make parsing easier: always do: _jsm_NameOfMethodInJava
+

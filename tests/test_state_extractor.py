@@ -1,6 +1,6 @@
 import importlib
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import util.state_extractor as se
 
@@ -11,8 +11,10 @@ class TestStateExtractor(unittest.TestCase):
         # mocking a dependency
         import model.environment as env
         #mocking our state_handlers away
-        env.handle_tariff_rr = MagicMock()
-        env.handle_customerInfo = MagicMock()
+        env.handle_tariff_rr = Mock()
+        env.handle_customerInfo = Mock()
+        env.handle_rate_rr = Mock()
+        env.handle_tariffRevoke_new = Mock()
         importlib.reload(se)  # we need to reload this module because during parsing of it, the above function was
         # linked to a local variable
         self.assertEqual(se.environment, env)
@@ -20,6 +22,8 @@ class TestStateExtractor(unittest.TestCase):
         se.parse_state_lines(msgs)
         self.assertEqual(13, env.handle_tariff_rr.call_count)
         self.assertEqual(5, env.handle_customerInfo.call_count)
+        self.assertEqual(31, env.handle_rate_rr.call_count)
+        self.assertEqual(2, env.handle_tariffRevoke_new.call_count)
 
 
         # testing for everything else being ignored
@@ -81,7 +85,7 @@ msgs = ['4629:org.powertac.common.Competition::0::withSimulationRate::720\n',
         '194949:org.powertac.common.Rate::200000423::-rr::200000418::-1::-1::8::14::0.0::true::-0.08016581600947167::0.0::0::0.0::0.0\n',
         '194949:org.powertac.common.Rate::200000425::-rr::200000418::-1::-1::15::22::0.0::true::-0.17762851283986683::0.0::0::0.0::0.0\n',
         '194949:org.powertac.common.Rate::200000427::-rr::200000418::-1::-1::23::23::0.0::true::-0.08016581600947167::0.0::0::0.0::0.0\n',
-        '194949:org.powertac.common.TariffSpecification::200000418::-rr::4818::CONSUMPTION::0::0.0::0.0::0.0::(200000263)\n',
+        '194949:org.powertac.common.TariffSpecification::200000418::-rr::4818::CONSUMPTION::0::0.0::0.0::0.0::200000263\n',
         '194951:org.powertac.common.msg.TariffRevoke::200000429::-rr::4818::200000263\n',
         '199289:org.powertac.common.TimeService::null::setCurrentTime::2013-07-09T01:00:00.000Z\n',
         '199423:org.powertac.common.msg.TariffRevoke::63237::new::4818::200000263\n',

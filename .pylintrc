@@ -61,6 +61,7 @@ disable=bad-whitespace,
         broad-except,
         line-too-long,
         too-many-lines,
+        trailing-whitespace,
 
         print-statement,
         parameter-unpacking,
