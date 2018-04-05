@@ -14,21 +14,17 @@
 # iterate through state files
 # save all weather forecasts / usage profiles / ...
 # save usage profiles somewhere in customer? 
-import pickle
 import logging
-import random
 from functools import reduce
 from typing import List
 
-import model.environment as env
+import env.environment as env
 from model.customer_info import CustomerInfo
 from model.tariff_transaction import TransactionType, TariffTransaction
-import util.state_extractor as se
 
 # holds time series for consume data for several customers
 # customer {}
 #       [training[rounds][10], result[rounds[1]]]
-from util.function_timer import time_function
 consume_data = {}
 
 
@@ -80,7 +76,7 @@ def make_training_rows(env):
 
         #let's  check if this is worth adding. if so, we add the input to list0 and the result to list1
         #[0,4]  customer_metadata
-        #[5,9] rate_metadata
+        #[5,9]  rate_metadata
         #[10,11]time
         #[13,17]weather
         #[18]   consume_row

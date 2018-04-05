@@ -12,11 +12,11 @@ import model.tariff as t
 import model.tariff_status as ts
 import model.customer_info as ci
 import model.tariff_transaction as tt
-from config import DATETIME_PATTERN
+from util.config import DATETIME_PATTERN
 from model.tariff_transaction import TransactionType
 from model.rate import Rate
 from model.StatelineParser import StatelineParser
-from model.weather import WeatherForecastPrediction, WeatherForecast, WeatherReport
+from model.weather import WeatherForecastPrediction, WeatherReport
 
 current_timestep = 0
 first_timestep   = 0
@@ -163,7 +163,7 @@ def handle_customerInfo(line: str):
     method      = parts[2]
     method_call = "_jsm_" + parts[2]
     if method == "new":
-        info = ci.CustomerInfo(id_ = parts[1], name=parts[3], population=parts[4])
+        info = ci.CustomerInfo(id_ = parts[1], name=parts[3], population=int(parts[4]))
         customers[parts[1]] = info
     else:
         target = customers[parts[1]]

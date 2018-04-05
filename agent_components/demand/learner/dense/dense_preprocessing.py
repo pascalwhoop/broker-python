@@ -8,12 +8,10 @@ import os
 import pickle
 import logging
 
+from sklearn.preprocessing import RobustScaler
 
-BATCH_SIZE        = 20  # number of sequences to feed to the model at once and whose errors are added up before propagated
-SAMPLING_RATE     = 3   # assuming correlation between hours somewhere in this range (6h ago, 12h ago, 18h ago, 24h ago,..)
-SEQUENCE_LENGTH   = 168 # one week sequences because that's a probable range for patterns
-DATAPOINTS_PER_TS = 17  # number of datapoints in each timestep. That's customer data, weather, usage etc
-VALIDATION_PART   = 0.05
+from agent_components.demand.learner.dense.deep_dense_demand_estimator import SEQUENCE_LENGTH, SAMPLING_RATE, BATCH_SIZE, VALIDATION_PART
+
 
 def generate_batches_for_customer(data, targets):
     """[keras docs](https://keras.io/preprocessing/sequence/#timeseriesgenerator)"""
@@ -40,54 +38,6 @@ def get_game_data(train_path, label_path):
     return [training_data, labels]
 
 
-class LSTMCustomerIterator:
-    """Iterator that serves customer Sequence objects using the TimeseriesGenerator 
-    """
-    def __init__(self, data_customers, targets_customers):
-        self.data_customers    = data_customers
-        self.targets_customers = targets_customers
-
-    def __iter__(self):
-        return self
-
-    def __next__(self) -> List:
-        """getting the first of the two lists and generating 1 sequence (for learning) and one tuple of data to validate
-        (tensorboard doesnt like generators)
-        """
-        if len(self.data_customers) == 0:
-            raise StopIteration
-
-        data, targets                          = self.get_next_pair()
-        data                                   = preprocessing.scale(data)
-        targets                                = preprocessing.scale(targets)
-        cutoff                                 = int(len(data) * VALIDATION_PART) + SEQUENCE_LENGTH
-        training_sequence, validation_sequence = self.make_sequences(cutoff, data, targets)
-        validation_tuple = self.convert_sequence_to_set(validation_sequence)
-        return [training_sequence, validation_tuple]
-
-    def make_sequences(self, cutoff, data, targets):
-        """given a cutoff and two data arrays, generate Sequences from it (one before cutoff one after"""
-        training_sequence   = generate_batches_for_customer(np.array(data[:-cutoff]), np.array(targets[:-cutoff]))
-        validation_sequence = generate_batches_for_customer(np.array(data[-cutoff:]), np.array(targets[-cutoff:]))
-        return training_sequence, validation_sequence
-
-    def get_next_pair(self):
-        """pops the first of both arrays out and returns it"""
-        data    = self.data_customers.pop(0)
-        targets = self.targets_customers.pop(0)
-        return data, targets
-
-    def convert_sequence_to_set(self, sequence: Sequence):
-        #this is a set of tuples. We need a tuple of sets...
-        x = []
-        y = []
-        for i in range(sequence.length):
-            batch = sequence[i]
-            x.extend(batch[0])
-            y.extend(batch[1])
-        return np.array(x), np.array(y)
-
-
 
 class GamesIterator:
     """Iterator that serves games data as a 3D array [train/test, customers, timesteps]. iterating on it gives the next game and the next etc
@@ -108,7 +58,6 @@ class GamesIterator:
             raise StopIteration
         p = self.file_paths.pop()
         return get_game_data(p[0], p[1])
-
 
 class CustomSequenceDenseTraining (Sequence):
     def __init__(self, game_iter: GamesIterator, batch_size):
@@ -163,6 +112,10 @@ class CustomSequenceDenseTraining (Sequence):
         #cropping leftovers at the end away
         x = x[:-(len(x)%BATCH_SIZE)]
         y = y[:-(len(y)%BATCH_SIZE)]
+
+        # normalizing all data
+        x = RobustScaler().fit_transform(x)
+        y = RobustScaler().fit_transform(y)
 
 
         #reshaping into batches

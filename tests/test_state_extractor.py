@@ -1,35 +1,42 @@
 import importlib
 import unittest
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
-import util.state_extractor as se
+import statefiles.state_extractor as se
 
 
 class TestStateExtractor(unittest.TestCase):
 
+    def tearDown(self):
+        #because we mocked some functions of an external module, let's reload it so that it
+        #doesn't interfere with other tests
+        import env.environment as e
+        importlib.reload(e)
+
+
     def test_parse_state_lines(self):
         # mocking a dependency
-        import model.environment as env
+        import env.environment as _env
         #mocking our state_handlers away
-        env.handle_tariff_rr = Mock()
-        env.handle_customerInfo = Mock()
-        env.handle_rate_rr = Mock()
-        env.handle_tariffRevoke_new = Mock()
+        _env.handle_tariff_rr = Mock()
+        _env.handle_customerInfo = Mock()
+        _env.handle_rate_rr = Mock()
+        _env.handle_tariffRevoke_new = Mock()
         importlib.reload(se)  # we need to reload this module because during parsing of it, the above function was
         # linked to a local variable
-        self.assertEqual(se.environment, env)
+        self.assertEqual(se.environment, _env)
 
         se.parse_state_lines(msgs)
-        self.assertEqual(13, env.handle_tariff_rr.call_count)
-        self.assertEqual(5, env.handle_customerInfo.call_count)
-        self.assertEqual(31, env.handle_rate_rr.call_count)
-        self.assertEqual(2, env.handle_tariffRevoke_new.call_count)
+        self.assertEqual(13, _env.handle_tariff_rr.call_count)
+        self.assertEqual(5, _env.handle_customerInfo.call_count)
+        self.assertEqual(31, _env.handle_rate_rr.call_count)
+        self.assertEqual(2, _env.handle_tariffRevoke_new.call_count)
 
 
         # testing for everything else being ignored
         # self.assertEqual(15, len(se.ignored_states))
-        # self.assertEqual(-1, env.tariffs['501597406'].finish)
-        # self.assertEqual(29, env.tariffs['200000263'].finish)
+        # self.assertEqual(-1, _env.tariffs['501597406'].finish)
+        # self.assertEqual(29, _env.tariffs['200000263'].finish)
 
     def test_get_origin(self):
         origin = se.get_class(msgs[0])

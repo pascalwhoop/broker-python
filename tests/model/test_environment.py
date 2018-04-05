@@ -6,7 +6,7 @@ from model.rate import Rate
 from model.tariff import Status, Tariff, TariffStats
 from model.StatelineParser import StatelineParser
 import model.tariff_transaction as tt
-import model.environment as env
+import env.environment as env
 import model.customer_info as ci
 import tests.teststrings as strings
 

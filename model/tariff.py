@@ -5,7 +5,7 @@ TODO will this also hold the rate that is linked to it?
 from enum    import Enum
 from typing  import List
 import numpy as np
-import config as cfg
+from util import config as cfg
 from model.rate import Rate
 from model.tariff_transaction import TariffTransaction, TransactionType
 from model.StatelineParser import StatelineParser

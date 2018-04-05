@@ -6,4 +6,7 @@ venv/
 *.swp
 .ipynb_checkpoints/
 data/
+Graph/
+log/
+PythonBroker.egg-info/
 

@@ -1,5 +1,5 @@
 from keras.layers.core import Dense, Activation, Dropout
-from keras.layers import CuDNNLSTM
+from keras.layers import CuDNNLSTM, BatchNormalization
 from keras.callbacks import TensorBoard, TerminateOnNaN
 from keras.models import Sequential
 from keras.optimizers import rmsprop
@@ -7,18 +7,26 @@ import time
 
 from keras.utils import Sequence
 
-from agent_components.demand.learner.preprocessing import BATCH_SIZE, SEQUENCE_LENGTH, SAMPLING_RATE, DATAPOINTS_PER_TS
 
+BATCH_SIZE        = 1  # TODO... higher? number of sequences to feed to the model at once and whose errors are added up before propagated
+SAMPLING_RATE     = 6   # assuming correlation between hours somewhere in this range (6h ago, 12h ago, 18h ago, 24h ago,..)
+SEQUENCE_LENGTH   = 168 # one week sequences because that's a probable range for patterns
+#DATAPOINTS_PER_TS = 17  # number of datapoints in each timestep. That's customer data, weather, usage etc
+DATAPOINTS_PER_TS = 47  # sparse version
+#DATAPOINTS_PER_TS = 1  # solely based on previous usage version
+VALIDATION_PART   = 0.05
+MODEL_NAME        = "lstm_batch_size_1"
 
 
 
 callbacks = []
-callbacks.append(TensorBoard(log_dir='./Graph',
-                         histogram_freq=1,
-                         batch_size=32,
+callbacks.append(TensorBoard(log_dir='./Graph/{}/'.format(MODEL_NAME),
+                      #   histogram_freq=1,
+                         batch_size=1,
                          write_grads=True,
-                         write_graph=True,
-                         write_images=True))
+                      #   write_graph=True,
+                      #   write_images=True)
+                 ))
 callbacks.append(TerminateOnNaN())
 
 def get_model():
@@ -27,19 +35,22 @@ def get_model():
     #input layer
     model.add(CuDNNLSTM(input_shape=(SEQUENCE_LENGTH/SAMPLING_RATE, DATAPOINTS_PER_TS),
                         units=100,
-                        return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(CuDNNLSTM(units=200,
-                        return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(CuDNNLSTM(units=200,
-                        return_sequences=False))
-    model.add(Dropout(0.2))
+                        return_sequences=False,
+                        ))
+    #model.add(Dropout(0.2))
+    #model.add(BatchNormalization())
+    #model.add(CuDNNLSTM(units=200,
+    #                    return_sequences=True))
+    #model.add(Dropout(0.2))
+    #model.add(CuDNNLSTM(units=200,
+    #                    return_sequences=False))
+    #model.add(Dropout(0.2))
+    #model.add(Dense(units=100, activation='relu'))
     model.add(Dense(units=1))
     model.add(Activation('linear'))
 
     start = time.time()
-    optimizr = rmsprop(lr=0.0001)
+    optimizr = rmsprop(lr=0.01)
     model.compile(loss='mse', optimizer=optimizr)
     print('compilation time : ', time.time() - start)
     return model

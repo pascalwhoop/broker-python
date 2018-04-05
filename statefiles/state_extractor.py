@@ -6,11 +6,10 @@ import os
 import re
 from typing import List
 
-from model import environment
-from util.function_timer import time_function
+import util.config as cfg
+from env import environment
 
-_root_dir = "/home/pascalwhoop/tank/Technology/Thesis/past_games"
-logs_home = "extracted/"
+
 
 ignored_states = set()
 
@@ -28,13 +27,12 @@ def run_through_all_files(tickcallback=None, roundcallback=None):
             roundcallback()
 
 
-def get_state_files(root_dir=_root_dir):
+def get_state_files(root_dir=cfg.STATE_FILES_ROOT):
     """
     returns a list of state file paths
     """
-    base = os.path.join(root_dir, logs_home)
-    records = os.listdir(base)
-    state_files = [os.path.join(base, r, "log", r + ".state") for r in records]
+    records = os.listdir(root_dir)
+    state_files = [os.path.join(root_dir, r, "log", r + ".state") for r in records]
     return state_files
 
 

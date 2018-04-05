@@ -90,16 +90,6 @@ def configure_logging(log_target, log_level):
 #            print("pickling")
 #            mxc.pickle_xml()
 
-
-# handling all the different options of what we want to do
+#allowing this to be called directly to let debugging work on PyCharm
 if __name__ == '__main__':
-    what = sys.argv[1]
-    print("running command {}".format(what))
-
-    if what == "connect":
-        pass
-    elif what == "demanddata":
-        import agent_components.demand.make_pickled_matrix as pm
-        pm.run()
-
- 
+    cli()

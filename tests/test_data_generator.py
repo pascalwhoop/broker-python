@@ -1,12 +1,10 @@
 import unittest
-from unittest.mock import Mock
 
 import agent_components.demand.data_generator as ddg
-import model.environment as env
-import model.environment as env
+import env.environment as env
 
-import util.state_extractor as se
-from tests.utils import list_dim
+import statefiles.state_extractor as se
+
 
 class TestDemandDataGenerator(unittest.TestCase):
 

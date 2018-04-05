@@ -5,13 +5,18 @@ from keras.layers import Dense, Activation, BatchNormalization
 from keras.optimizers import sgd
 import logging
 
+from agent_components.demand.learner.dense.dense_preprocessing import CustomSequenceDenseTraining, GamesIterator
+
 logging.basicConfig(level=logging.INFO)
 
-from agent_components.demand.learner import preprocessing
-
 #losses = []
-from agent_components.demand.learner.lstm_model import callbacks
-from agent_components.demand.learner.preprocessing import DATAPOINTS_PER_TS, GamesIterator, CustomSequenceDenseTraining
+
+BATCH_SIZE        = 1  # number of sequences to feed to the model at once and whose errors are added up before propagated
+SAMPLING_RATE     = 3   # assuming correlation between hours somewhere in this range (6h ago, 12h ago, 18h ago, 24h ago,..)
+SEQUENCE_LENGTH   = 168 # one week sequences because that's a probable range for patterns
+DATAPOINTS_PER_TS = 17  # number of datapoints in each timestep. That's customer data, weather, usage etc
+VALIDATION_PART   = 0.05
+
 
 logging.info("making validation data")
 gi = GamesIterator()

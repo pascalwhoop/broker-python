@@ -1,5 +1,5 @@
 from datetime import datetime
-import config as cfg
+from util import config as cfg
 from model.model_root import ModelRoot
 
 

@@ -12,12 +12,25 @@ __________________________________
     - withValue
     - setTariffId
  
-To get a Market PERFORMANCE OVERVIEW:
-_____________________________________
-
-- TariffSubscription
-- TariffTransaction
-
 
 to make parsing easier: always do: _jsm_NameOfMethodInJava
 
+[
+  "cust_population"
+  "cust_customerClass",
+  "cust_controllableKW",
+  "cust_upRegulationKW",
+  "cust_downRegulationKW",
+  "rate_minValue",
+  "rate_maxValue",
+  "rate_noticeInterval",
+  "rate_expectedMean",
+  "rate_maxCurtailment",
+  "time_dow",
+  "time_hod",
+  "weather_time",
+  "weather_temperature",
+  "weather_windSpeed",
+  "weather_windDirection",
+  "weather_cloudCover",
+] 
