@@ -1,8 +1,8 @@
 import os
 
-from agent_components.demand.learner.lstm import lstm_preprocessing as preprocessing
-from agent_components.demand.learner.lstm import lstm_model
-from agent_components.demand.learner.lstm.lstm_model import MODEL_NAME
+from agent_components.demand.learning.lstm import lstm_preprocessing as preprocessing
+from agent_components.demand.learning.lstm import lstm_model
+from agent_components.demand.learning.lstm.lstm_model import MODEL_NAME
 
 mdl = lstm_model.get_model()
 #losses = []

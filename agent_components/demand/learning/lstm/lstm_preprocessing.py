@@ -8,8 +8,8 @@ import os
 import pickle
 import logging
 
-from agent_components.demand.learner.lstm.lstm_model import SEQUENCE_LENGTH, SAMPLING_RATE, BATCH_SIZE, VALIDATION_PART
-
+from agent_components.demand.learning.lstm.lstm_model import SEQUENCE_LENGTH, SAMPLING_RATE, BATCH_SIZE, VALIDATION_PART
+import util.config as cfg
 
 def generate_batches_for_customer(data, targets):
     """[keras docs](https://keras.io/preprocessing/sequence/#timeseriesgenerator)"""
@@ -22,7 +22,7 @@ def generate_batches_for_customer(data, targets):
 
 # getting the files path of data to train on
 os.getcwd()
-consume_files_path = os.path.abspath(os.path.join(os.getcwd(), "data/consume"))
+consume_files_path = os.path.join(cfg.DATA_PATH, "demand")
 files = os.listdir(consume_files_path)
 files.sort()
 
@@ -36,7 +36,7 @@ def get_game_data(train_path, label_path):
     return [training_data, labels]
 
 
-class GruCustomerIterator:
+class LSTMCustomerIterator:
     """Iterator that serves customer Sequence objects using the TimeseriesGenerator
     """
     def __init__(self, data_customers, targets_customers):

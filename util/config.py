@@ -4,6 +4,9 @@ Holds all config variables for python broker
 """
 ROUNDING_PRECISION = 3
 DATETIME_PATTERN   = "%Y-%m-%dT%H:%M:%S.000Z"
+TENSORBOARD_PATH   = "tensorboard/"
+DATA_PATH          = "data/"
+MODEL_PATH         = os.path.join(DATA_PATH, "models")
 LOG_PATH           = "log/"
 LOG_LEVEL          = "INFO"
 ADAPTER_HOST       = "localhost"
@@ -11,6 +14,25 @@ ADAPTER_PORT       = "1234"
 AGENT_COMPONENTS   = ['demand','tariff','wholesale','balancing']
 STATE_FILES_ROOT   = "./data/state_files"
 
+
+###############################
+# Component configuration
+###############################
+DEMAND_LEARNER = "gru"
+WHOLESALE_LEARNER = "rl"
+TARIFF_LEARNER = "dense"
+
+# demand config
+DEMAND_VALIDATION_PART   = 0.05
+DEMAND_FORECAST_DISTANCE = 1
+DEMAND_SEQUENCE_LENGTH   = 48 # one week sequences because that's a probable range for patterns
+DEMAND_SEQUENCE_STRIDE   = 4  #every 4 timesteps will be used for a new forecasting request
+DEMAND_GRU_EPOCHS_P_GAME = 20
+DEMAND_BATCH_SIZE        = 32  # TODO... higher? number of sequences to feed to the model at once and whose errors are added up before propagated
+DEMAND_SAMPLING_RATE     = 2   # assuming correlation between hours somewhere in this range (6h ago, 12h ago, 18h ago, 24h ago,..)
+#GRU_DEMAND_DATAPOINTS_PER_TS = 17  # number of datapoints in each timestep. That's customer data, weather, usage etc
+#GRU_DEMAND_DATAPOINTS_PER_TS = 1  # solely based on previous usage version
+DEMAND_GRU_DATAPOINTS_PER_TS = 46  # sparse version
 
 ###############################
 #logging setup
@@ -51,3 +73,5 @@ def get_log_config():
             },
         } 
     }
+
+

@@ -1,7 +1,7 @@
 import os
+import pickle
 
 import agent_components.demand.data_generator as dg
-import pickle
 
 training_data = []
 labels_data   = []
@@ -29,8 +29,6 @@ def pickel_data():
 def store_game(consume_data):
     for c in consume_data.values():
         #each customer.. one array
-        c_training =c[0]
-        c_labels = c[1]
         training_data.append(c[0])
         labels_data.append(c[1])
 
@@ -55,7 +53,8 @@ def round_callback():
 
 
 def run():
-    dg.se.run_through_all_files(dg.tick_callback, round_callback)
+    import statefiles.state_extractor as se
+    se.run_through_all_files(dg.tick_callback, round_callback)
 
 
 #import profile
