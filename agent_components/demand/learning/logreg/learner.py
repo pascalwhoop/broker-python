@@ -1,10 +1,10 @@
 import logging
 import time
 
-from keras.layers import CuDNNGRU, regularizers
-from keras.layers.core import Activation, Dense, Dropout
+from keras.layers.core import Dense, Dropout
 from keras.models import Sequential
-from keras.optimizers import rmsprop
+from keras.optimizers import sgd
+from keras.regularizers import l1_l2, l2
 from keras.utils import Sequence
 
 import util.config as cfg
@@ -29,10 +29,15 @@ class Learner(AbstractLearnerInterface):
         for g_number, game in enumerate(GamesIterator('demand')):
             log.info(GAME_NUMBER_X.format(g_number))
             train, validation = self.split_game(game)
-            generator = DemandCustomerSequence(cfg.DEMAND_FORECAST_DISTANCE, train[0], train[1])
-            validation_sequences = drain_generator(DemandCustomerSequence(cfg.DEMAND_FORECAST_DISTANCE, validation[0], validation[1]), 10)
-            self.run_epoch(mdl, generator, validation_sequences, g_number, tb_writer)
-            #self.fit_with_generator(mdl, generator, self.keras_callbacks, validation_set=validation_sequences)
+            if cfg.DEMAND_LOGREG_FEATURES is not True:
+                #training Logistic Regression only on Usage data, not on metadata
+                train[0] = None
+                validation[0] = None
+
+            generator = DemandCustomerSequence(cfg.DEMAND_FORECAST_DISTANCE, train[0], train[1], flatten_sequences=True)
+            validation_sequences = drain_generator(DemandCustomerSequence(cfg.DEMAND_FORECAST_DISTANCE, validation[0], validation[1], flatten_sequences=True), 10)
+            #self.run_epoch(mdl, generator, validation_sequences, g_number, tb_writer)
+            self.fit_with_generator(mdl, generator, self.keras_callbacks, validation_set=validation_sequences)
             mw.write_model(mdl)
 
 
@@ -40,23 +45,15 @@ class Learner(AbstractLearnerInterface):
         model = Sequential()
 
         #input layer
-        model.add(CuDNNGRU (input_shape=(int(cfg.DEMAND_SEQUENCE_LENGTH / cfg.DEMAND_SAMPLING_RATE),
-                                         cfg.DEMAND_DATAPOINTS_PER_TS),
-                            units=cfg.DEMAND_DATAPOINTS_PER_TS,
-                            kernel_regularizer=regularizers.l1(0.01),
-                            return_sequences=True,
-                            ))
-        model.add(CuDNNGRU(units=200,
-                           return_sequences=True))
-        model.add(Dropout(0.2))
-        model.add(CuDNNGRU(units=100))
-        model.add(Dropout(0.2))
-        model.add(Dense(units=100))
-        model.add(Dense(units=1))
-        model.add(Activation('linear'))
-
+        input_shape = (int(cfg.DEMAND_SEQUENCE_LENGTH / cfg.DEMAND_SAMPLING_RATE),)
+        if cfg.DEMAND_LOGREG_FEATURES is not None:
+            input_shape = (input_shape[0] * cfg.DEMAND_DATAPOINTS_PER_TS, )
+        model.add(Dense(1,
+                        input_shape=input_shape,
+                        W_regularizer= l2(0.1),
+                        ))
         start = time.time()
-        optimizr = rmsprop(lr=0.01)
+        optimizr = sgd(lr=0.001)
         model.compile(loss='mae', optimizer=optimizr)
         log.info('compilation time : {}'.format(time.time() - start))
         return model
@@ -68,8 +65,8 @@ class Learner(AbstractLearnerInterface):
         return model.fit_generator(train_generator,
                             steps_per_epoch=None,  #a generator size (aka one customer) is an epoch
                             #steps_per_epoch=200,  #a generator size (aka one customer) is an epoch
-                            epochs=1,
-                            verbose=1,  #progress bar, 2 = line per epoch
+                            epochs=10,
+                            verbose=1,  # 1 = progress bar, 2 = line per epoch
                             callbacks=callbacks,
                             validation_data=validation_set,
                             #validation_steps=None,
