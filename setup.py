@@ -8,6 +8,8 @@ setup(
         'Click',
         'numpy',
         'keras',
+        'scikit-learn',
+        'tensorflow-gpu',
         ],
     entry_points='''
         [console_scripts]

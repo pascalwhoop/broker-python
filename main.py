@@ -8,7 +8,7 @@ import click
 #import util.make_xml_collection as mxc
 #import communication.powertac_communication as comm
 import util.config as cfg
-from tests.util.strings import MODEL_NAME
+from util.strings import MODEL_NAME
 from tests.util.utils import get_now_date_file_ready
 
 

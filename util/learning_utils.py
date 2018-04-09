@@ -1,5 +1,6 @@
 import abc
 import pickle
+import numpy as np
 
 import tensorflow as tf
 import os
@@ -16,7 +17,7 @@ import util.config as cfg
 
 
 class ModelWriter:
-    """Helper for Model writing. Assumes """
+    """Helper for Model writing. Assumes some things about the folder structure and then write the model out to disk"""
 
     def __init__(self, model_name):
         self.model_name = model_name
@@ -61,9 +62,15 @@ class AbstractLearnerInterface:
         self.model_writer = ModelWriter(model_name)
         self.keras_callbacks = get_callbacks(model_name)
 
+        self.split_size = cfg.VALIDATION_SPLIT
+
     def run(self):
         """implement this one as it should never be reached"""
         log.error("run not implemented for component learning")
+
+
+    def predict(self, x):
+        return self.model.predict(x)
 
     @abc.abstractmethod
     def get_model(self) -> Model:
@@ -71,23 +78,34 @@ class AbstractLearnerInterface:
         pass
 
     def store_model(self):
-        path = os.path.join(cfg.MODEL_PATH, MODEL_WEIGHTS_FILE.format(self.model_name))
-        self.model.save_weights(path)
+        self.model_writer.write_model(self.model)
+
+    def split_game(self, game):
+        x = np.array(game[0])
+        y = np.array(game[1])
+        ts = len(y[0])
+        train_len = int((1 - self.split_size) * ts)
+
+        train = (x[:,:train_len], y[:,:train_len])
+        valid = (x[:,train_len:], y[:,train_len:])
+
+        return train, valid
+
+    def set_split_size(self, split):
+        self.split_size =  split
 
 
 ####################################################################################
 
 # standard callbacks used with keras when possible
 def get_callbacks(model_name):
-    callbacks = []
-    callbacks.append(TensorBoard(log_dir='./Graph/{}/'.format(model_name),
-                                 histogram_freq=1,
-                                 batch_size=32,
-                                 write_grads=True,
-                                 write_graph=True,
-                                 write_images=True)
-                     )
-    callbacks.append(TerminateOnNaN())
+    return [TensorBoard(log_dir=os.path.join(cfg.TENSORBOARD_PATH, model_name),
+                             histogram_freq=10,
+                             batch_size=32,
+                             write_grads=True,
+                             write_graph=True,
+                             write_images=True),
+            TerminateOnNaN()]
 
 
 ####################################################################################

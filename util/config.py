@@ -22,17 +22,20 @@ DEMAND_LEARNER = "gru"
 WHOLESALE_LEARNER = "rl"
 TARIFF_LEARNER = "dense"
 
+# learning config
+VALIDATION_SPLIT = 0.10 #don't go below 10%, otherwise the hotencoding breaks (ugly bug but annoying to fix)
 # demand config
 DEMAND_VALIDATION_PART   = 0.05
-DEMAND_FORECAST_DISTANCE = 1
+DEMAND_FORECAST_DISTANCE = 24
 DEMAND_SEQUENCE_LENGTH   = 48 # one week sequences because that's a probable range for patterns
 DEMAND_SEQUENCE_STRIDE   = 4  #every 4 timesteps will be used for a new forecasting request
-DEMAND_GRU_EPOCHS_P_GAME = 20
 DEMAND_BATCH_SIZE        = 32  # TODO... higher? number of sequences to feed to the model at once and whose errors are added up before propagated
-DEMAND_SAMPLING_RATE     = 2   # assuming correlation between hours somewhere in this range (6h ago, 12h ago, 18h ago, 24h ago,..)
+DEMAND_SAMPLING_RATE     = 1   # assuming correlation between hours somewhere in this range (6h ago, 12h ago, 18h ago, 24h ago,..)
 #GRU_DEMAND_DATAPOINTS_PER_TS = 17  # number of datapoints in each timestep. That's customer data, weather, usage etc
 #GRU_DEMAND_DATAPOINTS_PER_TS = 1  # solely based on previous usage version
-DEMAND_GRU_DATAPOINTS_PER_TS = 46  # sparse version
+DEMAND_DATAPOINTS_PER_TS = 47  # sparse version
+DEMAND_GRU_EPOCHS_P_GAME = 20
+DEMAND_LOGREG_FEATURES   = True
 
 ###############################
 #logging setup
