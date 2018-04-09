@@ -51,15 +51,14 @@ class Learner(AbstractLearnerInterface):
             input_shape = (input_shape[0] * cfg.DEMAND_DATAPOINTS_PER_TS, )
         model.add(Dense(100,
                         input_shape=input_shape,
-                        W_regularizer= l2(0.1),
+                        W_regularizer= l2(0.02),
                         ))
         model.add(BatchNormalization())
         model.add(Dropout(0.2))
         model.add(Dense(20))
-        model.add(Dropout(0.2))
         model.add(Dense(1))
         start = time.time()
-        optimizr = sgd(lr=0.001)
+        optimizr = sgd(lr=0.03)
         model.compile(loss='mae', optimizer=optimizr)
         log.info('compilation time : {}'.format(time.time() - start))
         return model
@@ -71,7 +70,7 @@ class Learner(AbstractLearnerInterface):
         return model.fit_generator(train_generator,
                             steps_per_epoch=None,  #a generator size (aka one customer) is an epoch
                             #steps_per_epoch=200,  #a generator size (aka one customer) is an epoch
-                            epochs=10,
+                            epochs=1,
                             verbose=1,  # 1 = progress bar, 2 = line per epoch
                             callbacks=callbacks,
                             validation_data=validation_set,
