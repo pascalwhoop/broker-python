@@ -45,11 +45,12 @@ def generate_data(component):
 
 
 
-#@cli.command()
-#@click.option('--continuous', default=True)
-#def compete(continuous):
-#    """take part in a powertac competition"""
-#    pass
+@cli.command()
+@click.option('--continuous', default=True)
+def compete(continuous):
+    """take part in a powertac competition"""
+    import communication.powertac_communication_server as server
+    server.serve()
 
 
 @cli.command()

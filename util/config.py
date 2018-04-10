@@ -14,6 +14,8 @@ ADAPTER_PORT       = "1234"
 AGENT_COMPONENTS   = ['demand','tariff','wholesale','balancing']
 STATE_FILES_ROOT   = "./data/state_files"
 
+GRPC_PORT = 1234
+
 
 ###############################
 # Component configuration

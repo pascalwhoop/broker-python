@@ -1,8 +1,8 @@
 import unittest
-from unittest.mock import MagicMock, patch
-import communication.powertac_communication as comm
+from unittest.mock import MagicMock
+import communication.powertac_communication_client as comm
 import util.id_generator as idg
-import tacgrpc.grpc_pb2 as model
+import communication.grpc_pb2 as model
 
 
 class TestPowertacCommunication(unittest.TestCase):
