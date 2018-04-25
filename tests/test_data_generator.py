@@ -1,7 +1,7 @@
 import unittest
 
 import agent_components.demand.data_generator as ddg
-import env.environment as env
+from env import environment
 
 import statefiles.state_extractor as se
 
@@ -9,12 +9,12 @@ import statefiles.state_extractor as se
 class TestDemandDataGenerator(unittest.TestCase):
 
     def setUp(self):
-        env.reset()
+        environment.reset_instance()
 
 
 
     def _tick_callback(self):
-        ddg.make_training_rows(env)
+        ddg.make_training_rows(environment.get_instance())
 
 
     def test_make_training_rows(self):

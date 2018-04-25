@@ -3,13 +3,12 @@ from ast import literal_eval
 import util.config as cfg
 import logging
 
-from env.environment import Environment
 from model.StatelineParser import StatelineParser
 from model.weather import WeatherForecastPrediction, WeatherReport
 
 
 class WeatherStore():
-    def __init__(self, env: Environment):
+    def __init__(self, env):
         self.env = env
         self.weather_forecasts   = {}
         self.weather_predictions = {} #keys are origin+FC --> "360+14" --> Obj

@@ -6,21 +6,27 @@ from model.rate import Rate
 from model.tariff import Status, Tariff, TariffStats
 from model.StatelineParser import StatelineParser
 import model.tariff_transaction as tt
-import env.environment as env
+from env import environment
 import model.customer_info as ci
 import tests.teststrings as strings
 
 
+env = environment.get_instance()
+
 class TestEnvironment(unittest.TestCase):
 
     def setUp(self):
-        env.reset()
+        environment.reset_instance()
+        global env
+        env = environment.get_instance()
+
+
 
     def test_handle_tariff_rr(self):
         line = '75891:org.powertac.common.TariffSpecification::501597402::-rr::4819::ELECTRIC_VEHICLE::0::0.0::0.0::0.0::null\n'
         # TODO do we also need to handle new specs? They get "newed" if they are from the default broker right?"
-        env.handle_tariff_rr(line)
-        self.assertEqual(env.tariffs["501597402"].powerType, "ELECTRIC_VEHICLE")
+        env.tariff_store.handle_tariff_rr(line)
+        self.assertEqual(env.tariff_store.tariffs["501597402"].powerType, "ELECTRIC_VEHICLE")
 
     def test_handle_tariff_status_from_state_line(self):
         pass
@@ -28,11 +34,11 @@ class TestEnvironment(unittest.TestCase):
     def test_handle_tariff_revoke_from_state_line(self):
         spec = "79053:org.powertac.common.TariffSpecification::200000263::-rr::4818::CONSUMPTION::0::0.0::0.0::0.0::null"
         revoke = "194951:org.powertac.common.msg.TariffRevoke::200000429::-rr::4818::200000263"
-        env.handle_tariff_rr(spec)
-        self.assertEqual(1, len(env.tariffs))
-        self.assertEqual(env.tariffs["200000263"].status, Status.PENDING)
-        env.handle_tariffRevoke_new(revoke)
-        self.assertEqual(env.tariffs["200000263"].status, Status.WITHDRAWN)
+        env.tariff_store.handle_tariff_rr(spec)
+        self.assertEqual(1, len(env.tariff_store.tariffs))
+        self.assertEqual(env.tariff_store.tariffs["200000263"].status, Status.PENDING)
+        env.tariff_store.handle_tariffRevoke_new(revoke)
+        self.assertEqual(env.tariff_store.tariffs["200000263"].status, Status.WITHDRAWN)
 
     def test_handle_rate_from_state_line(self):
         # env.handle_rate_from_state_line(line)
@@ -44,14 +50,14 @@ class TestEnvironment(unittest.TestCase):
 
         customer_info_lines = strings.STATE_LINES[1:6]
         for l in customer_info_lines:
-            env.handle_customerInfo(l)
+            env.tariff_store.handle_customerInfo(l)
         self.assertEqual(1, ci.CustomerInfo._jsm_withPowerType.call_count)
         ci.CustomerInfo._jsm_withUpRegulationKW.assert_called_with("-6.6")
 
     def test_get_tariff_type(self):
         line = "8828:org.powertac.common.TariffTransaction::3328::new::1876::360::SIGNUP::1878::3320::30000::0.0::-0.0::false"
         parts = StatelineParser.split_line(line)
-        t = env._get_tariff_type(parts)
+        t = env.tariff_store._get_tariff_type(parts)
         self.assertEqual(tt.TransactionType.SIGNUP, t)
 
     def test_handle_transaction_consume(self):
@@ -59,28 +65,28 @@ class TestEnvironment(unittest.TestCase):
         consume_line = "100308:org.powertac.common.TariffTransaction::5495::new::1876::360::CONSUME::1878::3735::1::-4.444444444444445::2.2222222222222223::false"
         tariff_id = "1878"
         # mock data
-        env.tariffs[tariff_id] = Tariff(id_=tariff_id)
+        env.tariff_store.tariffs[tariff_id] = Tariff(id_=tariff_id)
         stats = TariffStats(0)
         stats.initial_timeslot = 360
-        env.tariff_stats[tariff_id] = stats
+        env.tariff_store.tariff_stats[tariff_id] = stats
         # call
-        env.handle_TariffTransaction_new(consume_line)
+        env.tariff_store.handle_TariffTransaction_new(consume_line)
         # asserts
         # assert transactions is stored locally
-        self.assertIsNotNone(env.transactions["3735"][0])
+        self.assertIsNotNone(env.tariff_store.transactions["3735"][0])
         # assert stats are updated accordingly
         self.assertEqual(-4.4444, stats.timeslot_stats[0][5])
         self.assertEqual(2.2222, stats.timeslot_stats[0][2])
         # let's add another one
         consume_line = "100308:org.powertac.common.TariffTransaction::5495::new::1876::360::CONSUME::1878::3735::1::-2.234444444445::5.1235222222222223::false"
-        env.handle_TariffTransaction_new(consume_line)
+        env.tariff_store.handle_TariffTransaction_new(consume_line)
         # assert sums make sense
         self.assertEqual(-6.6788, stats.timeslot_stats[0][5])
         self.assertEqual(7.3457, stats.timeslot_stats[0][2])
 
         # let's add another one but from a different timeslot (1 later)
         consume_line = "100308:org.powertac.common.TariffTransaction::5495::new::1876::361::CONSUME::1878::3735::1::-2.234444444445::5.1235222222222223::false"
-        env.handle_TariffTransaction_new(consume_line)
+        env.tariff_store.handle_TariffTransaction_new(consume_line)
         # assert sums make sense
         self.assertEqual(2, len(stats.timeslot_stats))
         self.assertEqual(-2.2344, stats.timeslot_stats[1][5])
@@ -88,21 +94,21 @@ class TestEnvironment(unittest.TestCase):
 
     def test_add_transaction(self):
         trans = tt.TariffTransaction(customerInfo= "foo")
-        env.current_timestep = 1
-        env._add_transaction(trans)
+        env.tariff_store.current_timestep = 1
+        env.tariff_store._add_transaction(trans)
 
-        self.assertEqual(env.transactions["foo"][0][0], trans)
+        self.assertEqual(env.tariff_store.transactions["foo"][0][0], trans)
 
     def test_handle_timeslotUpdate_new(self):
         lines = [l for l in strings.STATE_LINES if "TimeslotUpdate" in l]
-        env.handle_timeslotUpdate_new(lines[0])
+        env.timeslot_store.handle_timeslotUpdate_new(lines[0])
 
         self.assertEqual(383, env.first_enabled)
         self.assertEqual(406, env.last_enabled)
         self.assertEqual(382, env.current_timestep)
 
         for l in lines:
-            env.handle_timeslotUpdate_new(l)
+            env.timeslot_store.handle_timeslotUpdate_new(l)
 
         self.assertEqual(381+len(lines), env.current_timestep)
         date = datetime(year=2014, month=12, day=27, hour=11) #2014-12-27T11:00:00.000Z
@@ -124,23 +130,23 @@ class TestEnvironment(unittest.TestCase):
             "6673:org.powertac.common.WeatherForecast::611::new::369::(242,243)"
             ]
         #adding the predictions to environment
-        env.handle_weatherForecastPrediction_new(lines[0])
-        env.handle_weatherForecastPrediction_new(lines[1])
-        env.handle_weatherForecastPrediction_new(lines[2])
-        env.handle_weatherForecastPrediction_new(lines[3])
-        self.assertIn("26", env.weather_predictions)
-        self.assertIn("242", env.weather_predictions)
-        env.handle_weatherForecast_new(lines[4])
-        env.handle_weatherForecast_new(lines[5])
-        self.assertIn("360+1", env.weather_predictions)
-        self.assertIn("369+1", env.weather_predictions)
+        env.weather_store.handle_weatherForecastPrediction_new(lines[0])
+        env.weather_store.handle_weatherForecastPrediction_new(lines[1])
+        env.weather_store.handle_weatherForecastPrediction_new(lines[2])
+        env.weather_store.handle_weatherForecastPrediction_new(lines[3])
+        self.assertIn("26", env.weather_store.weather_predictions)
+        self.assertIn("242", env.weather_store.weather_predictions)
+        env.weather_store.handle_weatherForecast_new(lines[4])
+        env.weather_store.handle_weatherForecast_new(lines[5])
+        self.assertIn("360+1", env.weather_store.weather_predictions)
+        self.assertIn("369+1", env.weather_store.weather_predictions)
 
 
     def test_handle_weatherReport_new(self):
         lines = [l for l in strings.STATE_LINES if "WeatherReport" in l]
-        env.handle_weatherReport_new(lines[0])
+        env.weather_store.handle_weatherReport_new(lines[0])
 
-        self.assertEqual(1, len(env.weather_reports))
+        self.assertEqual(1, len(env.weather_store.weather_reports))
 
     def test_handle_timeslotUpdate_new2(self):
         line = "4668:org.powertac.common.Competition::0::withSimulationBaseTime::1418256000000"
@@ -161,11 +167,11 @@ class TestEnvironment(unittest.TestCase):
             "681593: org.powertac.common.Rate::700111446::-rr::700111448::-1::-1::-1::-1::0.0::true::0.0495::0.0::0::0.0::0.0",
             "681592:org.powertac.common.TariffSpecification::700111445::-rr::4803::SOLAR_PRODUCTION::432000000::0.0::-10.0::-6.0::null"
         ]
-        env.handle_rate_rr(lines[0])
-        env.handle_rate_rr(lines[1])
-        env.handle_tariff_rr(lines[2])
+        env.tariff_store.handle_rate_rr(lines[0])
+        env.tariff_store.handle_rate_rr(lines[1])
+        env.tariff_store.handle_tariff_rr(lines[2])
 
-        self.assertEqual("700111446", env.tariffs["700111445"]._rates[0].id_)
+        self.assertEqual("700111446", env.tariff_store.tariffs["700111445"]._rates[0].id_)
 
 
 
@@ -183,13 +189,13 @@ class TestEnvironment(unittest.TestCase):
         tariff.add_rate(rate1)
         tariff.add_rate(rate2)
         tariff.add_rate(rate3)
-        env.tariffs[tariff.id_] = tariff
+        env.tariff_store.tariffs[tariff.id_] = tariff
 
-        env.rates[rate1.id_] = rate1
-        env.rates[rate2.id_] = rate2
-        env.rates[rate3.id_] = rate3
+        env.tariff_store.rates[rate1.id_] = rate1
+        env.tariff_store.rates[rate2.id_] = rate2
+        env.tariff_store.rates[rate3.id_] = rate3
         env.first_tod = datetime(year=2010, month=1, day=1, hour=0, minute=0) #friday
-        self.assertEqual(rate1, env.get_rate_for_customer_transactions([transaction1]))
-        self.assertEqual(rate2, env.get_rate_for_customer_transactions([transaction2]))
-        self.assertEqual(rate3, env.get_rate_for_customer_transactions([transaction3]))
+        self.assertEqual(rate1, env.tariff_store.get_rate_for_customer_transactions([transaction1]))
+        self.assertEqual(rate2, env.tariff_store.get_rate_for_customer_transactions([transaction2]))
+        self.assertEqual(rate3, env.tariff_store.get_rate_for_customer_transactions([transaction3]))
 

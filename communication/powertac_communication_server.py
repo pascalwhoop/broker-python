@@ -2,6 +2,7 @@ import logging
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from google.protobuf.json_format import MessageToJson
 
 import grpc
 import sys
@@ -60,6 +61,7 @@ class ContextManagerService(ptac_grpc.ContextManagerServiceServicer):
         return ptac_pb2.Empty()
 
     def handlePBCompetition(self, request, context):
+
         warn_about_grpc_not_implemented()
         return ptac_pb2.Empty()
 

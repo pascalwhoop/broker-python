@@ -10,8 +10,6 @@ import model.tariff as t
 import model.tariff_status as ts
 import model.customer_info as ci
 import model.tariff_transaction as tt
-from env.environment import Environment
-from env.weather_store import WeatherStore
 from util.config import DATETIME_PATTERN
 from model.tariff_transaction import TransactionType
 from model.rate import Rate
@@ -26,7 +24,7 @@ _rates_left_over = []  # sometimes a rate is applied to multiple Tariffs in the 
 # if the tariff doesn't exist yet
 
 class TariffStore():
-    def __init__(self, env: Environment):
+    def __init__(self, env):
         self.env = env
         self.rates = {}
         self.tariffs = {}

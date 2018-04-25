@@ -7,8 +7,9 @@ import re
 from typing import List
 
 import util.config as cfg
-from env import environment
+import env.environment as _env
 
+environment = _env.get_instance()
 
 
 ignored_states = set()
@@ -105,7 +106,7 @@ line_parsers = {
         "withBootstrapTimeslotCount": environment.handle_competition_withBootstrapTimeslotCount,
         "withBootstrapDiscardedTimeslots": environment.handle_competition_withBootstrapDiscardedTimeslots,
         "withSimulationBaseTime": environment.handle_competition_withSimulationBaseTime},
-    "org.powertac.common.CustomerInfo": environment.handle_customerInfo,
+    "org.powertac.common.CustomerInfo": environment.tariff_store.handle_customerInfo,
     "org.powertac.common.DistributionTransaction": None,
     "org.powertac.common.MarketPosition": None,
     "org.powertac.common.MarketTransaction": None,
@@ -119,27 +120,27 @@ line_parsers = {
     "org.powertac.common.msg.SimPause": None,  # not needed
     "org.powertac.common.msg.SimResume": None,  # not needed
     "org.powertac.common.msg.SimStart": None,
-    "org.powertac.common.msg.TariffRevoke": {"new": environment.handle_tariffRevoke_new},
-    "org.powertac.common.msg.TariffStatus": {"new": environment.handle_tariffStatus_new},
-    "org.powertac.common.msg.TimeslotUpdate": {"new": environment.handle_timeslotUpdate_new},
+    "org.powertac.common.msg.TariffRevoke": {"new": environment.tariff_store.handle_tariffRevoke_new},
+    "org.powertac.common.msg.TariffStatus": {"new": environment.tariff_store.handle_tariffStatus_new},
+    "org.powertac.common.msg.TimeslotUpdate": {"new": environment.timeslot_store.handle_timeslotUpdate_new},
     "org.powertac.common.Order": None,
     "org.powertac.common.Orderbook": None,
     "org.powertac.common.OrderbookOrder": None,
     "org.powertac.common.RandomSeed": None,  # not needed
-    "org.powertac.common.Rate": {"-rr": environment.handle_rate_rr, "new": environment.handle_rate_new,
-                                 "withValue": environment.handle_rate_withValue,
-                                 "setTariffId": environment.handle_rate_setTariffId},
+    "org.powertac.common.Rate": {"-rr": environment.tariff_store.handle_rate_rr, "new": environment.tariff_store.handle_rate_new,
+                                 "withValue": environment.tariff_store.handle_rate_withValue,
+                                 "setTariffId": environment.tariff_store.handle_rate_setTariffId},
     "org.powertac.common.RegulationCapacity": None,
     "org.powertac.common.RegulationRate": None,
     "org.powertac.common.Tariff": None,
-    "org.powertac.common.TariffSpecification": {"new": environment.handle_tariff_new,
-                                                "-rr": environment.handle_tariff_rr},
+    "org.powertac.common.TariffSpecification": {"new": environment.tariff_store.handle_tariff_new,
+                                                "-rr": environment.tariff_store.handle_tariff_rr},
     "org.powertac.common.TariffSubscription": None,
-    "org.powertac.common.TariffTransaction": {"new": environment.handle_TariffTransaction_new},
+    "org.powertac.common.TariffTransaction": {"new": environment.tariff_store.handle_TariffTransaction_new},
     "org.powertac.common.TimeService": None,
-    "org.powertac.common.WeatherForecast": {"new": environment.handle_weatherForecast_new},  # not needed
-    "org.powertac.common.WeatherForecastPrediction": {"new": environment.handle_weatherForecastPrediction_new},
-    "org.powertac.common.WeatherReport": {"new": environment.handle_weatherReport_new},
+    "org.powertac.common.WeatherForecast": {"new": environment.weather_store.handle_weatherForecast_new},  # not needed
+    "org.powertac.common.WeatherForecastPrediction": {"new": environment.weather_store.handle_weatherForecastPrediction_new},
+    "org.powertac.common.WeatherReport": {"new": environment.weather_store.handle_weatherReport_new},
     "org.powertac.du.DefaultBroker": None,
     "org.powertac.du.DefaultBrokerService": None,
     "org.powertac.evcustomer.customers.EvCustomer": None,

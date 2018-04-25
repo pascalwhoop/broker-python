@@ -18,7 +18,7 @@ import logging
 from functools import reduce
 from typing import List
 
-import env.environment
+from env import environment
 from env.environment import Environment
 from model.customer_info import CustomerInfo
 from model.tariff_transaction import TransactionType, TariffTransaction
@@ -32,7 +32,7 @@ game_counter = 0
 
 
 def round_callback():
-    env.environment.reset_instance()
+    environment.reset_instance()
     global consume_data
     consume_data = {}
     global game_counter

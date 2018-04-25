@@ -10,3 +10,6 @@ class ModelRoot (object):
         lines = map(lambda i: "{} : {}, ".format(i, d[i]), d)
         return reduce(lambda sum, st: sum + st, lines)
 
+#    @staticmethod
+#    def from_protobuf(protobuf_obj):
+#        pass
