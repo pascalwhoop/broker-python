@@ -1,3 +1,13 @@
+"""This variant of the communication relies on the idea that the python code is a "server" and the java bridge broker
+is a client. This has some advantages: - the majority of message types are sent server-> client - the rpc can be
+called on each received message of the server instead of having to have a stream of messages - the messages that are
+sent to the server however are now a stream "to the client" (which means to the bridge and then JMS to the server) -
+the moment the bridge gets started, the competition starts. This means this part can be started ahead of time and the
+classic "start your clients" approach stays the same. The client starts, connects to this and to the other server and
+bridges.
+
+This assumes that the server will NOT implement this GRPC approach which was the state of the last call with John in
+April '18 """
 import logging
 import time
 import traceback
