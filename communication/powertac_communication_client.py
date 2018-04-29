@@ -5,8 +5,8 @@ from threading import Thread
 import grpc
 
 import util.id_generator as idg
-import tacgrpc.grpc_pb2 as model
-import tacgrpc.grpc_pb2_grpc as tac
+import communication.grpc_pb2 as model
+import communication.grpc_pb2_grpc as tac
 
 _channel           = grpc.insecure_channel('localhost:1234')
 _message_stub      = tac.ServerMessagesStreamStub(_channel)

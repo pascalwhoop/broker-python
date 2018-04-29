@@ -14,6 +14,8 @@ ADAPTER_PORT       = "1234"
 AGENT_COMPONENTS   = ['demand','tariff','wholesale','balancing']
 STATE_FILES_ROOT   = "./data/state_files"
 
+GRPC_PORT = 1234
+
 
 ###############################
 # Component configuration
@@ -36,6 +38,9 @@ DEMAND_SAMPLING_RATE     = 1   # assuming correlation between hours somewhere in
 DEMAND_DATAPOINTS_PER_TS = 47  # sparse version
 DEMAND_GRU_EPOCHS_P_GAME = 20
 DEMAND_LOGREG_FEATURES   = True
+
+#wholesale
+WHOLESALE_AGENT_TEACHER_BROKER = 'tactex'
 
 ###############################
 #logging setup

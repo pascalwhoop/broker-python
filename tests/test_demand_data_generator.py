@@ -1,11 +1,13 @@
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
-import agent_components.demand.data_generator as l
+import agent_components.demand.generate_data.data_generator as l
 from model.customer_info import CustomerInfo
 from model.rate import Rate
-from model.tariff_transaction import TariffTransaction, TransactionType
+from model.tariff_transaction import TariffTransaction
 from util.bunch import Bunch
+from env import environment
+env_ = environment.get_instance()
 
 
 class TestDemandDataGenerator(unittest.TestCase):
@@ -27,11 +29,11 @@ class TestDemandDataGenerator(unittest.TestCase):
         transactions = [TariffTransaction(txType="CONSUME", tariffSpec="123")]
 
         mock_grfct = Mock(return_value=Rate(id_="123"))
-        env_mock = Bunch(get_rate_for_customer_transactions=mock_grfct)
+        tariff_store_mock = Bunch(get_rate_for_customer_transactions=mock_grfct)
+        env_.tariff_store = tariff_store_mock
 
         row = []
-        with patch('agent_components.demand.data_generator.env', new=env_mock):
-            l.add_rate_data(row, transactions)
+        l.add_rate_data(env_, row, transactions)
         self.assertEqual(5, len(row))
 
     counter = 0

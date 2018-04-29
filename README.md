@@ -1,11 +1,11 @@
 # PowerTAC Python Adapter to broker-adapter
 
-##Installation
+## Installation
 
 1. TODO
 2. Install all packages with pip, ideally in a virtual environment to avoid conflicts with locally installed packages
 
-##Architecture
+## Architecture
 
 - `scripts` holds utility script that can be run independently files
 - `notebooks` holds Jupyter notebooks 

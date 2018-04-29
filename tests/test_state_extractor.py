@@ -2,7 +2,7 @@ import importlib
 import unittest
 from unittest.mock import Mock
 
-import statefiles.state_extractor as se
+from statefiles.state_extractor import StateExtractor
 
 
 class TestStateExtractor(unittest.TestCase):
@@ -12,25 +12,29 @@ class TestStateExtractor(unittest.TestCase):
         #doesn't interfere with other tests
         import env.environment as e
         importlib.reload(e)
+        #replacing the mock infested environment with clean version
+        e._env = e.Environment()
 
 
     def test_parse_state_lines(self):
         # mocking a dependency
         import env.environment as _env
+        environment = _env.get_instance()
+
         #mocking our state_handlers away
-        _env.handle_tariff_rr = Mock()
-        _env.handle_customerInfo = Mock()
-        _env.handle_rate_rr = Mock()
-        _env.handle_tariffRevoke_new = Mock()
-        importlib.reload(se)  # we need to reload this module because during parsing of it, the above function was
+        environment.tariff_store.handle_tariff_rr        = Mock()
+        environment.tariff_store.handle_customerInfo     = Mock()
+        environment.tariff_store.handle_rate_rr          = Mock()
+        environment.tariff_store.handle_tariffRevoke_new = Mock()
+        se = StateExtractor()
         # linked to a local variable
-        self.assertEqual(se.environment, _env)
+        self.assertEqual(se.environment, environment)
 
         se.parse_state_lines(msgs)
-        self.assertEqual(13, _env.handle_tariff_rr.call_count)
-        self.assertEqual(5, _env.handle_customerInfo.call_count)
-        self.assertEqual(31, _env.handle_rate_rr.call_count)
-        self.assertEqual(2, _env.handle_tariffRevoke_new.call_count)
+        self.assertEqual(13, environment.tariff_store.handle_tariff_rr       .call_count)
+        self.assertEqual(5,  environment.tariff_store.handle_customerInfo    .call_count)
+        self.assertEqual(31, environment.tariff_store.handle_rate_rr         .call_count)
+        self.assertEqual(2,  environment.tariff_store.handle_tariffRevoke_new.call_count)
 
 
         # testing for everything else being ignored
@@ -39,6 +43,7 @@ class TestStateExtractor(unittest.TestCase):
         # self.assertEqual(29, _env.tariffs['200000263'].finish)
 
     def test_get_origin(self):
+        se = StateExtractor()
         origin = se.get_class(msgs[0])
         self.assertEqual("org.powertac.common.Competition", origin)
         origin = se.get_class(msgs[5])
