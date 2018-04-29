@@ -1,10 +1,10 @@
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
-import agent_components.demand.data_generator as l
+import agent_components.demand.generate_data.data_generator as l
 from model.customer_info import CustomerInfo
 from model.rate import Rate
-from model.tariff_transaction import TariffTransaction, TransactionType
+from model.tariff_transaction import TariffTransaction
 from util.bunch import Bunch
 from env import environment
 env_ = environment.get_instance()

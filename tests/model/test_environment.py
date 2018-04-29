@@ -138,8 +138,8 @@ class TestEnvironment(unittest.TestCase):
         self.assertIn("242", env.weather_store.weather_predictions)
         env.weather_store.handle_weatherForecast_new(lines[4])
         env.weather_store.handle_weatherForecast_new(lines[5])
-        self.assertIn("360+1", env.weather_store.weather_predictions)
-        self.assertIn("369+1", env.weather_store.weather_predictions)
+        self.assertIn((360,1), env.weather_store.weather_predictions)
+        self.assertIn((369,1), env.weather_store.weather_predictions)
 
 
     def test_handle_weatherReport_new(self):

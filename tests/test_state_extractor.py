@@ -2,7 +2,7 @@ import importlib
 import unittest
 from unittest.mock import Mock
 
-import statefiles.state_extractor as se
+from statefiles.state_extractor import StateExtractor
 
 
 class TestStateExtractor(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestStateExtractor(unittest.TestCase):
         environment.tariff_store.handle_customerInfo     = Mock()
         environment.tariff_store.handle_rate_rr          = Mock()
         environment.tariff_store.handle_tariffRevoke_new = Mock()
-        importlib.reload(se)  # we need to reload this module because during parsing of it, the above function was
+        se = StateExtractor()
         # linked to a local variable
         self.assertEqual(se.environment, environment)
 
@@ -43,6 +43,7 @@ class TestStateExtractor(unittest.TestCase):
         # self.assertEqual(29, _env.tariffs['200000263'].finish)
 
     def test_get_origin(self):
+        se = StateExtractor()
         origin = se.get_class(msgs[0])
         self.assertEqual("org.powertac.common.Competition", origin)
         origin = se.get_class(msgs[5])

@@ -14,6 +14,7 @@ import model.customer_info as ci
 import model.tariff_transaction as tt
 from env.tariff_store import TariffStore
 from env.timeslots_store import TimeslotStore
+from env.wholesale_store import WholesaleStore
 from env.weather_store import WeatherStore
 from util.config import DATETIME_PATTERN
 from model.tariff_transaction import TransactionType
@@ -48,6 +49,7 @@ class Environment():
         self.last_enabled     = 0
         #repos
         self.weather_store    = WeatherStore(self)
+        self.wholesale_store  = WholesaleStore(self)
         self.tariff_store     = TariffStore(self)
         self.timeslot_store   = TimeslotStore(self)
 

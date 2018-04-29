@@ -17,6 +17,7 @@ from google.protobuf.json_format import MessageToJson
 import grpc
 import sys
 
+from env import environment
 import communication.grpc_messages_pb2 as ptac_pb2
 import communication.grpc_messages_pb2_grpc as ptac_grpc
 import util.config as cfg
@@ -25,6 +26,7 @@ from util.strings import GRPC_METHOD_NOT_IMPLEMENTED, GRPC_SERVER_STARTING
 log = logging.getLogger(__name__)
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
+_env = None
 
 # Server Bootstrap
 ################################################################################
@@ -36,6 +38,9 @@ def serve():
     ptac_grpc.add_MarketManagerServiceServicer_to_server(MarketManagerService(),       server)
     ptac_grpc.add_PortfolioManagerServiceServicer_to_server(PortfolioManagerService(), server)
     ptac_grpc.add_ConnectionServiceServicer_to_server(ConnectionService(), server)
+
+    global _env
+    _env = environment.get_instance()
 
 
     address = 'localhost:{}'.format(cfg.GRPC_PORT)
@@ -93,8 +98,20 @@ class MarketManagerService(ptac_grpc.MarketManagerServiceServicer):
         warn_about_grpc_not_implemented()
         return ptac_pb2.Empty()
 
-    def handlePBClearedTrade(self, request, context):
-        warn_about_grpc_not_implemented()
+    def handlePBClearedTrade(self, request: ptac_pb2.PBClearedTrade, context):
+        _env.wholesale_store.cleared_trades[request.id] = request
+        return ptac_pb2.Empty()
+
+    def handlePBMarketPosition(self, request: ptac_pb2.PBMarketPosition, context):
+        _env.wholesale_store.market_positions[request.id] = request
+        return ptac_pb2.Empty()
+
+    def handlePBMarketTransaction(self, request: ptac_pb2.PBMarketTransaction, context):
+        _env.wholesale_store.market_transactions[request.id] = request
+        return ptac_pb2.Empty()
+
+    def handlePBOrderbook(self, request: ptac_pb2.PBOrderbook, context):
+        _env.wholesale_store.orderbooks[request.id] = request
         return ptac_pb2.Empty()
 
     def handlePBDistributionTransaction(self, request, context):
@@ -109,24 +126,14 @@ class MarketManagerService(ptac_grpc.MarketManagerServiceServicer):
         warn_about_grpc_not_implemented()
         return ptac_pb2.Empty()
 
-    def handlePBMarketPosition(self, request, context):
-        warn_about_grpc_not_implemented()
+    def handlePBWeatherForecast(self, request: ptac_pb2.PBWeatherForecast, context):
+        _env.weather_store.weather_forecasts[request.currentTimeslot] = request
+        for pred in request.predictions:
+            _env.weather_store.weather_predictions[(request.currentTimeslot, pred.forecastTime)] = pred
         return ptac_pb2.Empty()
 
-    def handlePBMarketTransaction(self, request, context):
-        warn_about_grpc_not_implemented()
-        return ptac_pb2.Empty()
-
-    def handlePBOrderbook(self, request, context):
-        warn_about_grpc_not_implemented()
-        return ptac_pb2.Empty()
-
-    def handlePBWeatherForecast(self, request, context):
-        warn_about_grpc_not_implemented()
-        return ptac_pb2.Empty()
-
-    def handlePBWeatherReport(self, request, context):
-        warn_about_grpc_not_implemented()
+    def handlePBWeatherReport(self, request: ptac_pb2.PBWeatherReport, context):
+        _env.weather_store.weather_reports[request.currentTimeslot] = request
         return ptac_pb2.Empty()
 
     def handlePBBalanceReport(self, request, context):
@@ -169,7 +176,7 @@ class ConnectionService(ptac_grpc.ConnectionServiceServicer):
 # Helper methods
 ################################################################################
 def warn_about_grpc_not_implemented():
-        log.warning(GRPC_METHOD_NOT_IMPLEMENTED)
+        log.info(GRPC_METHOD_NOT_IMPLEMENTED)
         traceback.print_stack()
 
 

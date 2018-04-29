@@ -39,6 +39,9 @@ DEMAND_DATAPOINTS_PER_TS = 47  # sparse version
 DEMAND_GRU_EPOCHS_P_GAME = 20
 DEMAND_LOGREG_FEATURES   = True
 
+#wholesale
+WHOLESALE_AGENT_TEACHER_BROKER = 'tactex'
+
 ###############################
 #logging setup
 ###############################

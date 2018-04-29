@@ -1,3 +1,5 @@
+from typing import List
+
 from model.StatelineParser import StatelineParser
 from model.model_root import ModelRoot
 
@@ -33,22 +35,22 @@ class WeatherForecast(object):
     """holds a set of forecast predictions (24)"""
 
     def __init__(self,
-                 timeslot,
-                 forecasts
-                ):
-        self.timeslot = timeslot
-        self.forecasts = forecasts
+                 currentTimeslot,
+                 predictions: List[WeatherForecastPrediction]
+                 ):
+        self.currentTimeslot = currentTimeslot
+        self.predictions     = predictions
 
 
 class WeatherReport:
     def __init__(self,
-                 timeslot      = 0,
+                 currentTimeslot      = 0,
                  temperature   = 0.0,
                  windSpeed     = 0.0,
                  windDirection = 0.0,
                  cloudCover    = 0.0):
 
-        self.currentTimeslot = timeslot
+        self.currentTimeslot = currentTimeslot
         self.temperature     = temperature
         self.windSpeed       = windSpeed
         self.windDirection   = windDirection % 360
@@ -58,7 +60,7 @@ class WeatherReport:
     def from_state_line(line: str)-> "WeatherReport":
         parts = StatelineParser.split_line(line)
 
-        return WeatherReport (timeslot          = int(parts[3]),
+        return WeatherReport (currentTimeslot= int(parts[3]),
                               temperature   = float(parts[4]),
                               windSpeed     = float(parts[5]),
                               windDirection = float(parts[6]),

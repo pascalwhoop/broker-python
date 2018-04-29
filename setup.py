@@ -9,6 +9,11 @@ setup(
         'numpy',
         'keras',
         'scikit-learn',
+        'keras-rl',
+        'mypy',
+#        'mypy-protbuf',
+        'h5py',
+        'gym',
         'tensorflow-gpu',
         ],
     entry_points='''
