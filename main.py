@@ -9,7 +9,7 @@ import click
 #import communication.powertac_communication as comm
 import util.config as cfg
 from util.strings import MODEL_NAME
-from tests.util.utils import get_now_date_file_ready
+from util.utils import get_now_date_file_ready
 
 
 @click.group()
@@ -115,5 +115,6 @@ def configure_logging(log_target, log_level):
 script_call = click.CommandCollection(sources=[cli])
 if __name__ == '__main__':
     print("calling directly")
-    cli()
+    configure_logging(['file'], 'DEBUG')
+    #cli()
     script_call()

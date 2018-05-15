@@ -4,6 +4,7 @@
 
 1. TODO
 2. Install all packages with pip, ideally in a virtual environment to avoid conflicts with locally installed packages
+3. `pip install editable .` to install the agent cli tool in the local `venv`
 
 ## Architecture
 
