@@ -31,6 +31,9 @@ _env = None
 # Server Bootstrap
 ################################################################################
 
+
+
+
 def serve():
     """Starts the grpc listener on the local machine"""
     server = grpc.server(ThreadPoolExecutor(max_workers=1), interceptors=[CallLogInterceptor()])
@@ -38,6 +41,10 @@ def serve():
     ptac_grpc.add_MarketManagerServiceServicer_to_server(MarketManagerService(),       server)
     ptac_grpc.add_PortfolioManagerServiceServicer_to_server(PortfolioManagerService(), server)
     ptac_grpc.add_ConnectionServiceServicer_to_server(ConnectionService(), server)
+    ptac_grpc.add_ExtraSpyMessageManagerServiceServicer_to_server(ExtraSpyMessageManagerService(), server)
+    ptac_grpc.add_GameServiceServicer_to_server(GameService(), server)
+    #ptac_grpc.add_SubmitAdapterServicer_to_server()
+    ptac_grpc
 
     global _env
     _env = environment.get_instance()
@@ -172,12 +179,36 @@ class ConnectionService(ptac_grpc.ConnectionServiceServicer):
         log.info("ping received")
         return ptac_pb2.Empty()
 
+class GameService(ptac_grpc.GameServiceServicer):
+    def handlePBSimPause(self, request, context):
+        warn_about_grpc_not_implemented()
+        return ptac_pb2.Empty()
+
+    def handlePBTimeslotComplete(self, request, context):
+        warn_about_grpc_not_implemented()
+        return ptac_pb2.Empty()
+
+    def handlePBSimResume(self, request, context):
+        warn_about_grpc_not_implemented()
+        return ptac_pb2.Empty()
+
+    def handlePBTimeslotUpdate(self, request, context):
+        warn_about_grpc_not_implemented()
+        return ptac_pb2.Empty()
+    pass
+
+class ExtraSpyMessageManagerService(ptac_grpc.ExtraSpyMessageManagerServiceServicer):
+    def handlePBOrder(self, request, context):
+        #log.info('received a spied upon order message')
+        return ptac_pb2.Empty()
+    pass
 
 # Helper methods
 ################################################################################
 def warn_about_grpc_not_implemented():
         log.info(GRPC_METHOD_NOT_IMPLEMENTED)
-        traceback.print_stack()
+        #log.debug(traceback.extract_tb())
+        traceback.print_stack(limit=2)
 
 
 class CallLogInterceptor(grpc.ServerInterceptor):

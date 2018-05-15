@@ -7,6 +7,8 @@ import communication.grpc_messages_pb2 as grpc__messages__pb2
 class ContextManagerServiceStub(object):
   """SERVICES
   ====================================================
+
+  mapping of the samplebrokers ContextManagerService callbacks "handleMessage(X)"
   """
 
   def __init__(self, channel):
@@ -45,6 +47,8 @@ class ContextManagerServiceStub(object):
 class ContextManagerServiceServicer(object):
   """SERVICES
   ====================================================
+
+  mapping of the samplebrokers ContextManagerService callbacks "handleMessage(X)"
   """
 
   def handlePBBankTransaction(self, request, context):
@@ -119,8 +123,8 @@ def add_ContextManagerServiceServicer_to_server(servicer, server):
 
 
 class MarketManagerServiceStub(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """mapping of the samplebrokers MarketManagerService callbacks "handleMessage(X)"
+  """
 
   def __init__(self, channel):
     """Constructor.
@@ -196,8 +200,8 @@ class MarketManagerServiceStub(object):
 
 
 class MarketManagerServiceServicer(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """mapping of the samplebrokers MarketManagerService callbacks "handleMessage(X)"
+  """
 
   def handlePBActivate(self, request, context):
     # missing associated documentation comment in .proto file
@@ -365,8 +369,8 @@ def add_MarketManagerServiceServicer_to_server(servicer, server):
 
 
 class PortfolioManagerServiceStub(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """mapping of the samplebrokers PortfolioManagerService callbacks "handleMessage(X)"
+  """
 
   def __init__(self, channel):
     """Constructor.
@@ -407,8 +411,8 @@ class PortfolioManagerServiceStub(object):
 
 
 class PortfolioManagerServiceServicer(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """mapping of the samplebrokers PortfolioManagerService callbacks "handleMessage(X)"
+  """
 
   def handlePBCustomerBootstrapData(self, request, context):
     # missing associated documentation comment in .proto file
@@ -488,6 +492,160 @@ def add_PortfolioManagerServiceServicer_to_server(servicer, server):
   }
   generic_handler = grpc.method_handlers_generic_handler(
       'PortfolioManagerService', rpc_method_handlers)
+  server.add_generic_rpc_handlers((generic_handler,))
+
+
+class GameServiceStub(object):
+  """handles messages that are "meta", i.e. regarding the game itself
+  """
+
+  def __init__(self, channel):
+    """Constructor.
+
+    Args:
+      channel: A grpc.Channel.
+    """
+    self.handlePBTimeslotComplete = channel.unary_unary(
+        '/GameService/handlePBTimeslotComplete',
+        request_serializer=grpc__messages__pb2.PBTimeslotComplete.SerializeToString,
+        response_deserializer=grpc__messages__pb2.Empty.FromString,
+        )
+    self.handlePBTimeslotUpdate = channel.unary_unary(
+        '/GameService/handlePBTimeslotUpdate',
+        request_serializer=grpc__messages__pb2.PBTimeslotUpdate.SerializeToString,
+        response_deserializer=grpc__messages__pb2.Empty.FromString,
+        )
+    self.handlePBSimPause = channel.unary_unary(
+        '/GameService/handlePBSimPause',
+        request_serializer=grpc__messages__pb2.PBSimPause.SerializeToString,
+        response_deserializer=grpc__messages__pb2.Empty.FromString,
+        )
+    self.handlePBSimResume = channel.unary_unary(
+        '/GameService/handlePBSimResume',
+        request_serializer=grpc__messages__pb2.PBSimResume.SerializeToString,
+        response_deserializer=grpc__messages__pb2.Empty.FromString,
+        )
+
+
+class GameServiceServicer(object):
+  """handles messages that are "meta", i.e. regarding the game itself
+  """
+
+  def handlePBTimeslotComplete(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def handlePBTimeslotUpdate(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def handlePBSimPause(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def handlePBSimResume(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+
+def add_GameServiceServicer_to_server(servicer, server):
+  rpc_method_handlers = {
+      'handlePBTimeslotComplete': grpc.unary_unary_rpc_method_handler(
+          servicer.handlePBTimeslotComplete,
+          request_deserializer=grpc__messages__pb2.PBTimeslotComplete.FromString,
+          response_serializer=grpc__messages__pb2.Empty.SerializeToString,
+      ),
+      'handlePBTimeslotUpdate': grpc.unary_unary_rpc_method_handler(
+          servicer.handlePBTimeslotUpdate,
+          request_deserializer=grpc__messages__pb2.PBTimeslotUpdate.FromString,
+          response_serializer=grpc__messages__pb2.Empty.SerializeToString,
+      ),
+      'handlePBSimPause': grpc.unary_unary_rpc_method_handler(
+          servicer.handlePBSimPause,
+          request_deserializer=grpc__messages__pb2.PBSimPause.FromString,
+          response_serializer=grpc__messages__pb2.Empty.SerializeToString,
+      ),
+      'handlePBSimResume': grpc.unary_unary_rpc_method_handler(
+          servicer.handlePBSimResume,
+          request_deserializer=grpc__messages__pb2.PBSimResume.FromString,
+          response_serializer=grpc__messages__pb2.Empty.SerializeToString,
+      ),
+  }
+  generic_handler = grpc.method_handlers_generic_handler(
+      'GameService', rpc_method_handlers)
+  server.add_generic_rpc_handlers((generic_handler,))
+
+
+class ExtraSpyMessageManagerServiceStub(object):
+  """these are messages that other brokers send and that a spy broker
+  may receive because he gets all messages forwarded that others sent to the server.
+  """
+
+  def __init__(self, channel):
+    """Constructor.
+
+    Args:
+      channel: A grpc.Channel.
+    """
+    self.handlePBOrder = channel.unary_unary(
+        '/ExtraSpyMessageManagerService/handlePBOrder',
+        request_serializer=grpc__messages__pb2.PBOrder.SerializeToString,
+        response_deserializer=grpc__messages__pb2.Empty.FromString,
+        )
+    self.handlePBTariffSpec = channel.unary_unary(
+        '/ExtraSpyMessageManagerService/handlePBTariffSpec',
+        request_serializer=grpc__messages__pb2.PBTariffSpecification.SerializeToString,
+        response_deserializer=grpc__messages__pb2.Empty.FromString,
+        )
+
+
+class ExtraSpyMessageManagerServiceServicer(object):
+  """these are messages that other brokers send and that a spy broker
+  may receive because he gets all messages forwarded that others sent to the server.
+  """
+
+  def handlePBOrder(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def handlePBTariffSpec(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+
+def add_ExtraSpyMessageManagerServiceServicer_to_server(servicer, server):
+  rpc_method_handlers = {
+      'handlePBOrder': grpc.unary_unary_rpc_method_handler(
+          servicer.handlePBOrder,
+          request_deserializer=grpc__messages__pb2.PBOrder.FromString,
+          response_serializer=grpc__messages__pb2.Empty.SerializeToString,
+      ),
+      'handlePBTariffSpec': grpc.unary_unary_rpc_method_handler(
+          servicer.handlePBTariffSpec,
+          request_deserializer=grpc__messages__pb2.PBTariffSpecification.FromString,
+          response_serializer=grpc__messages__pb2.Empty.SerializeToString,
+      ),
+  }
+  generic_handler = grpc.method_handlers_generic_handler(
+      'ExtraSpyMessageManagerService', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))
 
 
