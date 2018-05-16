@@ -17,6 +17,7 @@ from google.protobuf.json_format import MessageToJson
 import grpc
 import sys
 
+from communication.pubsub.grpc_adapter import publish_grpc_message
 from env import environment
 import communication.grpc_messages_pb2 as ptac_pb2
 import communication.grpc_messages_pb2_grpc as ptac_grpc
@@ -71,38 +72,38 @@ class ContextManagerService(ptac_grpc.ContextManagerServiceServicer):
         handle<messagetype>()
         """
 
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBCashPosition(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBDistributionReport(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBCompetition(self, request, context):
 
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBProperties(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
 
 class MarketManagerService(ptac_grpc.MarketManagerServiceServicer):
     def handlePBActivate(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBCompetition(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBBalancingTransaction(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBClearedTrade(self, request: ptac_pb2.PBClearedTrade, context):
@@ -122,15 +123,15 @@ class MarketManagerService(ptac_grpc.MarketManagerServiceServicer):
         return ptac_pb2.Empty()
 
     def handlePBDistributionTransaction(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBCapacityTransaction(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBMarketBootstrapData(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBWeatherForecast(self, request: ptac_pb2.PBWeatherForecast, context):
@@ -144,36 +145,36 @@ class MarketManagerService(ptac_grpc.MarketManagerServiceServicer):
         return ptac_pb2.Empty()
 
     def handlePBBalanceReport(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
 
 class PortfolioManagerService(ptac_grpc.PortfolioManagerServiceServicer):
     def handlePBCustomerBootstrapData(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTariffSpecification(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTariffStatus(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTariffTransaction(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTariffRevoke(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBBalancingControlEvent(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
-    
+
 class ConnectionService(ptac_grpc.ConnectionServiceServicer):
     def pingpong(self, request, context):
         log.info("ping received")
@@ -181,19 +182,19 @@ class ConnectionService(ptac_grpc.ConnectionServiceServicer):
 
 class GameService(ptac_grpc.GameServiceServicer):
     def handlePBSimPause(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTimeslotComplete(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBSimResume(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTimeslotUpdate(self, request, context):
-        warn_about_grpc_not_implemented()
+        publish_grpc_message(request)
         return ptac_pb2.Empty()
     pass
 
@@ -202,6 +203,7 @@ class ExtraSpyMessageManagerService(ptac_grpc.ExtraSpyMessageManagerServiceServi
         #log.info('received a spied upon order message')
         return ptac_pb2.Empty()
     pass
+
 
 # Helper methods
 ################################################################################

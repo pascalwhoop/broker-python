@@ -12,7 +12,7 @@ import model.tariff as t
 import model.tariff_status as ts
 import model.customer_info as ci
 import model.tariff_transaction as tt
-from env.tariff_store import TariffStore
+from env.tariff_market_stores import TariffMarketStores
 from env.timeslots_store import TimeslotStore
 from env.wholesale_store import WholesaleStore
 from env.weather_store import WeatherStore
@@ -50,7 +50,7 @@ class Environment():
         #repos
         self.weather_store    = WeatherStore(self)
         self.wholesale_store  = WholesaleStore(self)
-        self.tariff_store     = TariffStore(self)
+        self.tariff_store     = TariffMarketStores(self)
         self.timeslot_store   = TimeslotStore(self)
 
     #competition

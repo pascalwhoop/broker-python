@@ -10,6 +10,7 @@ import model.tariff as t
 import model.tariff_status as ts
 import model.customer_info as ci
 import model.tariff_transaction as tt
+from env.base_store import BaseStore
 from util.config import DATETIME_PATTERN
 from model.tariff_transaction import TransactionType
 from model.rate import Rate
@@ -23,17 +24,17 @@ _rates_left_over = []  # sometimes a rate is applied to multiple Tariffs in the 
 # furthermore, the rate.-rr is called before the tariffSpec.-rr so I can't add the rate to the tariff
 # if the tariff doesn't exist yet
 
-class TariffStore():
+class TariffMarketStores():
     def __init__(self, env):
         self.env = env
+        self.tariffTransactions = []
         self.rates = {}
         self.tariffs = {}
         self.tariff_stats = {}
-        self.customers = {}
+        self.customers = {} 
         self.transactions = {}  # map of lists . Key => customerId, values the transaction objects
 
     def get_rate_for_customer_transactions(self, transactions: List[tt.TariffTransaction]) -> Rate:
-
         potential_rates = [self.tariffs[t.tariffSpec]._rates for t in
                            transactions]  # tariff and TariffSpec have same id (luckily)
         potential_rates = reduce(lambda sum, list: sum + list, potential_rates)
@@ -202,3 +203,12 @@ class TariffStore():
 
     def _get_tariff_type(self, parts: List[str]) -> TransactionType:
         return TransactionType[parts[5]]
+
+class TariffTransactionStore(BaseStore):
+    def insert(self, obj):
+        pass
+
+    def __init__(self, ):
+        super().__init__('id')
+
+
