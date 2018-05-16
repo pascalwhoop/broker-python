@@ -36,11 +36,29 @@ def learn(component, model, tag):
 
 
 @cli.command()
+@click.argument('component', type=click.Choice(cfg.AGENT_COMPONENTS))
+@click.option('--model', help="The model of learner. It is expected to be a submodule under the component.learner. Multiple models are allowed")
+@click.option('--tag', help="add a tag to your model name, allowing for easier quick expermentation and without loosing track of what was changed'")
+def learn_new(component, model, tag):
+    """Triggers learning based on the new PubSub approach, together with Protobuf (PB) based model definitions.
+    This will be the go-to way now.
+    """
+
+    if component in cfg.AGENT_COMPONENTS:
+        module = importlib.import_module('agent_components.{}.learning.{}.learner'.format(component, model))
+        model_name = MODEL_NAME.format(model, tag, get_now_date_file_ready())
+        learner = module.Learner(model_name)
+        log.info("Running {} learning on {}".format(model_name, component))
+        learner.run()
+
+
+
+@cli.command()
 @click.option('--component', type=click.Choice(cfg.AGENT_COMPONENTS))
 def generate_data(component):
     """Generate x/y learning data for agent components"""
     if component == cfg.AGENT_COMPONENTS[0]: #demand
-        import agent_components.demand.generate_data.make_pickled_matrix as mpm
+        import agent_components.demand.generate_data_v1.make_pickled_matrix as mpm
         mpm.run()
     if component == cfg.AGENT_COMPONENTS[2]:
         raise NotImplementedError

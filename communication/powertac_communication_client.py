@@ -5,7 +5,7 @@ from threading import Thread
 import grpc
 
 import util.id_generator as idg
-import communication.grpc_pb2 as model
+import communication.grpc_pb2 as learner
 import communication.grpc_pb2_grpc as tac
 
 _channel           = grpc.insecure_channel('localhost:1234')

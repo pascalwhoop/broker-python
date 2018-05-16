@@ -10,6 +10,7 @@ from keras import Model
 from keras.callbacks import TensorBoard, TerminateOnNaN
 
 from util.strings import MODEL_WEIGHTS_FILE, GETTING_GAME_X
+from util.utils import deprecated
 
 log = logging.getLogger(__name__)
 
@@ -64,9 +65,10 @@ class AbstractLearnerInterface:
 
         self.split_size = cfg.VALIDATION_SPLIT
 
+    @abc.abstractmethod
     def run(self):
         """implement this one as it should never be reached"""
-        log.error("run not implemented for component learning")
+        raise NotImplementedError()
 
 
     def predict(self, x):
@@ -75,11 +77,12 @@ class AbstractLearnerInterface:
     @abc.abstractmethod
     def get_model(self) -> Model:
         """implement this in an inheriting class and return your model"""
-        pass
+        raise NotImplementedError()
 
     def store_model(self):
         self.model_writer.write_model(self.model)
 
+    @deprecated
     def split_game(self, game):
         x = np.array(game[0])
         y = np.array(game[1])

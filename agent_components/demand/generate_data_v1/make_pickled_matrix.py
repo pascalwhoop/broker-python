@@ -1,7 +1,7 @@
 import os
 import pickle
 
-import agent_components.demand.generate_data.data_generator as dg
+import agent_components.demand.generate_data_v1.data_generator as dg
 
 training_data = []
 labels_data   = []

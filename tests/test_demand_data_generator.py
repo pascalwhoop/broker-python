@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-import agent_components.demand.generate_data.data_generator as l
+import agent_components.demand.generate_data_v1.data_generator as l
 from model.customer_info import CustomerInfo
 from model.rate import Rate
 from model.tariff_transaction import TariffTransaction

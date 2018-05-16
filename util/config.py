@@ -36,6 +36,7 @@ DEMAND_SAMPLING_RATE     = 1  # assuming correlation between hours somewhere in 
 #GRU_DEMAND_DATAPOINTS_PER_TS = 1  # solely based on previous usage version
 DEMAND_DATAPOINTS_PER_TS = 47  # sparse version
 DEMAND_GRU_EPOCHS_P_GAME = 20
+DEMAND_ONE_WEEK          = 24*7
 DEMAND_LOGREG_FEATURES   = True
 
 #wholesale
