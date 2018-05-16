@@ -6,7 +6,7 @@ from model.customer_info import CustomerInfo
 from model.rate import Rate
 from model.tariff_transaction import TariffTransaction
 from util.bunch import Bunch
-from env import environment
+from statefiles.env import environment
 env_ = environment.get_instance()
 
 

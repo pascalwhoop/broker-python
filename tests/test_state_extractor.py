@@ -10,7 +10,7 @@ class TestStateExtractor(unittest.TestCase):
     def tearDown(self):
         #because we mocked some functions of an external module, let's reload it so that it
         #doesn't interfere with other tests
-        import env.environment as e
+        import statefiles.env.environment as e
         importlib.reload(e)
         #replacing the mock infested environment with clean version
         e._env = e.Environment()
@@ -18,7 +18,7 @@ class TestStateExtractor(unittest.TestCase):
 
     def test_parse_state_lines(self):
         # mocking a dependency
-        import env.environment as _env
+        import statefiles.env.environment as _env
         environment = _env.get_instance()
 
         #mocking our state_handlers away

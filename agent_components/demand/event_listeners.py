@@ -9,7 +9,6 @@ from agent_components.demand.learning import learner
 def handle_timeslot_complete(sender, msg: PBTimeslotComplete):
     data.calculate_current_timestep(msg)
     training_data = data.calculate_training_data(msg)
-    learner.
 
 
 

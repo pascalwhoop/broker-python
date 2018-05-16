@@ -18,7 +18,7 @@ import grpc
 import sys
 
 from communication.pubsub.grpc_adapter import publish_grpc_message
-from env import environment
+from statefiles.env import environment
 import communication.grpc_messages_pb2 as ptac_pb2
 import communication.grpc_messages_pb2_grpc as ptac_grpc
 import util.config as cfg

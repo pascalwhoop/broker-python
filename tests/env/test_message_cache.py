@@ -1,10 +1,8 @@
 import unittest
 
-from pydispatch import dispatcher
-
 from communication.grpc_messages_pb2 import PBTimeslotComplete
 from communication.pubsub.grpc_adapter import publish_grpc_message
-import env.messages_cache as caches
+import environment.messages_cache as caches
 
 class TestMessageCache(unittest.TestCase):
 

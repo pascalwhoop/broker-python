@@ -7,12 +7,12 @@ import re
 from typing import List
 
 import util.config as cfg
-import env.environment as _env
+import statefiles.env.environment as _env
 import statefiles.line_parser_factory as lpf
 from util import config
 
 
-class StateExtractor():
+class StateExtractor:
     def __init__(self,component=None):
         self.environment = _env.get_instance()
         self.line_parsers = lpf.get_line_parser(self.environment)

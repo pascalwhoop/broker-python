@@ -1,7 +1,7 @@
 import unittest
 
 import agent_components.demand.generate_data_v1.data_generator as ddg
-from env import environment
+from statefiles.env import environment
 
 from statefiles.state_extractor import StateExtractor
 

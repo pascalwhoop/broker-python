@@ -10,7 +10,7 @@ import model.tariff as t
 import model.tariff_status as ts
 import model.customer_info as ci
 import model.tariff_transaction as tt
-from env.base_store import BaseStore
+from statefiles.env.base_store import BaseStore
 from util.config import DATETIME_PATTERN
 from model.tariff_transaction import TransactionType
 from model.rate import Rate
