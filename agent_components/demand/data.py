@@ -1,13 +1,17 @@
 """
 singleton data storage that holds the customers demand data in a form that the learner can work with
 """
+import csv
 import logging
+from typing import List, Tuple
 
 import numpy as np
+from keras.preprocessing.sequence import TimeseriesGenerator
+from keras.utils import Sequence
+from sklearn.preprocessing import MinMaxScaler
 
 import util.config as cfg
-
-from communication.grpc_messages_pb2 import PBTariffTransaction, PBTimeslotComplete, PBCustomerBootstrapData
+from communication.grpc_messages_pb2 import PBCustomerBootstrapData, PBTariffTransaction, PBTimeslotComplete
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +38,7 @@ def update(tt: PBTariffTransaction) -> None:
     customer_data.append(tt)
 
 
-def calculate_current_timestep(tc: PBTimeslotComplete) -> None:
+def make_usages_for_timestep(tc: PBTimeslotComplete) -> None:
     """
     calculates the sum of usages per timeslot per customer
     :param tc:
@@ -48,14 +52,17 @@ def calculate_current_timestep(tc: PBTimeslotComplete) -> None:
         for u in usages:
             sum += u
 
-        if name not in demand_data:
-            demand_data[name] = []
-
-        demand_data[name].append(sum)
+        append_usage(name, sum)
 
     # reset the cache
     tariff_transactions = {}
     log.debug("Calculated usage for customers after completed timeslot for {} customers".format(len(demand_data)))
+
+
+def append_usage(name, sum):
+    if name not in demand_data:
+        demand_data[name] = []
+    demand_data[name].append(sum)
 
 
 def update_with_bootstrap(msg: PBCustomerBootstrapData):
@@ -64,35 +71,50 @@ def update_with_bootstrap(msg: PBCustomerBootstrapData):
         data.extend(msg.netUsage)
         demand_data[msg.customerName] = data
 
-def _clear():
+
+def clear():
+    """clears the data after a game"""
     global demand_data, tariff_transactions
     demand_data = {}
     tariff_transactions = {}
 
-class DemandTrainingData():
-    def __init__(self, ts: PBTimeslotComplete):
-        self.x = []  # array of customers usage histories
-        self.y = []  # array of customers usage for timeslot
-        self.ts: PBTimeslotComplete = ts
 
-    def add_customer(self, x, y):
-        self.x.append(x)
-        self.y.append(y)
+def sequence_for_usages(usages: np.array, is_flat) -> Sequence:
+    """
+    Generates a Sequence for a usages array of a customer
+    :param usages:
+    :return:
+    """
+    scaler = MinMaxScaler()
+    usages = scaler.fit_transform(usages.reshape(-1, 1)).flatten()
+    # let's create a targets array by shifting the original by one
+    ys = np.zeros((len(usages), 24))
+    for i in range(len(usages)):
+        twen4h = usages[i + 1:i + 25]
+        ys[i][0:len(twen4h)] = twen4h
 
+    if is_flat is False:
+        usages = usages.reshape(-1, 1)
 
-def calculate_training_data(ts: PBTimeslotComplete) -> DemandTrainingData:
-    training_data = DemandTrainingData(ts)
-    for c in demand_data:
-        customer_data = demand_data[c]
-        historical = customer_data[-cfg.DEMAND_ONE_WEEK + 1:-1]
-
-        # usage historical length is always the same. if we have not enough data, we pad it
-        x = np.zeros((cfg.DEMAND_ONE_WEEK))
-        offset = cfg.DEMAND_ONE_WEEK - len(historical)
-        x[offset:] = historical
-
-        y = customer_data[-1]
-        training_data.add_customer(x, y)
-    return training_data
+    return TimeseriesGenerator(usages, ys, length=168)
 
 
+def make_sequences_from_historical(is_flat = True) -> List[Sequence]:
+    """
+    Generates sequences from historical data
+    :param is_flat: whether or not the sequence is actually flat (for dense/logres etc) or (168,1) style shape for LSTM
+    :return:
+    """
+    customer_records = list(demand_data.values())
+    sequences = [sequence_for_usages(np.array(usages),is_flat) for usages in customer_records]
+    #customer_records = np.array(customer_records).sum(axis=0)
+    #sequences = [sequence_for_usages(np.array(usages),is_flat) for usages in [customer_records]]
+    return sequences
+
+
+def parse_usage_game_log(file_path):
+    with open(file_path, 'r') as csvfile:
+        for row in csv.DictReader(csvfile, delimiter=','):
+            name = row['cust']
+            usage = float(row[' production']) + float(row[' consumption'])
+            append_usage(name, usage)

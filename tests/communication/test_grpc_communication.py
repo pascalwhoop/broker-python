@@ -2,10 +2,9 @@ import unittest
 
 from pydispatch import dispatcher
 
-import util.config as cfg
 from communication.grpc_messages_pb2 import PBTimeslotComplete
-from communication.powertac_communication_server import warn_about_grpc_not_implemented, GameService
-from communication.pubsub import signals as sig
+from communication.powertac_communication_server import GameService
+
 
 #class TestGrpcCommunication(unittest.TestCase):
 #

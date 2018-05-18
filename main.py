@@ -8,7 +8,7 @@ import click
 #import util.make_xml_collection as mxc
 #import communication.powertac_communication as comm
 import util.config as cfg
-from util.strings import MODEL_NAME
+from util.strings import MODEL_FS_NAME
 from util.utils import get_now_date_file_ready
 
 
@@ -28,29 +28,15 @@ def cli(log_target, log_level):
 def learn(component, model, tag):
     """Triggers the learning of various components off of state files"""
     if component in cfg.AGENT_COMPONENTS:
-        module = importlib.import_module('agent_components.{}.learning.{}.learner'.format(component, model))
-        model_name = MODEL_NAME.format(model, tag, get_now_date_file_ready())
-        learner = module.Learner(model_name)
-        log.info("Running {} learning on {}".format(model_name, component))
-        learner.run()
+
+        component_configurator = get_learner_config(component)
+        component_configurator.configure(model, tag, True)
+        instance = component_configurator.get_instance()
+        instance.learn()
 
 
-@cli.command()
-@click.argument('component', type=click.Choice(cfg.AGENT_COMPONENTS))
-@click.option('--model', help="The model of learner. It is expected to be a submodule under the component.learner. Multiple models are allowed")
-@click.option('--tag', help="add a tag to your model name, allowing for easier quick expermentation and without loosing track of what was changed'")
-def learn_new(component, model, tag):
-    """Triggers learning based on the new PubSub approach, together with Protobuf (PB) based model definitions.
-    This will be the go-to way now.
-    """
-
-    if component in cfg.AGENT_COMPONENTS:
-        module = importlib.import_module('agent_components.{}.learning.{}.learner'.format(component, model))
-        model_name = MODEL_NAME.format(model, tag, get_now_date_file_ready())
-        learner = module.Learner(model_name)
-        log.info("Running {} learning on {}".format(model_name, component))
-        learner.run()
-
+def get_learner_config(component):
+    return importlib.import_module('agent_components.{}.learning'.format(component))
 
 
 @cli.command()
@@ -67,8 +53,15 @@ def generate_data(component):
 
 @cli.command()
 @click.option('--continuous', default=True)
-def compete(continuous):
+@click.option('--demand-model', help="name of the model to apply to the demand predictor")
+@click.option('--wholesale-model', help="name of the model to apply to the wholesale learner")
+def compete(continuous, demandModel, wholesaleModel):
     """take part in a powertac competition"""
+
+    #bootstrapping models from stored data
+    demand_config = get_learner_config("demand")
+    demand_config.configure("competition", "", False)
+
     import communication.powertac_communication_server as server
     server.serve()
 
@@ -132,7 +125,8 @@ def configure_logging(log_target, log_level):
 #allowing this to be called directly to let debugging work on PyCharm
 script_call = click.CommandCollection(sources=[cli])
 if __name__ == '__main__':
+    import sys
     print("calling directly")
-    configure_logging(['file'], 'DEBUG')
+    #configure_logging(['file'], 'DEBUG')
     #cli()
     script_call()

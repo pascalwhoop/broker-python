@@ -12,13 +12,10 @@ import logging
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
-from google.protobuf.json_format import MessageToJson
 
 import grpc
-import sys
 
-from communication.pubsub.grpc_adapter import publish_grpc_message
-from statefiles.env import environment
+from communication.pubsub.grpc_adapter import publish_pb_message
 import communication.grpc_messages_pb2 as ptac_pb2
 import communication.grpc_messages_pb2_grpc as ptac_grpc
 import util.config as cfg
@@ -27,7 +24,6 @@ from util.strings import GRPC_METHOD_NOT_IMPLEMENTED, GRPC_SERVER_STARTING
 log = logging.getLogger(__name__)
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
-_env = None
 
 # Server Bootstrap
 ################################################################################
@@ -47,8 +43,6 @@ def serve():
     #ptac_grpc.add_SubmitAdapterServicer_to_server()
     ptac_grpc
 
-    global _env
-    _env = environment.get_instance()
 
 
     address = 'localhost:{}'.format(cfg.GRPC_PORT)
@@ -72,106 +66,104 @@ class ContextManagerService(ptac_grpc.ContextManagerServiceServicer):
         handle<messagetype>()
         """
 
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBCashPosition(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBDistributionReport(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBCompetition(self, request, context):
 
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBProperties(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
 
 class MarketManagerService(ptac_grpc.MarketManagerServiceServicer):
     def handlePBActivate(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBCompetition(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBBalancingTransaction(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBClearedTrade(self, request: ptac_pb2.PBClearedTrade, context):
-        _env.wholesale_store.cleared_trades[request.id] = request
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBMarketPosition(self, request: ptac_pb2.PBMarketPosition, context):
-        _env.wholesale_store.market_positions[request.id] = request
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBMarketTransaction(self, request: ptac_pb2.PBMarketTransaction, context):
-        _env.wholesale_store.market_transactions[request.id] = request
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBOrderbook(self, request: ptac_pb2.PBOrderbook, context):
-        _env.wholesale_store.orderbooks[request.id] = request
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBDistributionTransaction(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBCapacityTransaction(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBMarketBootstrapData(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBWeatherForecast(self, request: ptac_pb2.PBWeatherForecast, context):
-        _env.weather_store.weather_forecasts[request.currentTimeslot] = request
-        for pred in request.predictions:
-            _env.weather_store.weather_predictions[(request.currentTimeslot, pred.forecastTime)] = pred
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBWeatherReport(self, request: ptac_pb2.PBWeatherReport, context):
-        _env.weather_store.weather_reports[request.currentTimeslot] = request
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBBalanceReport(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
 
 class PortfolioManagerService(ptac_grpc.PortfolioManagerServiceServicer):
     def handlePBCustomerBootstrapData(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTariffSpecification(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTariffStatus(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTariffTransaction(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTariffRevoke(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBBalancingControlEvent(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
 
@@ -182,19 +174,19 @@ class ConnectionService(ptac_grpc.ConnectionServiceServicer):
 
 class GameService(ptac_grpc.GameServiceServicer):
     def handlePBSimPause(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTimeslotComplete(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBSimResume(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
 
     def handlePBTimeslotUpdate(self, request, context):
-        publish_grpc_message(request)
+        publish_pb_message(request)
         return ptac_pb2.Empty()
     pass
 

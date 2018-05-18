@@ -26,6 +26,7 @@ TARIFF_LEARNER = "dense"
 # learning config
 VALIDATION_SPLIT         = 0.10  #don't go below 10%, otherwise the hotencoding breaks (ugly bug but annoying to fix)
 # demand config
+DEMAND_LEARNING_USAGE_PATH = '../powertac-tools/logtool-examples/data/'
 DEMAND_VALIDATION_PART   = 0.05
 DEMAND_FORECAST_DISTANCE = 24
 DEMAND_SEQUENCE_LENGTH   = 48  # one week sequences because that's a probable range for patterns

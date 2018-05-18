@@ -10,15 +10,15 @@ from keras.utils import Sequence
 import util.config as cfg
 from agent_components.demand.learning.preprocessing import DemandCustomerSequence, drain_generator
 from util.strings import EPOCH_NO_WITH_LOSS, GAME_NUMBER_X, FIT_WITH_GENERATOR
-from util.learning_utils import AbstractLearnerInterface, ModelWriter, TbWriterHelper, GamesIterator, get_callbacks
+from util.learning_utils import StatefileCapableLearner, ModelWriter, TbWriterHelper, GamesIterator, get_callbacks
 
 log = logging.getLogger(__name__)
 
 
-class Learner(AbstractLearnerInterface):
+class Learner(StatefileCapableLearner):
     """This class' "run" method is always called by the `main.py` Click CLI based script. So when implementing new learning models,
     you need this"""
-    def run(self):
+    def run_with_demand_files(self):
         mdl = self.get_model()
 
         #get some helpers
