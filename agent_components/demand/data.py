@@ -99,6 +99,10 @@ def sequence_for_usages(usages: np.array, is_flat) -> Sequence:
     return TimeseriesGenerator(usages, ys, length=168)
 
 
+def get_demand_data_values():
+    return np.array(demand_data.values())
+
+
 def make_sequences_from_historical(is_flat = True) -> List[Sequence]:
     """
     Generates sequences from historical data
@@ -118,3 +122,14 @@ def parse_usage_game_log(file_path):
             name = row['cust']
             usage = float(row[' production']) + float(row[' consumption'])
             append_usage(name, usage)
+
+
+class DemandForecasts(object):
+    """A collection of demand forecasts for all customers of the broker"""
+    def __init__(self, target_timestep, forecasts):
+        super(DemandForecasts, self).__init__()
+        self.target_timestep = target_timestep
+        self.forecasts = forecasts
+
+    def total(self):
+        return np.sum(self.forecasts)

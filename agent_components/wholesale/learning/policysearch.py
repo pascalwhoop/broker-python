@@ -7,10 +7,13 @@ from baselines.ppo2.policies import CnnPolicy, LnLstmPolicy, LstmPolicy, MlpPoli
 
 from agent_components.wholesale.mdp import PowerTacLogsMDPEnvironment
 
+def get_instance(tag, fresh):
+    return PolicySearchLearner()
 
 class PolicySearchLearner:
-    def __init__(self, policy):
-        self.policy = policy
+    def __init__(self):
+        #self.policy = policy
+        self.policy = 'lstm'
         pass
 
     def train(self, num_timesteps):
@@ -22,7 +25,7 @@ class PolicySearchLearner:
         config.gpu_options.allow_growth = True  # pylint: disable=E1101
         tf.Session(config=config).__enter__()
 
-        env = PowerTacLogsMDPEnvironment
+        env = PowerTacLogsMDPEnvironment()
         policy = {'cnn': CnnPolicy, 'lstm': LstmPolicy, 'lnlstm': LnLstmPolicy, 'mlp': MlpPolicy}[self.policy]
         ppo2.learn(policy=policy, env=env, nsteps=128, nminibatches=4,
                    lam=0.95, gamma=0.99, noptepochs=4, log_interval=1,

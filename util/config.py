@@ -41,7 +41,11 @@ DEMAND_ONE_WEEK          = 24*7
 DEMAND_LOGREG_FEATURES   = True
 
 #wholesale
-WHOLESALE_AGENT_TEACHER_BROKER = 'tactex'
+#WHOLESALE_AGENT_TEACHER_BROKER = 'tactex'
+WHOLESALE_MIN_KWH_PRICE = -2.0 #
+WHOLESALE_OPEN_FOR_TRADING_PARALLEL = 24
+WHOLESALE_LEARNING_USAGE_PATH = '../powertac-tools/logtool-examples/data/'
+
 
 
 ###############################

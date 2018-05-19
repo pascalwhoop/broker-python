@@ -28,7 +28,6 @@ def cli(log_target, log_level):
 def learn(component, model, tag):
     """Triggers the learning of various components off of state files"""
     if component in cfg.AGENT_COMPONENTS:
-
         component_configurator = get_learner_config(component)
         component_configurator.configure(model, tag, True)
         instance = component_configurator.get_instance()

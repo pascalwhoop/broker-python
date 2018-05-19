@@ -102,6 +102,19 @@ def get_usage_file_paths() -> List:
     files = os.listdir(cfg.DEMAND_LEARNING_USAGE_PATH)
     full_paths = []
     for f in files:
+        if 'customerusage' not in f:
+            continue
+        full = os.path.abspath(os.path.join(cfg.DEMAND_LEARNING_USAGE_PATH, f))
+        full_paths.append(full)
+    return full_paths
+
+
+def get_wholesale_file_paths() -> List:
+    files = os.listdir(cfg.WHOLESALE_LEARNING_USAGE_PATH)
+    full_paths = []
+    for f in files:
+        if 'marketprices' not in f:
+            continue
         full = os.path.abspath(os.path.join(cfg.DEMAND_LEARNING_USAGE_PATH, f))
         full_paths.append(full)
     return full_paths
