@@ -1,21 +1,35 @@
 from setuptools import setup
 
 setup(
-    name="PythonBroker",
+    name="BrokerPython",
     version="0.1",
     py_modules=['main'],
     install_requires=[
         'Click',
-        'numpy',
+        'grpcio',
+        'grpcio-tools'
+        'gym',
+        'h5py',
         'keras',
-        'scikit-learn',
         'keras-rl',
         'mypy',
-#        'mypy-protbuf',
-        'h5py',
-        'gym',
+        'mypy-protbuf',
+        'numpy',
+        'pandas',
+        'PyDispatcher',
+        'protobuf',
+        'scikit-learn',
         'tensorflow-gpu',
         ],
+    extras_require = {
+        'visualize':[
+            'jupyter',
+            'tensorboard'
+            ],
+        'tests':[
+            'nose'
+            ]
+        },
     entry_points='''
         [console_scripts]
         agent=main:cli
