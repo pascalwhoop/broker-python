@@ -100,7 +100,7 @@ def sequence_for_usages(usages: np.array, is_flat) -> Sequence:
 
 
 def get_demand_data_values():
-    return np.array(demand_data.values())
+    return np.array(list(demand_data.values()))
 
 
 def make_sequences_from_historical(is_flat = True) -> List[Sequence]:
@@ -122,6 +122,12 @@ def parse_usage_game_log(file_path):
             name = row['cust']
             usage = float(row[' production']) + float(row[' consumption'])
             append_usage(name, usage)
+
+def get_first_timestep_for_file(file_path):
+    with open(file_path, 'r') as csvfile:
+        for row in csv.DictReader(csvfile, delimiter=','):
+            ts = int(row['slot'])
+            return ts
 
 
 class DemandForecasts(object):
