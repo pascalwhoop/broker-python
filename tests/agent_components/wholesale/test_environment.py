@@ -1,24 +1,28 @@
+import random
 import unittest
 from unittest.mock import patch
 
 import numpy as np
+import util.config as cfg
 
 from agent_components import demand
 from agent_components.demand import data
-from agent_components.wholesale.mdp import PowerTacLogsMDPEnvironment, PowerTacMDPEnvironment, WholesaleActionSpace
+from agent_components.wholesale.mdp import PowerTacLogsMDPEnvironment, PowerTacMDPEnvironment, WholesaleActionSpace, \
+    WholesaleObservationSpace
 
 
 class MagickMock(object):
     pass
 
 
-class TestPowerTacMDPEnvironment(unittest.TestCase):
+class TestPowerTacMDPLogEnvironment(unittest.TestCase):
     """Testing the powertac MDP adapter for the openAI Gym"""
 
     def setUp(self):
         self.env = PowerTacMDPEnvironment(360)
         self.log_env = PowerTacLogsMDPEnvironment()
         self.log_env.wholesale_data = self.make_mock_wholesale_data()
+        self.log_env.demand_data = self.make_mock_demand_data()
         self.log_env.active_timeslots = self.make_mock_active_timeslots(self.log_env.wholesale_data)
 
     def tearDown(self):
@@ -31,13 +35,15 @@ class TestPowerTacMDPEnvironment(unittest.TestCase):
     def test_step_block_until(self):
         # when the environment is stepped, it needs to block until all events have arrived.
         # self.env.step()
+        #TODO real game environment
         pass
 
     def test__step_timeslot(self):
-        pass
-        # self.log_env._step_timeslot()
-        # self.assertEqual(self.log_env.active_timeslots[0], 361)
-        # self.assertEqual(self.log_env.active_timeslots[-1], 384)
+        for i in range(24):
+            self.log_env.active_timeslots[i] = 0
+        self.log_env._step_timeslot()
+        assert np.array_equal(self.log_env.active_timeslots[0:23], np.zeros(23))
+        assert self.log_env.active_timeslots[-1] == 363+24
 
     def test_make_random_game_order(self):
         games = self.log_env._make_random_game_order()
@@ -132,6 +138,11 @@ class TestPowerTacMDPEnvironment(unittest.TestCase):
         # and same starting point
         assert 365 == int(wholesale_data[0][0])
 
+    def test_observation_space(self):
+        os = WholesaleObservationSpace()
+        assert os.spaces['required_energy'].shape == (24,)
+        assert os.spaces['current_prices'].shape == (24,24,2)
+
     def test_apply_clearings_to_purchases(self):
         #making the active timeslots a bit smaller to handle it with mock data
         self.log_env.active_timeslots = self.log_env.active_timeslots[0:4]
@@ -153,6 +164,59 @@ class TestPowerTacMDPEnvironment(unittest.TestCase):
         self.log_env.apply_clearings_to_purchases(actions, cleared2)
         assert np.array_equal(self.log_env.purchases[ts[2]][0], actions[0])
         assert len(self.log_env.purchases[ts[0]]) == 2
+
+    def test_get_sum_purchased_for_ts(self):
+        self.log_env.purchases[1] = [[i, i/10] for i in range(24)]
+        sum_ = self.log_env.get_sum_purchased_for_ts(ts=1)
+        assert sum_ == 276
+        sum_ = self.log_env.get_sum_purchased_for_ts(ts=2)
+        assert sum_ == 0
+
+    def test_get_new_forecasts(self):
+        self.log_env.get_new_forecasts()
+        assert np.array_equal(np.arange(2,26), np.array(self.log_env.forecasts))
+
+    def test_make_observation(self):
+        assert np.array_equal(self.log_env.historical_prices, np.zeros((168)))
+        # mock demand data
+        # mock historical prices
+        self.log_env.historical_prices.extend(list(range(168)))
+        # mock forecasts
+        self.log_env.forecasts.extend(list(range(24)))
+        #mock purchases
+        self.log_env.purchases[365] = [[20, 0.1]]
+        self.log_env.purchases[370] = [[12,  0.1]]
+
+
+        #assert that
+        obs = self.log_env.make_observation()
+        assert obs['required_energy'].shape == (24,)
+        assert obs['required_energy'][3] == 3.0
+        assert obs['required_energy'][2] == -18
+        assert obs['required_energy'][7] == 7-12
+        assert obs['historical_prices'].shape == (168,)
+        assert obs['current_prices'].shape == (24, 24, 2)
+        # latest in the historicals needs to be timeslot NOW, and first needs to be removed
+        # from historicals 359-... 167x + 1 of NOW...
+        #TODO
+
+    def test_get_current_knowledge_horizon(self):
+        horizon = self.log_env.get_current_knowledge_horizon()
+        for i in range(24):
+            unknown = np.array(horizon[i])[23 - i:]
+            zeros = np.zeros((i+1, 2))
+            assert  unknown.shape == zeros.shape
+            assert np.array_equal(unknown, zeros)
+
+    def test_append_historical_price(self):
+        for i in range(24):
+            self.log_env.append_historical_price()
+            self.log_env._step_timeslot()
+        # we should have 24 sums of usage in the historicals now.
+        historicals_np = np.array(self.log_env.historical_prices)
+        assert np.array_equal(historicals_np[0:-24], np.zeros((cfg.WHOLESALE_HISTORICAL_DATA_LENGTH - 24)))
+        assert (historicals_np[-24] != 0).any(), "last 24 are supposed to be not 0"
+
 
 
 
@@ -203,16 +267,19 @@ class TestPowerTacMDPEnvironment(unittest.TestCase):
     # ---------------------------------------------------------------------------------------------
     # helpers and generators below
 
+    def make_mock_demand_data(self):
+        return list(range(1,31))
+
     def make_mock_active_timeslots(self, data):
         # mock the active timesteps
         return [row[0] for row in data][:24]
 
     def make_mock_wholesale_data(self):
         # creating wholesale style mock data
-        wholesale_data_header = np.zeros((30, 3), dtype=np.int32)
-        wholesale_data_header[:, 0] = np.arange(363, 363 + 30).transpose()
+        wholesale_data_header = np.zeros((50, 3), dtype=np.int32)
+        wholesale_data_header[:, 0] = np.arange(363, 363 + 50).transpose()
 
-        data_core = np.zeros((30, 24, 2), dtype=np.float32)
+        data_core = np.zeros((50, 24, 2), dtype=np.float32)
         # iterate over the rows
         for i in range(len(data_core)):
             # and each market clearing for each of the 24 times the ts was traded
@@ -223,7 +290,7 @@ class TestPowerTacMDPEnvironment(unittest.TestCase):
                 data_core[i][j][1] = (i + 1) / 10
 
         wholesale_data = []
-        for i in range(30):
+        for i in range(50):
             row = []
             row.extend(wholesale_data_header[i])
             row.extend(list(data_core[i]))

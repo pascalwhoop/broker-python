@@ -28,11 +28,11 @@ from util.learning_utils import get_wholesale_file_paths, get_usage_file_paths
 class WholesaleActionSpace(spaces.Tuple):
     """
     A wholesale action is anywhere in the 2D space with Dim 1 being limited to [-1,+1] and Dim 2 to [-2.0, +2.0]
-        - Dimension 0 describes how much kWh to buy. Positive numbers buy, negative numbers sell The network gets fed a prediction regarding its portfolio balance.
-          If the prediction is -243 (i.e. missing 243kWh for this timeslot to be matching the predicted demand) then
-          - 0.5 means buying 243kWh.
+        - Dimension 0 describes how much mWh to buy. Positive numbers buy, negative numbers sell The network gets fed a prediction regarding its portfolio balance.
+          If the prediction is -243 (i.e. missing 243mWh for this timeslot to be matching the predicted demand) then
+          - 0.5 means buying 243mWh.
           - 0 means buy nothing,
-          - -0.5 means sell another 243kWh and
+          - -0.5 means sell another 243mWh and
           - -1 means sell twice the predicted
           imbalance. If the prediction is +230 then 0.5 means buying another 230 and -0.5 means selling 230.
         - Dimension 1 describes the limit price. This is a mapping to the limit price.
@@ -41,6 +41,7 @@ class WholesaleActionSpace(spaces.Tuple):
             -1 --> buy for 2x average known price
             +1 --> sell for 2x average known price
             +0.5 --> sell for average known price
+            TODO is this maybe not large enough? increase box size for more freedom in pricing
 
     """
 
@@ -51,6 +52,26 @@ class WholesaleActionSpace(spaces.Tuple):
             timestep_actions.append(a)
         super().__init__(tuple(timestep_actions))
 
+class WholesaleObservationSpace(spaces.Dict):
+    """
+    - demand prediction - purchases 24x float
+    - historical prices of currently traded TS 24x24 float (with diagonal TR-BL zeros in bottom right)
+    - historical prices of last 168 timeslots
+    - ... TODO more?
+    """
+    def __init__(self):
+        # box needs min and max. using signed int32 min/max
+        sizes = np.finfo(np.array([1.0],dtype=np.float32)[0])
+        high = sizes.max
+        low = sizes.min
+        required_energy = Box(low=low, high=high, shape=(24,), dtype=np.float32)
+        historical_prices = Box(low=low, high=high, shape=(168,), dtype=np.float32)
+        current_prices = Box(low=low, high=high, shape=(24, 24, 2), dtype=np.float32)
+        super().__init__({
+            'required_energy' : required_energy,
+            'historical_prices': historical_prices,
+            'current_prices': current_prices
+        })
 
 class PowerTacMDPEnvironment(Env):
     """This class creates an adapter between the OpenAI Env class and the powertac environment where a RL agent performs
@@ -155,12 +176,15 @@ class PowerTacLogsMDPEnvironment(Env):
         """TODO: to be defined1. """
         Env.__init__(self)
         self.action_space = WholesaleActionSpace()
-        #TODO define self.observation_space
-        #TODo define self.reward_range
+        self.observation_space = WholesaleObservationSpace()
+        self.reward_range = Box(low=-1, high=1, shape=(1,), dtype=np.float32)
 
         self.wholesale_running_averages = {}
         self.forecasts = [] # holds the forecasts for the next 24 timeslots
-        self.active_timeslots = deque(maxlen=24)
+        self.active_timeslots = deque(maxlen=cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
+        self.historical_prices = deque(maxlen=cfg.WHOLESALE_HISTORICAL_DATA_LENGTH) # holds the historical averages prices
+        self.historical_prices.extend([0]*cfg.WHOLESALE_HISTORICAL_DATA_LENGTH)
+        self.observations = []
 
         self.purchases = {} #a map of purchases for each timeslot. timeslot --> list([mWh, price])
 
@@ -208,12 +232,21 @@ class PowerTacLogsMDPEnvironment(Env):
         #store the cleared trades --> those where the agent managed to be part of the clearing
         self.apply_clearings_to_purchases(real_actions, part_of_cleared)
 
-        # calculate kWh "have" --> what's left
-        # calculate reward for closed timestep
-        # block until answers are all collected
-        # return with observation (TODO build this), reward (TODO calc) and done if reached terminal state
+        # calculate kWh "have" --> what's left to get? --> based on purchases, can be calculated on the fly
 
-        pass
+        # calculate reward for closed timestep
+        # return with observation (TODO build this), reward (TODO calc) and done if reached terminal state
+        self.get_new_forecasts()
+        self.append_historical_price()
+        # deletes the first entry of the background data lists
+        # ---------------------------------------------------------------
+        # ------ stepping timeslot. Any methods that require
+        # ------ the new data need to follow this breaking change in data
+        # ---------------------------------------------------------------
+        self._step_timeslot()
+        observation = self.make_observation()
+        return observation
+
 
     def apply_clearings_to_purchases(self, actions, cleared_list):
         #go over the active slots and place any purchases in the data
@@ -238,6 +271,7 @@ class PowerTacLogsMDPEnvironment(Env):
         self.demand_data = dd
 
         self.reset_active_timeslots(self.wholesale_data)
+        self.observations = []
 
         #stepping the environment once, not doing anything
         return self.step(get_do_nothing())
@@ -273,7 +307,11 @@ class PowerTacLogsMDPEnvironment(Env):
 
 
     def _step_timeslot(self):
-        self.active_timeslots.append(self.active_timeslots[-1] + 1)
+        """Steps the game data up one notch. Removing first of most lists"""
+        #self.active_timeslots.append(self.active_timeslots[-1] + 1)
+        self.active_timeslots.append(self.wholesale_data[24][0])
+        self.wholesale_data.pop(0) # removes current timeslot --> is realized now
+        self.demand_data.pop(0)
 
 
     def render(self, mode='logging') -> None:
@@ -321,24 +359,35 @@ class PowerTacLogsMDPEnvironment(Env):
         iterates over the active timeslots. If a timeslot has only 0 as trades, it takes the average of the previous timestep
         """
         averages = []
-        for i, ts in enumerate(self.active_timeslots):
-            row = self.wholesale_data[i]
-            #we are using only the wholesale data mwh/price (starts at index 3) and then only a subset of the data
-            #the data holds the historical data (i.e. everything about the target timeslot but we want to only use
-            # the data up to the "now" i.e. not future averages
-            assert ts == row[0]
-            data = np.array(row[3:])[:23-i]
+        known_results = self.get_current_knowledge_horizon()
+
+        for result in known_results:
             #data is a 24 item long array of 2 vals each
             #average is sum(price_i * kwh_i) / kwh_total
-            sum_total = data[:, 0].sum()
+            sum_total = result[:, 0].sum()
             avg = 0
             if sum_total != 0.0:
-                avg = (data[:,0] * data[:,1]).sum() / sum_total
+                avg = (result[:,0] * result[:,1]).sum() / sum_total
             # if avg was not set or was set but to 0 use last average for this timestep
             if avg is 0 and averages:
                 avg = averages[-1]
             averages.append(avg)
+
         return averages
+
+    def get_current_knowledge_horizon(self):
+        otp = cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL
+        known_results = np.zeros((otp, otp, 2))
+        for i, ts in enumerate(self.active_timeslots):
+            row = self.wholesale_data[i]
+            # we are using only the wholesale data mwh/price (starts at index 3) and then only a subset of the data
+            # the data holds the historical data (i.e. everything about the target timeslot but we want to only use
+            # the data up to the "now" i.e. not future averages
+            assert ts == row[0]
+
+            data = np.array(row[3:])[:23 - i]
+            known_results[i,:23-i] = data
+        return known_results
 
     def translate_action_to_real_world_vals(self, action):
         action = np.array(action)
@@ -373,10 +422,31 @@ class PowerTacLogsMDPEnvironment(Env):
         bids = np.logical_and(np.greater(z, a), np.greater(a*-1, m))
         return np.logical_or(asks, bids)
 
+    def get_sum_purchased_for_ts(self, ts):
+        if ts in self.purchases and len(self.purchases[ts]) > 0:
+            return np.array(self.purchases[ts])[:,0].sum()
+        else:
+            return 0
 
+    def get_new_forecasts(self):
+        """
+        Call before _step_timeslot
+        :return:
+        """
+        if cfg.WHOLESALE_FORECASTS_TYPE == 'perfect':
+            self.forecasts = self.demand_data[1:1+cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL]
 
+    def make_observation(self):
+        obs = {}
+        obs['required_energy']   = np.array(self.forecasts) - np.array([self.get_sum_purchased_for_ts(ts) for ts in self.active_timeslots])
+        obs['historical_prices'] = np.array(self.historical_prices)
+        obs['current_prices']    = np.array(self.get_current_knowledge_horizon())
+        self.observations.append(obs)
+        return obs
 
-
+    def append_historical_price(self):
+        d = np.array(self.wholesale_data[0][3:])
+        self.historical_prices.append((d[0] * d[1]).sum() / d[1].sum())
 
 def get_do_nothing():
     action = []
