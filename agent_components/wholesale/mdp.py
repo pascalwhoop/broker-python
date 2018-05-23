@@ -175,6 +175,7 @@ class PowerTacLogsMDPEnvironment(Env):
     def __init__(self):
         """TODO: to be defined1. """
         Env.__init__(self)
+        self.num_envs = 1
         self.action_space = WholesaleActionSpace()
         self.observation_space = WholesaleObservationSpace()
         self.reward_range = Box(low=-1, high=1, shape=(1,), dtype=np.float32)

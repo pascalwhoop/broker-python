@@ -13,10 +13,11 @@ def get_instance(tag, fresh):
 class PolicySearchLearner:
     def __init__(self):
         #self.policy = policy
-        self.policy = 'lstm'
+        self.policy = 'cnn'
         pass
 
-    def train(self, num_timesteps):
+    def learn(self):
+        num_timesteps = 100000
         ncpu = multiprocessing.cpu_count()
         if sys.platform == 'darwin': ncpu //= 2
         config = tf.ConfigProto(allow_soft_placement=True,
