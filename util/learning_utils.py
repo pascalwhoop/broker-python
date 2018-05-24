@@ -79,21 +79,19 @@ class TbWriterHelper:
 
 # standard callbacks used with keras when possible
 def get_callbacks(model_name):
-    return [TensorBoard(log_dir=os.path.join(cfg.TENSORBOARD_PATH, model_name),
-                        histogram_freq=10,
-                        batch_size=32,
-                        write_grads=True,
-                        write_graph=True,
-                        write_images=True),
+
+    return [get_tb_cb(model_name, histogram_freq=10, batch_size=32, write_grads=True, write_graph=True, write_images=True),
             TerminateOnNaN()]
 
 # standard callbacks used with keras when possible
 def get_callbacks_with_generator(model_name):
-    return [TensorBoard(log_dir=os.path.join(cfg.TENSORBOARD_PATH, model_name),
-                        batch_size=32,
-                        write_grads=True,
-                        write_images=True),
+    return [get_tb_cb(model_name, batch_size=32, write_grads=True, write_images=True),
             TerminateOnNaN()]
+
+
+def get_tb_cb(model_name, **kwargs):
+    kwargs['log_dir'] = os.path.join(cfg.TENSORBOARD_PATH, model_name)
+    return TensorBoard(**kwargs)
 
 
 ####################################################################################

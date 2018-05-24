@@ -19,7 +19,7 @@ setup(
         'PyDispatcher',
         'protobuf',
         'scikit-learn',
-        'tensorflow-gpu',
+        'tensorflow-gpu=1.8.0',
         ],
     extras_require = {
         'visualize':[

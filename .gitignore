@@ -2,6 +2,7 @@ __pycache__
 venv/
 .ropeproject
 **/.pytest_cache
+*.h5f
 *.pyc
 **/.ipynb_checkpoints/
 *.swp

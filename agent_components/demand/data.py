@@ -8,6 +8,7 @@ from typing import List, Tuple
 import numpy as np
 from keras.preprocessing.sequence import TimeseriesGenerator
 from keras.utils import Sequence
+from sklearn import preprocessing
 from sklearn.preprocessing import MinMaxScaler
 
 import util.config as cfg
@@ -85,8 +86,9 @@ def sequence_for_usages(usages: np.array, is_flat) -> Sequence:
     :param usages:
     :return:
     """
-    scaler = MinMaxScaler()
-    usages = scaler.fit_transform(usages.reshape(-1, 1)).flatten()
+    #scaler = MinMaxScaler()
+    #usages = scaler.fit_transform(usages.reshape(-1, 1)).flatten()
+    usages = preprocessing.normalize(usages.reshape(-1,1)).flatten()
     # let's create a targets array by shifting the original by one
     ys = np.zeros((len(usages), 24))
     for i in range(len(usages)):

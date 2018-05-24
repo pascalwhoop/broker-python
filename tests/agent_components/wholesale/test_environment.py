@@ -1,5 +1,6 @@
 import random
 import unittest
+from collections import deque
 from unittest.mock import patch
 
 import numpy as np
@@ -42,7 +43,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         for i in range(24):
             self.log_env.active_timeslots[i] = 0
         self.log_env._step_timeslot()
-        assert np.array_equal(self.log_env.active_timeslots[0:23], np.zeros(23))
+        assert np.array_equal(list(self.log_env.active_timeslots)[0:23], np.zeros(23))
         assert self.log_env.active_timeslots[-1] == 363+24
 
     def test_make_random_game_order(self):
@@ -52,9 +53,9 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
 
     def test_calculate_running_average(self):
         # test the calculation of the historical running average prices per kWh for target timeslot
-
         # loading wholesale data into entity
-        averages = self.log_env.calculate_running_averages()
+        data = [row[3:] for row in self.log_env.wholesale_data]
+        averages = self.log_env.calculate_running_averages(np.array(data))
         # print([row[3:] for row in data])
         assert np.isclose(averages[5], 0.6)
         # self.log_env.calculate_running_average(target_timeslot)
@@ -86,7 +87,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         for i in range(12):
             actions.append([-1, 0.1])
 
-        real_actions = self.log_env.translate_action_to_real_world_vals(actions)
+        real_actions = self.log_env.translate_action_to_real_world_vals(np.array(actions))
         # first upcoming timeslot, average amount is 1 mWh and price is 0.1 mWh
         # meaning we buy 2 mWh for -0.02
         # print(real_actions)
@@ -96,6 +97,9 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         assert real_actions[5][1] == -0.12  # -0.2 * 6
         assert real_actions[13][0] == -28
         assert real_actions[13][1] == 0.28
+
+        #try also with zeros
+        self.log_env.translate_action_to_real_world_vals(np.zeros((24,2)))
 
     def test_action_space(self):
         action = WholesaleActionSpace().sample()
@@ -145,7 +149,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
 
     def test_apply_clearings_to_purchases(self):
         #making the active timeslots a bit smaller to handle it with mock data
-        self.log_env.active_timeslots = self.log_env.active_timeslots[0:4]
+        self.log_env.active_timeslots = deque(range(363,367))
         ts = self.log_env.active_timeslots
         #some mock actions
         actions = np.array([
@@ -157,12 +161,13 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         #some mock cleared mappings
         cleared1 = [True,True,False,False]
         cleared2 = [True,True,True,True]
-        self.log_env.apply_clearings_to_purchases(actions, cleared1)
-        assert np.array_equal(self.log_env.purchases[ts[0]][0],  actions[0])
+        market_data = np.arange(48).reshape(24,2)
+        self.log_env.apply_clearings_to_purchases(actions, cleared1, market_data)
+        assert np.array_equal(self.log_env.purchases[ts[0]][0],  [actions[0][0],market_data[0][1]])
         assert ts[2] in self.log_env.purchases
         assert len(self.log_env.purchases[ts[2]]) == 0
-        self.log_env.apply_clearings_to_purchases(actions, cleared2)
-        assert np.array_equal(self.log_env.purchases[ts[2]][0], actions[0])
+        self.log_env.apply_clearings_to_purchases(actions, cleared2, market_data)
+        assert np.array_equal(self.log_env.purchases[ts[2]][0], [actions[2][0], market_data[2][1]])
         assert len(self.log_env.purchases[ts[0]]) == 2
 
     def test_get_sum_purchased_for_ts(self):
@@ -209,13 +214,16 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
             assert np.array_equal(unknown, zeros)
 
     def test_append_historical_price(self):
-        for i in range(24):
-            self.log_env.append_historical_price()
-            self.log_env._step_timeslot()
-        # we should have 24 sums of usage in the historicals now.
-        historicals_np = np.array(self.log_env.historical_prices)
-        assert np.array_equal(historicals_np[0:-24], np.zeros((cfg.WHOLESALE_HISTORICAL_DATA_LENGTH - 24)))
-        assert (historicals_np[-24] != 0).any(), "last 24 are supposed to be not 0"
+
+        with patch.object(self.log_env, 'new_game') as new_game_mock:
+            for i in range(24):
+                self.log_env.append_historical_price()
+                self.log_env._step_timeslot()
+            new_game_mock.assert_not_called()
+            # we should have 24 sums of usage in the historicals now.
+            historicals_np = np.array(self.log_env.historical_prices)
+            assert np.array_equal(historicals_np[0:-24], np.zeros((cfg.WHOLESALE_HISTORICAL_DATA_LENGTH - 24)))
+            assert (historicals_np[-24] != 0).any(), "last 24 are supposed to be not 0"
 
 
 
@@ -240,18 +248,17 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         assert clearings[2]
         assert not clearings[3]
 
-    def test_reset(self):
-        with patch.object(self.log_env, 'make_data_for_game') as mock_make_data, patch.object(self.log_env,
-                                                                                              'step') as mock_step:
+    def test_new_game(self):
+        with patch.object(self.log_env, 'make_data_for_game') as mock_make_data, \
+                patch.object(self.log_env, 'step') as mock_step ,  \
+                patch.object(self.log_env, 'get_new_forecasts') as mock_make_fc:
             mock_make_data.return_value = ['b'], np.array(list(range(360, 360 + 24)) * 2).reshape((24, 2)),
             mock_step.return_value = 'a', 'b', 'c', 'd'
-            obs, reward, done, info = self.log_env.reset()
+            obs = self.log_env.new_game()
         assert obs == 'a'
-        assert reward == 'b'
-        assert done == 'c'
-        assert info == 'd'
         assert len(self.log_env.active_timeslots) == 24
         mock_step.assert_called_once()
+        mock_make_fc.assert_called_once()
 
         # it should reset the active timeslots
         # it should get new data
@@ -264,15 +271,66 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         # self.log_env.reset()
         pass
 
+    def test_average_price_for_power_paid(self):
+        in_ = np.arange(6).reshape((3,2))
+        in_[:,1] = in_[:,1] * -1
+        avg, stupid = self.log_env.average_price_for_power_paid(in_)
+        np.testing.assert_almost_equal(avg, 4.3333, decimal=4)
+        assert stupid == False
+
+
+        
+
+    def test_calculate_reward(self):
+        #market price average is 0.1 per kWh
+        mock_purchases = []
+        self.log_env.purchases[363] = mock_purchases
+
+
+        mock_purchases.append([5,-0.1]) # same as market
+        self.log_env.demand_data[0] = 5 #making demand equal to purchases --> no DU balancing
+        reward = self.log_env.calculate_reward()
+        np.testing.assert_almost_equal(reward, 1)
+
+        # let's get some balancing happening
+        self.log_env.demand_data[0] = 10 #10 demand, 5 bought, 5 punishment
+        reward = self.log_env.calculate_reward()
+        np.testing.assert_almost_equal(reward, 0.333, decimal=3)
+        #removing the additional DU balancing
+        mock_purchases.pop()
+
+
+        #purchasing something for too high a price
+        mock_purchases.append([5,-0.5]) # same as market
+        self.log_env.demand_data[0] = 10
+        reward = self.log_env.calculate_reward()
+        np.testing.assert_almost_equal(reward, 0.333, decimal=3)
+
+        #now selling some energy, should be back to as before
+        mock_purchases.append([-5,0.5]) # same as market
+        self.log_env.demand_data[0] = 5
+        reward = self.log_env.calculate_reward()
+        np.testing.assert_almost_equal(reward, 1, decimal=3)
+
+        #now selling even more energy, net average for broker is negative now
+        #it bought energy first then sold it for more. That's a good thing to observe and gets rewarded
+        #because the average after the whole round is sold 5kWh for 0.45
+        mock_purchases.append([-10,0.5]) # same as market
+        self.log_env.demand_data[0] = -5
+        reward = self.log_env.calculate_reward()
+        np.testing.assert_almost_equal(reward, 8.999, decimal=3)
+
+
+
     # ---------------------------------------------------------------------------------------------
     # helpers and generators below
 
     def make_mock_demand_data(self):
-        return list(range(1,31))
+        return list(range(1,50))
 
     def make_mock_active_timeslots(self, data):
         # mock the active timesteps
-        return [row[0] for row in data][:24]
+        return deque([row[0] for row in data][:24], maxlen=24)
 
     def make_mock_wholesale_data(self):
         # creating wholesale style mock data
