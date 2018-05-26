@@ -222,7 +222,9 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         self.historical_prices.extend([0] * cfg.WHOLESALE_HISTORICAL_DATA_LENGTH)
         self.observations = []
 
-        self.purchases = {}  # a map of purchases for each timeslot. timeslot --> list([mWh, price])
+        # a map of purchases for each timeslot. timeslot --> list([mWh, price])
+        # negative mWh are sales, positive mWh are purchases. Can be considered as "flow from broker"
+        self.purchases = {}
 
         # for mocking the market with the log files
         self._prices_files = get_wholesale_file_paths()
@@ -527,24 +529,14 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
 
         bought = self.purchases[self.active_timeslots[0]]
 
-        #TODO punish large deviations from forecast
-        mse_diff = 0
-        if self.demand_data[0] and bought:
-            bought_sum = np.array(bought)[:,0].sum()
-            mse_diff = (bought_sum - self.demand_data[0])**2
+        mse_diff = self.calculate_squared_diff(bought)
 
         # appending final balancing costs for broker for any missing energy
         if len(bought) == 0:
             balancing_needed = self.demand_data[0]
         else:
-            balancing_needed = self.calculate_balancing_needed(np.array(bought), self.demand_data[0])
-        du_trans = []
-        if balancing_needed > 0:
-            # being forced to buy for 5x the market price! try and get your kWh in ahead of time is what it learns
-            du_trans = [balancing_needed, -1 * average_market * 5]
-        if balancing_needed < 0:
-            # getting only a 0.5 of what the normal market price was
-            du_trans = [balancing_needed, 0.5 * average_market]  # TODO to config
+            balancing_needed = self.calculate_missing_du_trans(np.array(bought), self.demand_data[0])
+        du_trans = self.calculate_du_fee(average_market, balancing_needed)
         # TODO for now just a fixed punishment for every balanced mWh. Later maybe based on balancing stats data
         if du_trans:
             bought.append(du_trans)
@@ -567,6 +559,24 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
 
         #reward is made up of several components
         return market_relative_prices - mse_diff
+
+
+    def calculate_du_fee(self, average_market, balancing_needed):
+        du_trans = []
+        if balancing_needed > 0:
+            # being forced to buy for 5x the market price! try and get your kWh in ahead of time is what it learns
+            du_trans = [balancing_needed, -1 * average_market * 5]
+        if balancing_needed < 0:
+            # getting only a 0.5 of what the normal market price was
+            du_trans = [balancing_needed, 0.5 * average_market]  # TODO to config
+        return du_trans
+
+    def calculate_squared_diff(self, bought):
+        mse_diff = 0
+        if self.demand_data[0] and bought:
+            bought_sum = np.array(bought)[:, 0].sum()
+            mse_diff = (bought_sum - self.demand_data[0]) ** 2
+        return mse_diff
 
     def average_price_for_power_paid(self, bought):
         """
@@ -593,17 +603,18 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         else:
             return total_paid / total_purchased, True
 
-    def calculate_balancing_needed(self, purchases: np.array, demand):
+    def calculate_missing_du_trans(self, purchases: np.array, demand):
         """
         Determines the amount of balancing that is needed for the agents actions after it purchased for 24 times.
 
-        :param purchases: array of purchases
+        :param purchases: array of purchases. Positive means purchases, negative means sales of mWh
         :param demand: demand for that timeslot. Negative means agent needs to buy
         :return: amount of additional mWh the agent requires for its portfolio.
         """
         sum_purchased = purchases.sum(axis=0)[0]
         # if demand > purchases --> positive, otherwise negative
-        return demand * -1 - sum_purchased
+        # *(-1) because balancing needed is supposed to be from perspective of "missing transaction" for broker
+        return (-1) * (demand + sum_purchased)
 
 
 def make_flat_observation(observation) -> np.array:

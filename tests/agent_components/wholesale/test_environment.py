@@ -286,39 +286,42 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         mock_purchases = []
         self.log_env.purchases[363] = mock_purchases
 
+        with patch.object(self.log_env, 'calculate_squared_diff') as squared_diff_mock:
+            # mocking the squared diff to be always 0
+            squared_diff_mock.return_value = 0
 
-        mock_purchases.append([5,-0.1]) # same as market
-        self.log_env.demand_data[0] = 5 #making demand equal to purchases --> no DU balancing
-        reward = self.log_env.calculate_reward()
-        np.testing.assert_almost_equal(reward, 1)
+            mock_purchases.append([5,-0.1]) # same as market
+            self.log_env.demand_data[0] = -5 #making demand equal to purchases --> no DU balancing
+            reward = self.log_env.calculate_reward()
+            np.testing.assert_almost_equal(reward, 1)
 
-        # let's get some balancing happening
-        self.log_env.demand_data[0] = 10 #10 demand, 5 bought, 5 punishment
-        reward = self.log_env.calculate_reward()
-        np.testing.assert_almost_equal(reward, 0.333, decimal=3)
-        #removing the additional DU balancing
-        mock_purchases.pop()
+            # let's get some balancing happening
+            self.log_env.demand_data[0] = -10 #10 demand, 5 bought, 5 punishment
+            reward = self.log_env.calculate_reward()
+            np.testing.assert_almost_equal(reward, 0.333, decimal=3)
+            #removing the additional DU balancing
+            mock_purchases.pop()
 
 
-        #purchasing something for too high a price
-        mock_purchases.append([5,-0.5]) # same as market
-        self.log_env.demand_data[0] = 10
-        reward = self.log_env.calculate_reward()
-        np.testing.assert_almost_equal(reward, 0.333, decimal=3)
+            #purchasing something for too high a price
+            mock_purchases.append([5,-0.5]) # same as market
+            self.log_env.demand_data[0] = -10
+            reward = self.log_env.calculate_reward()
+            np.testing.assert_almost_equal(reward, 0.333, decimal=3)
 
-        #now selling some energy, should be back to as before
-        mock_purchases.append([-5,0.5]) # same as market
-        self.log_env.demand_data[0] = 5
-        reward = self.log_env.calculate_reward()
-        np.testing.assert_almost_equal(reward, 1, decimal=3)
+            #now selling some energy, should be back to as before
+            mock_purchases.append([-5,0.5]) # same as market
+            self.log_env.demand_data[0] = -5
+            reward = self.log_env.calculate_reward()
+            np.testing.assert_almost_equal(reward, 1, decimal=3)
 
-        #now selling even more energy, net average for broker is negative now
-        #it bought energy first then sold it for more. That's a good thing to observe and gets rewarded
-        #because the average after the whole round is sold 5kWh for 0.45
-        mock_purchases.append([-10,0.5]) # same as market
-        self.log_env.demand_data[0] = -5
-        reward = self.log_env.calculate_reward()
-        np.testing.assert_almost_equal(reward, 8.999, decimal=3)
+            #now selling even more energy, net average for broker is negative now
+            #it bought energy first then sold it for more. That's a good thing to observe and gets rewarded
+            #because the average after the whole round is sold 5kWh for 0.45
+            mock_purchases.append([-10,0.5]) # same as market
+            self.log_env.demand_data[0] = 5
+            reward = self.log_env.calculate_reward()
+            np.testing.assert_almost_equal(reward, 8.999, decimal=3)
 
 
 
