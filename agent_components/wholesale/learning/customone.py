@@ -9,8 +9,11 @@ from rl.random import OrnsteinUhlenbeckProcess
 from agent_components.wholesale.mdp import PowerTacLogsMDPEnvironment
 
 model_name = "continuous-deepq"
+tag = ""
 
-def get_instance(tag, fresh):
+def get_instance(tag_, fresh):
+    global tag
+    tag = tag_
     return ContinuousDeepQLearner()
 
 class ContinuousDeepQLearner:
@@ -38,7 +41,7 @@ class ContinuousDeepQLearner:
         # Okay, now it's time to learn something! We visualize the training here for show, but this
         # slows down training quite a lot. You can always safely abort the training prematurely using
         # Ctrl + C.
-        agent.fit(self.env, nb_steps=50000, visualize=False, verbose=1, nb_max_episode_steps=200, callbacks=[self.make_logger_callback()])
+        agent.fit(self.env, nb_steps=50000, log_interval=100, visualize=False, verbose=1, nb_max_episode_steps=200, callbacks=[self.make_logger_callback()])
 
         # After training is done, we save the final weights.
         agent.save_weights('ddpg_{}_weights.h5f'.format('offline'), overwrite=True)
@@ -51,11 +54,11 @@ class ContinuousDeepQLearner:
         # Next, we build a very simple model.
         actor = Sequential()
         actor.add(Flatten(input_shape=(1,) + self.env.observation_space.shape))
-        actor.add(Dense(16))
+        actor.add(Dense(128))
         actor.add(Activation('relu'))
-        actor.add(Dense(16))
+        actor.add(Dense(128))
         actor.add(Activation('relu'))
-        actor.add(Dense(16))
+        actor.add(Dense(128))
         actor.add(Activation('relu'))
         actor.add(Dense(self.nb_actions))
         actor.add(Activation('linear'))
@@ -66,11 +69,11 @@ class ContinuousDeepQLearner:
         observation_input = Input(shape=(1,) + self.env.observation_space.shape, name='observation_input')
         flattened_observation = Flatten()(observation_input)
         x = Concatenate()([action_input, flattened_observation])
-        x = Dense(32)(x)
+        x = Dense(128)(x)
         x = Activation('relu')(x)
-        x = Dense(32)(x)
+        x = Dense(128)(x)
         x = Activation('relu')(x)
-        x = Dense(32)(x)
+        x = Dense(128)(x)
         x = Activation('relu')(x)
         x = Dense(1)(x)
         x = Activation('linear')(x)
@@ -79,6 +82,6 @@ class ContinuousDeepQLearner:
         return critic
 
     def make_logger_callback(self):
-        return get_tb_cb(model_name, write_graph=False)
+        return get_tb_cb("{}_{}".format(model_name, tag), write_graph=False)
 
 
