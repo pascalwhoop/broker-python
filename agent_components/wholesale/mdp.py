@@ -8,6 +8,8 @@ import numpy as np
 from gym import spaces
 from gym.core import Env
 from gym.spaces import Box
+from keras.metrics import MSE
+from sklearn import preprocessing
 
 import agent_components.demand.data as demand_data
 from communication.grpc_messages_pb2 import PBClearedTrade, PBMarketTransaction
@@ -287,7 +289,10 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         done = False
         if self.steps > cfg.WHOLESALE_STEPS_PER_TRIAL:
             done = True
-        return flat_obs, reward, done, {}
+
+        #normalized input
+        return preprocessing.normalize(flat_obs.reshape(1,-1)).flatten(), reward, done, {}
+        #return flat_obs, reward, done, {}
 
         # TODO calc reward
         # TODO done?
@@ -510,7 +515,10 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
 
     def append_historical_price(self):
         d = np.array(self.wholesale_data[0][3:])
-        self.historical_prices.append((d[0] * d[1]).sum() / d[1].sum())
+        sum_ = (d[0] * d[1]).sum() / d[1].sum()
+        if np.math.isnan(sum_):
+            sum_ = 0
+        self.historical_prices.append(sum_)
 
     def calculate_reward(self):
         """Gives back a relation between the average market price for the target timeslot and the average price the broker achieved"""
@@ -518,6 +526,12 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         average_market = self.calculate_running_averages(np.array([trades]))[0]
 
         bought = self.purchases[self.active_timeslots[0]]
+
+        #TODO punish large deviations from forecast
+        mse_diff = 0
+        if self.demand_data[0] and bought:
+            bought_sum = np.array(bought)[:,0].sum()
+            mse_diff = (bought_sum - self.demand_data[0])**2
 
         # appending final balancing costs for broker for any missing energy
         if len(bought) == 0:
@@ -545,11 +559,14 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         if stupid:
             # broker traded really badly! It sold more energy than it bought and paid for it as well
             # giving it a negative reward
-            return average_agent / average_market
+            market_relative_prices =  average_agent / average_market
         if average_agent < 0:
-            return average_agent * (-1) / average_market
+            market_relative_prices =  average_agent * (-1) / average_market
         else:
-            return average_market / average_agent
+            market_relative_prices = average_market / average_agent
+
+        #reward is made up of several components
+        return market_relative_prices - mse_diff
 
     def average_price_for_power_paid(self, bought):
         """
@@ -581,12 +598,12 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         Determines the amount of balancing that is needed for the agents actions after it purchased for 24 times.
 
         :param purchases: array of purchases
-        :param demand: demand for that timeslot
+        :param demand: demand for that timeslot. Negative means agent needs to buy
         :return: amount of additional mWh the agent requires for its portfolio.
         """
         sum_purchased = purchases.sum(axis=0)[0]
         # if demand > purchases --> positive, otherwise negative
-        return demand - sum_purchased
+        return demand * -1 - sum_purchased
 
 
 def make_flat_observation(observation) -> np.array:
