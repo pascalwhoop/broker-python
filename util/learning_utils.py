@@ -1,4 +1,5 @@
 import abc
+import datetime
 import logging
 import os
 from typing import List
@@ -54,6 +55,7 @@ class ModelWriter:
 
 class TbWriterHelper:
     def __init__(self, model_name, fresh=True):
+        model_name += str(datetime.datetime.now())
         tensorboard_dir = os.path.join(cfg.TENSORBOARD_PATH, model_name)
         # clearing old and overwriting
         if fresh:
@@ -71,6 +73,11 @@ class TbWriterHelper:
     def write_test_loss(self, loss):
         summary = tf.Summary(value=[tf.Summary.Value(simple_value=loss, tag="test/loss")])
         self.test_writer.add_summary(summary, global_step=self.train_steps)
+
+    def write_any(self, val_, tag):
+        summary = tf.Summary(value=[tf.Summary.Value(simple_value=val_, tag=tag)])
+        self.train_writer.add_summary(summary, global_step=self.train_steps)
+
 
 
 ####################################################################################
@@ -90,11 +97,13 @@ def get_callbacks_with_generator(model_name):
 
 
 def get_tb_cb(model_name, **kwargs):
-    kwargs['log_dir'] = os.path.join(cfg.TENSORBOARD_PATH, model_name)
+    log_path = os.path.join(cfg.TENSORBOARD_PATH, model_name)
+    rmtree(log_path, ignore_errors=True)
+    kwargs['log_dir'] = log_path
     return TensorBoard(**kwargs)
 
 
-####################################################################################
+######################## ############################################################
 
 def get_usage_file_paths() -> List:
     files = os.listdir(cfg.DEMAND_LEARNING_USAGE_PATH)
@@ -116,3 +125,4 @@ def get_wholesale_file_paths() -> List:
         full = os.path.abspath(os.path.join(cfg.DEMAND_LEARNING_USAGE_PATH, f))
         full_paths.append(full)
     return full_paths
+

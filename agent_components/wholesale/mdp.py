@@ -1,7 +1,13 @@
 import ast
 import csv
+import logging
+import math
+import os
 import random
+import time
 from collections import deque
+from operator import itemgetter
+from shutil import rmtree
 from typing import List
 
 import numpy as np
@@ -24,10 +30,15 @@ import util.config as cfg
 
 
 # should allow for several kinds of policy determining approaches --> DeepQ, PolicyGradient, ..
-from util.learning_utils import get_wholesale_file_paths, get_usage_file_paths
+from util.learning_utils import get_wholesale_file_paths, get_usage_file_paths, TbWriterHelper
+
+log = logging.getLogger(__name__)
+sizes = np.finfo(np.array([1.0], dtype=np.float32)[0])
+np_high = sizes.max
+np_low = sizes.min
 
 
-class WholesaleActionSpace(spaces.Tuple):
+class WholesaleActionSpace(spaces.Box):
     """
     A wholesale action is anywhere in the 2D space with Dim 1 being limited to [-1,+1] and Dim 2 to [-2.0, +2.0]
         - Dimension 0 describes how much mWh to buy. Positive numbers buy, negative numbers sell The network gets fed a prediction regarding its portfolio balance.
@@ -48,14 +59,11 @@ class WholesaleActionSpace(spaces.Tuple):
     """
 
     def __init__(self):
-        timestep_actions = []
-        for i in range(cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL):
-            a = Box(low=np.array([-1.0, -2.0]), high=np.array([+1.0, +2.0]), dtype=np.float32)
-            timestep_actions.append(a)
-        super().__init__(tuple(timestep_actions))
+        a = Box(low=np.array([-1.0, -1.0]), high=np.array([+1.0, +1.0]), dtype=np.float32)
+        super().__init__(low=a.low, high=a.high, dtype=np.float32)
 
 
-class WholesaleObservationSpace(spaces.Dict):
+class WholesaleObservationSpace(spaces.Box):
     """
     - demand prediction - purchases 24x float
     - historical prices of currently traded TS 24x24 float (with diagonal TR-BL zeros in bottom right)
@@ -65,32 +73,18 @@ class WholesaleObservationSpace(spaces.Dict):
 
     def __init__(self):
         # box needs min and max. using signed int32 min/max
-        sizes = np.finfo(np.array([1.0], dtype=np.float32)[0])
-        high = sizes.max
-        low = sizes.min
-        required_energy = Box(low=low, high=high, shape=(24,), dtype=np.float32)
-        historical_prices = Box(low=low, high=high, shape=(168,), dtype=np.float32)
-        current_prices = Box(low=low, high=high, shape=(24, 24, 2), dtype=np.float32)
-        super().__init__({
-            'required_energy': required_energy,
-            'historical_prices': historical_prices,
-            'current_prices': current_prices
-        })
+       required_energy = Box(low=np_low, high=np_high, shape=(1,), dtype=np.float32)
+       historical_prices = Box(low=np_low, high=np_high, shape=(168,), dtype=np.float32)
+       current_prices = Box(low=np_low, high=np_high, shape=(24, 2), dtype=np.float32)
+       super().__init__(low=np_low, high=np_high, shape=(1 + 168 + 24 * 2,), dtype=np.float32)
 
 
-class FlatWholesaleObservationSpace(spaces.Box):
-    def __init__(self):
-        sizes = np.finfo(np.array([1.0], dtype=np.float32)[0])
-        high = sizes.max
-        low = sizes.min
-        required_energy_length = cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL
-        historical_length = cfg.WHOLESALE_HISTORICAL_DATA_LENGTH
-        current_prices = cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL * cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL * 2
-        all = required_energy_length + historical_length + current_prices
-        super().__init__(low=low, high=high, shape=(all,), dtype=np.float32)
 
 
 class PowerTacEnv(Env):
+    def __init__(self):
+        super().__init__()
+
     def step(self, action):
         raise NotImplementedError
 
@@ -128,12 +122,6 @@ class PowerTacMDPEnvironment(PowerTacEnv):
         self.cleared_trades: List[PBClearedTrade] = []
         self.transactions: List[PBMarketTransaction] = []
         self.forecasts: List[demand_data.DemandForecasts]
-
-    def update_forecasts(self, fc: demand_data.DemandForecasts):
-        """
-        Append new known forecasts to our history of knowledge about the world. 
-        """
-        self.forecasts.append(fc)
 
     def step(self, action):
         """
@@ -177,7 +165,9 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
     """This class simulates a powertac trading environment but is based on logs of historical games.
     It assumes that the broker actions have no impact on the clearing price which is a reasonable estimation for any market
     that has a large enough volume in relation to the broker trading volume. Of course this does not apply once the broker is
-    large enough to itself have an influence on the clearing prices.
+    large enough to itself have an influence on the clearing prices. In PowerTAC, the broker wil actually have a significant impact
+    on the prices. Therefore this is an optimistic first stage learner for the broker. It will allow it to learn a certain base
+    amount but will underperform once it acts in a live environment.
 
     The basic skills the broker learns in the wholesale trading are as follows:
 
@@ -198,7 +188,8 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
     - Creation of usage data with the `org.powertac.logtool.example.CustomerProductionConsumption` class
     - selecting a small set of customers as a permanent customer portfolio for the broker
     - passing observations to the agent
-        - predictions from the demand predictor
+        - predictions from the demand predictor or alternatively, a true prediction (i.e. the real value)
+          or a noisy prediction where the noise may be adapted
         - historical market clearing prices
         - rewards based on reward calculation function
 
@@ -206,44 +197,42 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
 
     def __init__(self):
         """TODO: to be defined1. """
-        Env.__init__(self)
+        super().__init__()
+        #required by framework
         self.num_envs = 1
-        self.steps = 0
         self.action_space = WholesaleActionSpace()
-        # self.observation_space = WholesaleObservationSpace()
-        self.observation_space = FlatWholesaleObservationSpace()
-        self.reward_range = Box(low=-1, high=1, shape=(1,), dtype=np.float32)
+        self.observation_space = WholesaleObservationSpace()
+        self.reward_range = Box(low=np_low, high=np_high, shape=(1,), dtype=np.float32)
 
-        self.wholesale_running_averages = {}
-        self.forecasts = []  # holds the forecasts for the next 24 timeslots
-        self.active_timeslots = deque(maxlen=cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
-        self.historical_prices = deque(
-            maxlen=cfg.WHOLESALE_HISTORICAL_DATA_LENGTH)  # holds the historical averages prices
-        self.historical_prices.extend([0] * cfg.WHOLESALE_HISTORICAL_DATA_LENGTH)
-        self.observations = []
-
-        # a map of purchases for each timeslot. timeslot --> list([mWh, price])
+        # holds the historical averages prices
+        #---------------------------------------------------------------
+        # needs to be reset on next timeslot
+        #---------------------------------------------------------------
+        # a list of purchases for current timeslot --> list([mWh, price])
         # negative mWh are sales, positive mWh are purchases. Can be considered as "flow from broker"
-        self.purchases = {}
+        self.purchases = []
+        #current number of steps in active timeslot
+        self.steps = 0
 
-        # for mocking the market with the log files
-        self._prices_files = get_wholesale_file_paths()
-        self._usages_files = get_usage_file_paths()
+        #---------------------------------------------------------------
+        # base data to generate the mdp from. Needs to be reset on new game base data
+        #---------------------------------------------------------------
+        self.wholesale_averages = {}
+        self.active_target_timeslot = 0 #needs to be incremented
         # self.initial_timeslot = 0
         self.wholesale_data = None
-        self.demand_data = None  #
+        self.demand_data = None
 
+        #---------------------------------------------------------------
+        # stays until training is completed
+        #---------------------------------------------------------------
+        # for mocking the market with the log files
+        self._wholesale_files = get_wholesale_file_paths()
+        self._demand_files = get_usage_file_paths()
         self.game_numbers = self._make_random_game_order()
-        # iterate over past games randomly
-        # this needs to be moved out of this.
-        # step needs to be able to receive the next 24h timesteps. If there aren't enough left, the next game needs to be loaded
-        # and the next games data is returned.
-        # probably with a game_numbers.pop() approach
-        # so -->
-        # if has_steps():
-        #     get steps
-        # else:
-        #     reset() --> new game loaded and observations returned
+
+        self.tb_writer_helper = TbWriterHelper('mdp_agent')
+
 
     def step(self, action: np.array):
         """
@@ -259,67 +248,66 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
             done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
             info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
         """
+        self.tb_writer_helper.write_any(action[0], 'mwh')
+        self.tb_writer_helper.write_any(action[1], 'price')
 
-        # because the NN hands us a 1D array
-        action = unflat_action(action)
+        #TODO trying direct mappings
+        real_action = action
         # translate into proper mWh/price actions
-        real_actions = self.translate_action_to_real_world_vals(action)
+        #real_action = self.translate_action_to_real_world_vals(action)
         # get matching market data
         market_data = self.get_market_data_now()
         # evaluate cleared yes/no --> traded for cheaper? cleared (selling cheaper or buying more expensive)
-        part_of_cleared = self.which_are_cleared(real_actions, market_data)
+        cleared = self.is_cleared(real_action, market_data)
+        if cleared:
+            self.purchases.append(real_action)
 
-        # store the cleared trades --> those where the agent managed to be part of the clearing
-        self.apply_clearings_to_purchases(real_actions, part_of_cleared, market_data)
-
-        self.get_new_forecasts()
-        self.append_historical_price()
-
-        reward = self.calculate_reward()
-
+        #logging answers every once in a while to see hwo the agent is deciding
         # ---------------------------------------------------------------
-        # ------ stepping timeslot. Any methods that require
-        # ------ the new data need to follow this breaking change in data
+        # ------ stepping timeslot
         # ---------------------------------------------------------------
-        # deletes the first entry of the background data lists
-        self._step_timeslot()
-        # calculate reward for closed timestep
-        observation = self.make_observation()
-        flat_obs = make_flat_observation(observation)
-
         self.steps += 1
         done = False
-        if self.steps > cfg.WHOLESALE_STEPS_PER_TRIAL:
+        if self.steps >= cfg.WHOLESALE_STEPS_PER_TRIAL:
             done = True
+            self.log_actions(self.demand_data[0], market_data[1], self.get_sum_purchased_for_ts(), real_action[1])
 
-        #normalized input
-        return preprocessing.normalize(flat_obs.reshape(1,-1)).flatten(), reward, done, {}
-        #return flat_obs, reward, done, {}
+        #reward = self.calculate_mock_reward(action)
+        if done:
+            # calculate reward for closed timestep
+            reward = self.calculate_done_reward()
+        else:
+            #reward = self.calculate_step_reward()
+            reward = 0
 
-        # TODO calc reward
-        # TODO done?
-        # TODO info?
+        #hacking reward to force it to stay small in the middle
+        #TODO dirty trick
+        if action[0] > 1 or action[1] > 1 or action[0] < -1 or action[1] < -1:
+            reward = 0
+
+        observation = self.make_observation()
+
+        return observation, reward, done, {}
+        #return observation, reward, done, {}
 
     def reset(self):
         """
-        Overriding the Gym Env reset. In our trading world, there is no "reset" it's just a new prediction for a new timeslot
+        Resets the game, meaning it does the MDP for the next timestep.
         :return:
         """
         self.steps = 0
-        obs, r, done, info = self.step(get_do_nothing())
-        return obs
+        # set next active time step
+        self.active_target_timeslot += 1
+        self.purchases = []
 
-    def apply_clearings_to_purchases(self, actions, cleared_list, market_data):
-        # go over the active slots and place any purchases in the data
-        assert len(actions) == len(cleared_list) == len(self.active_timeslots)
+        if len(self.wholesale_data) <= 1 or len(self.demand_data) <= 0:
+            self.new_game()
+        else:
+            # removing latest timeslot
+            self.wholesale_data.pop(0)
+            self.demand_data.pop(0)
 
-        for i, ts in enumerate(self.active_timeslots):
-            if ts not in self.purchases:
-                self.purchases[ts] = []
-
-            if cleared_list[i]:
-                purchase = [actions[i][0], market_data[i][1]]
-                self.purchases[ts].append(purchase)
+        return self.make_observation()
 
     def new_game(self):
         """Marks the environment as completed and therefore lets the agent learn again on a new game once it is ready"""
@@ -330,59 +318,40 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         # getting data and storing it locally
         dd, wd = self.make_data_for_game(gn)
         self.wholesale_data: List = wd
+        self.apply_wholesale_averages(wd)
+
         self.demand_data: List[float] = list(dd)
-        self.get_new_forecasts()
+        fc = self.get_new_forecast()
 
-        self.reset_active_timeslots(self.wholesale_data)
-        self.observations = []
-
-        # stepping the environment once, not doing anything
-        obs, r, d, i =self.step(get_do_nothing())
-        return obs
-
-    def reset_active_timeslots(self, wholesale_data):
-        # setting new timeslots
-        self.active_timeslots.clear()
-        for i in range(cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL):
-            self.active_timeslots.append(wholesale_data[i][0])
+    def apply_wholesale_averages(self, wd):
+        avgs = self.calculate_running_averages(_get_wholesale_as_nparr(wd))
+        for i, ts in enumerate([row[0] for row in wd]):
+            self.wholesale_averages[ts] = avgs[i]
 
     def make_data_for_game(self, i):
-        price_file = self._prices_files[i]
-        usage_file = self._usages_files[i]
-        with open(price_file) as file:
+        wholesale_file_path = self._wholesale_files[i]
+        demand_file_path = self._demand_files[i]
+        with open(wholesale_file_path) as file:
             wholesale_data = self.parse_wholesale_file(file)
         # let's reuse this
         # resetting first
         demand_data.clear()
-        demand_data.parse_usage_game_log(usage_file)
+        demand_data.parse_usage_game_log(demand_file_path)
         demand = demand_data.get_demand_data_values()
         idx = np.random.randint(0, high=len(demand), size=30)
         # using only random 30 picks from customers
         summed_random_30 = demand[idx, :].sum(axis=0)
 
-        return self.trim_data(summed_random_30, wholesale_data, demand_data.get_first_timestep_for_file(usage_file))
+        return self.trim_data(summed_random_30, wholesale_data, demand_data.get_first_timestep_for_file(demand_file_path))
 
     def _make_random_game_order(self):
         # whichever is shorter.
-        max_game = len(self._prices_files) if len(self._prices_files) < len(self._usages_files) else len(
-            self._usages_files)
+        max_game = len(self._wholesale_files) if len(self._wholesale_files) < len(self._demand_files) else len(
+            self._demand_files)
         # mix up all the game numbers
         game_numbers = list(range(1, max_game))
         random.shuffle(game_numbers)
         return game_numbers
-
-    def _step_timeslot(self):
-        """Steps the game data up one notch. Removing first of most lists"""
-
-        #not enough data left for this game? next game!
-        if len(self.wholesale_data) < 25 or len(self.demand_data) < 25 :
-            self.new_game()
-            return
-
-        # self.active_timeslots.append(self.active_timeslots[-1] + 1)
-        self.active_timeslots.append(self.wholesale_data[24][0])
-        self.wholesale_data.pop(0)  # removes current timeslot --> is realized now
-        self.demand_data.pop(0)
 
     def render(self, mode='logging') -> None:
         """
@@ -431,134 +400,153 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         averages = []
 
         for result in known_results:
-            # data is a 24 item long array of 2 vals each
-            # average is sum(price_i * kwh_i) / kwh_total
-            sum_total = result[:, 0].sum()
-            avg = 0
-            if sum_total != 0.0:
-                avg = (result[:, 0] * result[:, 1]).sum() / sum_total
-            # if avg was not set or was set but to 0 use last average for this timestep
+            avg = self.calculate_running_average(result)
             if avg is 0 and averages:
                 avg = averages[-1]
             averages.append(avg)
 
         return averages
 
-    def get_current_knowledge_horizon(self):
-        otp = cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL
-        known_results = np.zeros((otp, otp, 2))
-        for i, ts in enumerate(self.active_timeslots):
-            row = self.wholesale_data[i]
-            # we are using only the wholesale data mwh/price (starts at index 3) and then only a subset of the data
-            # the data holds the historical data (i.e. everything about the target timeslot but we want to only use
-            # the data up to the "now" i.e. not future averages
-            assert ts == row[0]
+    def calculate_running_average(self, timeslot_trading_data):
+        # data is a 24 item long array of 2 vals each
+        # average is sum(price_i * kwh_i) / kwh_total
+        sum_total = timeslot_trading_data[:, 0].sum()
+        avg = 0
+        if sum_total != 0.0:
+            avg = (timeslot_trading_data[:, 0] * timeslot_trading_data[:, 1]).sum() / sum_total
+        # if avg was not set or was set but to 0 use last average for this timestep
+        return avg
 
-            data = np.array(row[3:])[:23 - i]
-            known_results[i, :23 - i] = data
+    def get_current_knowledge_horizon(self):
+        """calculates the known horizon for the current timeslot"""
+        # we are using only the wholesale data mwh/price (starts at index 3) and then only a subset of the data
+        # the data holds the historical data (i.e. everything about the target timeslot but we want to only use
+        # the data up to the "now" i.e. not future averages
+        known_results = np.zeros((cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL, 2))
+        data = np.array(self.wholesale_data[0][3:])
+        for i in range(self.steps):
+            known_results[i] = data[i]
         return known_results
 
     def translate_action_to_real_world_vals(self, action):
-        action = np.array(action)
         known_results = self.get_current_knowledge_horizon()
-        averages = self.calculate_running_averages(known_results)
-        # here is where the meat is. first, amplify the action by 2 --> +1 == x2, -1 == x-2
+        average = self.calculate_running_average(known_results)
+        if average == 0:
+            try:
+                #tryig to use previous price average as average
+                key = self.wholesale_data[0][0]
+                average = self.wholesale_averages[key-1]
+            except:
+                average = 0
+
+        # here is where the meat is.
+        # first, amplify the action by 2 --> +1 == x2, -1 == x-2
         action = action * 2
-        prices = action[:, 1] * np.array(averages).transpose()
-        amounts = action[:, 0] * np.array(self.forecasts).transpose()
-        real_actions = np.stack([amounts, prices], axis=1)
-        return np.around(real_actions, decimals=5)
+        price = action[1] * average
+        amount = action[0] * self.get_new_forecast()
+        return np.array([amount, price])
 
     def get_market_data_now(self):
-        """Returns the market data of the currently active 24 timeslots.
-        It does not remove the latest active timeslot, that is up to the calling method
-        to ensure so the next timestep works as expected"""
-        data = []
-        for i, ts in enumerate(self.active_timeslots):
-            # ensuring we have the right timeslot
-            assert self.wholesale_data[i][0] == ts
-            trading_index = 23 - i + 3  # the trades in the data are sorted left-right t-24 -- t-1 ... +3 because of the header data
-            data.append(self.wholesale_data[i][trading_index])
-        return np.array(data)
+        """Returns the market data of the currently active timeslot and the current step
+        """
+        return np.array(self.wholesale_data[0][3:][self.steps])
 
-    def which_are_cleared(self, real_actions, market_data):
+    def is_cleared(self, action, market_data) -> bool:
+        # if both positive, the agent it trying to pull a fast one. Nope
+        if action[0] > 0 and action[1] > 0:
+            return False
         # ignoring amounts in offline learning files, just checking prices
-        a = real_actions[:, 1]
-        m = market_data[:, 1]
+        a = action[1]
+        m = market_data[1]
         z = np.zeros(a.shape)
 
-        # it's greater not greater equal because we want to be on the one or the other side of the clearing price. not on spot
-        asks = np.logical_and(np.greater(a, z), np.greater(m, a))
-        bids = np.logical_and(np.greater(z, a), np.greater(a * -1, m))
-        return np.logical_or(asks, bids)
+        #market not active, nothing sold/bought
+        if market_data[0] == 0:
+            return False
 
-    def get_sum_purchased_for_ts(self, ts):
-        if ts in self.purchases and len(self.purchases[ts]) > 0:
-            return np.array(self.purchases[ts])[:, 0].sum()
-        else:
+        if a > 0:
+
+            # selling for less -> cleared
+            return a < abs(m)
+        if a < 0:
+            # buying for more -> cleared
+            return abs(a) > m
+        # default, didn't buy anything or no price
+        return False
+
+
+    def get_sum_purchased_for_ts(self) -> float:
+        if not self.purchases:
             return 0
+        return np.array(self.purchases)[:, 0].sum()
 
-    def get_new_forecasts(self):
-        """
-        Call before _step_timeslot
-        :return:
-        """
-        if cfg.WHOLESALE_FORECASTS_TYPE == 'perfect':
-            self.forecasts = self.demand_data[1:1 + cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL]
+    def get_new_forecast(self):
+        fc = self.demand_data[0]
+        for i in range(cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL - self.steps):
+            err_mult = random.uniform(-cfg.WHOLESALE_FORECAST_ERROR_PER_TS, cfg.WHOLESALE_FORECAST_ERROR_PER_TS)
+            err_add = fc * err_mult
+            fc += err_add
+        return fc
 
-    def make_observation(self):
-        obs = {}
-        obs['required_energy'] = np.array(self.forecasts) - np.array(
-            [self.get_sum_purchased_for_ts(ts) for ts in self.active_timeslots])
-        obs['historical_prices'] = np.array(self.historical_prices)
-        obs['current_prices'] = np.array(self.get_current_knowledge_horizon())
-        self.observations.append(obs)
-        return obs
+    def make_observation(self) -> np.array:
+        obs = []
+        #returns positive --> need to purchase
+        required_energy = self.calculate_missing_energy(self.get_sum_purchased_for_ts(), self.demand_data[0])
+        obs.append(required_energy)
+        hist_from = self.active_target_timeslot - 168 - (cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL - self.steps)
+        hist_till = hist_from + cfg.WHOLESALE_HISTORICAL_DATA_LENGTH
+        avgs = []
+        for i in range(hist_from, hist_till):
+            try:
+                avgs.append(self.wholesale_averages[i])
+            except:
+                #not found. boh
+                avgs.append(0)
+        assert len(avgs) == cfg.WHOLESALE_HISTORICAL_DATA_LENGTH
+        obs.extend(avgs)
+        current_prices = np.array(self.get_current_knowledge_horizon()).flatten()
+        obs.extend(current_prices)
+        np_obs = np.array(obs)
+        #np_obs = preprocessing.normalize(np_obs.reshape(1, -1)).flatten()
+        return np_obs
 
-    def append_historical_price(self):
-        d = np.array(self.wholesale_data[0][3:])
-        sum_ = (d[0] * d[1]).sum() / d[1].sum()
-        if np.math.isnan(sum_):
-            sum_ = 0
-        self.historical_prices.append(sum_)
-
-    def calculate_reward(self):
+    def calculate_done_reward(self):
         """Gives back a relation between the average market price for the target timeslot and the average price the broker achieved"""
         trades = self.wholesale_data[0][3:]
         average_market = self.calculate_running_averages(np.array([trades]))[0]
 
-        bought = self.purchases[self.active_timeslots[0]]
-
-        mse_diff = self.calculate_squared_diff(bought)
+        bought = self.purchases
 
         # appending final balancing costs for broker for any missing energy
         if len(bought) == 0:
             balancing_needed = self.demand_data[0]
+            energy_sum = 0
         else:
-            balancing_needed = self.calculate_missing_du_trans(np.array(bought), self.demand_data[0])
+            energy_sum = self.get_sum_purchased_for_ts()
+            balancing_needed = self.calculate_missing_energy(energy_sum, self.demand_data[0])
         du_trans = self.calculate_du_fee(average_market, balancing_needed)
         # TODO for now just a fixed punishment for every balanced mWh. Later maybe based on balancing stats data
         if du_trans:
             bought.append(du_trans)
 
-        average_agent, stupid = self.average_price_for_power_paid(bought)
-        # returning relation between the two.
-        # Market trading is always in positive numbers (perspective of "price per kWh sold")
-        # but the broker is from its perspective ( "price per kWh purchased" )
-
-        # if the agent value is negative it means it bought more than it sold. In this case it needs to reverse the
-        # relation for the reward
-        if stupid:
-            # broker traded really badly! It sold more energy than it bought and paid for it as well
-            # giving it a negative reward
-            market_relative_prices =  average_agent / average_market
-        if average_agent < 0:
-            market_relative_prices =  average_agent * (-1) / average_market
-        else:
+        type_, average_agent = self.average_price_for_power_paid(bought)
+        market_relative_prices = 0
+        if type_ == 'ask':
+            # broker is overall selling --> higher is better
+            market_relative_prices = average_agent / average_market
+        if type_ == 'bid':
+            #broker is overall buyer --> lower is better
             market_relative_prices = average_market / average_agent
 
         #reward is made up of several components
-        return market_relative_prices - mse_diff
+        # priority one: getting the mWh that are predicted
+        # priority number two: getting those cheaply
+
+        #if balancing high --> ratio close to 1
+        weight_balancing = abs(balancing_needed / energy_sum + balancing_needed)
+        weight_price = 1 - weight_balancing
+        return weight_balancing * (1/balancing_needed) + weight_price * market_relative_prices
+        #return market_relative_prices - (balancing_needed/ (balancing_needed + energy_sum))
 
 
     def calculate_du_fee(self, average_market, balancing_needed):
@@ -569,6 +557,8 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         if balancing_needed < 0:
             # getting only a 0.5 of what the normal market price was
             du_trans = [balancing_needed, 0.5 * average_market]  # TODO to config
+        if balancing_needed == 0:
+            du_trans = [0,0]
         return du_trans
 
     def calculate_squared_diff(self, bought):
@@ -586,24 +576,27 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         :return: average price, stupidBoolean --> stupid if it paid money to sell energy on average
         """
         # [:,0] is the mWh purchased and [:,1] is the average price for that amount
-        total_purchased = 0
-        total_paid = 0
+        total_energy = 0
+        total_money = 0
         for t in bought:
-            total_purchased += t[0]
-            if t[0] > 0:
-                # buy
-                total_paid += t[0] * t[1] * (-1)
-            if t[0] < 0:
-                total_paid += t[0] * t[1]  # is negative, because t[0] is negative (-mWh)
+            total_energy += t[0]
+            total_money += abs(t[0]) * t[1]
 
-        if total_paid < 0 and total_purchased < 0:
-            return (-1) * total_paid / total_purchased, False
-        if total_paid > 0 and total_purchased > 0:
-            return total_paid / total_purchased, False
-        else:
-            return total_paid / total_purchased, True
+        # if both positive --> broker got energy for free --> 0
+        # if both negative --> broker paid and lost energy --> infinite
+        if total_energy < 0 and total_money < 0:
+            return 'bid',  np_high #max number possible. simulates infinite
+        # broker lost energy --> sold it
+        if total_energy < 0:
+            return 'ask',  abs(total_money / total_energy)
+        #broker purchased energy and still made profit
+        if total_money > 0 and total_energy > 0:
+            return 'bid', 0
+        #broker purchased energy
+        if total_energy > 0:
+            return 'bid', abs(total_money / total_energy)
 
-    def calculate_missing_du_trans(self, purchases: np.array, demand):
+    def calculate_missing_energy(self, purchases: float, demand: float):
         """
         Determines the amount of balancing that is needed for the agents actions after it purchased for 24 times.
 
@@ -611,11 +604,19 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         :param demand: demand for that timeslot. Negative means agent needs to buy
         :return: amount of additional mWh the agent requires for its portfolio.
         """
-        sum_purchased = purchases.sum(axis=0)[0]
         # if demand > purchases --> positive, otherwise negative
         # *(-1) because balancing needed is supposed to be from perspective of "missing transaction" for broker
-        return (-1) * (demand + sum_purchased)
+        return (-1) * (demand + purchases)
 
+    def log_actions(self, demand_forecast, last_price, purchased_sum, price_offered):
+        divergence = abs(purchased_sum / demand_forecast)
+        price_diff = last_price - abs(price_offered)
+        self.tb_writer_helper.write_any(divergence, 'divergence')
+        self.tb_writer_helper.write_any(price_diff, 'price_diff')
+
+def _get_wholesale_as_nparr(wholesale_data: List):
+    """Assumes it's being passed a list of wholesale data, where the first three columns are metadata and then it's raw stuff"""
+    return np.array([row[3:] for row in wholesale_data])
 
 def make_flat_observation(observation) -> np.array:
     obs = []
@@ -630,4 +631,6 @@ def unflat_action(action: np.array):
 
 
 def get_do_nothing():
-    return np.zeros((cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL, 2)).flatten()
+    return np.array([0,0])
+
+
