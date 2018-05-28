@@ -6,8 +6,11 @@ import numpy as np
 
 from agent_components import demand
 from agent_components.demand import data
-from agent_components.wholesale.mdp import PowerTacLogsMDPEnvironment, PowerTacMDPEnvironment, WholesaleActionSpace, \
+from agent_components.wholesale.mdp import WholesaleActionSpace, \
     WholesaleObservationSpace
+from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
+from agent_components.wholesale.environments.PowerTacMDPEnvironment import PowerTacMDPEnvironment
+from agent_components.wholesale.util import average_price_for_power_paid, is_cleared, trim_data
 
 
 class MagickMock(object):
@@ -129,7 +132,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         wholesale_data = self.make_mock_wholesale_data()
 
         # making first rows be a range but starting in different points and being of different length
-        demand_data, wholesale_data = self.log_env.trim_data(demand_data=demand_data, wholesale_data=wholesale_data,
+        demand_data, wholesale_data = trim_data(demand_data=demand_data, wholesale_data=wholesale_data,
                                                              first_timestep_demand=365)
         # assert same length now
         assert len(demand_data) == len(wholesale_data)
@@ -167,19 +170,19 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
             [1, -3.0],  # buying super expensive --> clearing
             [1, -0.3],  # buying but too cheap --> not clearing
         ])
-        assert self.log_env.is_cleared(actions[0], market_closings[0])
-        assert not self.log_env.is_cleared(actions[1], market_closings[1])
-        assert self.log_env.is_cleared(actions[2], market_closings[2])
-        assert not self.log_env.is_cleared(actions[3], market_closings[3])
+        assert is_cleared(actions[0], market_closings[0])
+        assert not is_cleared(actions[1], market_closings[1])
+        assert is_cleared(actions[2], market_closings[2])
+        assert not is_cleared(actions[3], market_closings[3])
 
     @patch('agent_components.wholesale.mdp.cfg')
     def test_get_new_forecast(self, mock_cfg):
         mock_cfg.WHOLESALE_FORECAST_ERROR_PER_TS = 0
         self.log_env.demand_data[0] = 10
-        fc = self.log_env.get_new_forecast()
+        fc = self.log_env.get_forecast_for_active_ts()
         assert fc == 10
         mock_cfg.WHOLESALE_FORECAST_ERROR_PER_TS = 0.01
-        fc = self.log_env.get_new_forecast()
+        fc = self.log_env.get_forecast_for_active_ts()
         assert fc < 12.4 and fc > 7.6 and fc != 10
 
     def test_apply_wholesale_averages(self):
@@ -224,7 +227,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
     def test_average_price_for_power_paid(self):
         in_ = np.arange(6).reshape((3, 2))
         in_[:, 1] = in_[:, 1] * -1
-        avg, stupid = self.log_env.average_price_for_power_paid(in_)
+        avg, stupid = average_price_for_power_paid(in_)
         np.testing.assert_almost_equal(avg, 4.3333, decimal=4)
         assert stupid == False
 
@@ -243,6 +246,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
 
     def test_is_cleared(self):
         #TODO make sure not clearing anything wrong
+        pass
 
     def test_calculate_reward(self):
         # market price average is 0.1 per kWh
@@ -254,12 +258,12 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
 
             mock_purchases.append([5, -0.1])  # same as market
             self.log_env.demand_data[0] = -5  # making demand equal to purchases --> no DU balancing
-            reward = self.log_env.calculate_done_reward()
+            reward = self.log_env.calculate_reward()
             np.testing.assert_almost_equal(reward, 1)
 
             # let's get some balancing happening
             self.log_env.demand_data[0] = -10  # 10 demand, 5 bought, 5 punishment
-            reward = self.log_env.calculate_done_reward()
+            reward = self.log_env.calculate_reward()
             np.testing.assert_almost_equal(reward, 0.333, decimal=3)
             # removing the additional DU balancing
             mock_purchases.pop()
@@ -267,13 +271,13 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
             # purchasing something for too high a price
             mock_purchases.append([5, -0.5])  # same as market
             self.log_env.demand_data[0] = -10
-            reward = self.log_env.calculate_done_reward()
+            reward = self.log_env.calculate_reward()
             np.testing.assert_almost_equal(reward, 0.333, decimal=3)
 
             # now selling some energy, should be back to as before
             mock_purchases.append([-5, 0.5])  # same as market
             self.log_env.demand_data[0] = -5
-            reward = self.log_env.calculate_done_reward()
+            reward = self.log_env.calculate_reward()
             np.testing.assert_almost_equal(reward, 1, decimal=3)
 
             # now selling even more energy, net average for broker is negative now
@@ -281,7 +285,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
             # because the average after the whole round is sold 5kWh for 0.45
             mock_purchases.append([-10, 0.5])  # same as market
             self.log_env.demand_data[0] = 5
-            reward = self.log_env.calculate_done_reward()
+            reward = self.log_env.calculate_reward()
             np.testing.assert_almost_equal(reward, 8.999, decimal=3)
 
     # ---------------------------------------------------------------------------------------------

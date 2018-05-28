@@ -5,7 +5,7 @@ import tensorflow as tf
 from baselines.ppo2 import ppo2
 from baselines.ppo2.policies import CnnPolicy, LnLstmPolicy, LstmPolicy, MlpPolicy
 
-from agent_components.wholesale.mdp import PowerTacLogsMDPEnvironment
+from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
 
 """
 NOT WORKING YET! Learning how to mold the OpenAI stuff to powertac on the deepQ learner first. PPO2 is whole new ballgame

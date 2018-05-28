@@ -1,3 +1,4 @@
+baselines
 absl-py==0.1.11
 astor==0.6.2
 astroid==1.6.1
