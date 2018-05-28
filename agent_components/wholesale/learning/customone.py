@@ -25,7 +25,7 @@ def get_instance(tag_, fresh):
 class ContinuousDeepQLearner:
     def __init__(self):
         self.env = PowerTacLogsMDPEnvironment(direct_cash_reward)
-        self.nb_actions = 2
+        self.nb_actions = 4
         self.env.new_game()
         self.memory_length = 48
 
@@ -49,7 +49,7 @@ class ContinuousDeepQLearner:
                           nb_steps_warmup_actor=100,                #
                           random_process=random_process,            #causes exploration
                           gamma=1, target_model_update=1e-3)        #
-        agent.compile(Adam(lr=.000001, clipnorm=1.), metrics=['mae'])#
+        agent.compile(Adam(lr=.0001, clipnorm=1.), metrics=['mae'])#
 
         # Okay, now it's time to learn something! We visualize the training here for show, but this
         # slows down training quite a lot. You can always safely abort the training prematurely using
@@ -72,7 +72,7 @@ class ContinuousDeepQLearner:
         actor.add(CuDNNGRU(128))
         actor.add(Activation('linear'))
         actor.add(Dense(self.nb_actions))
-        actor.add(Activation('linear'))
+        actor.add(Activation('relu'))
         print(actor.summary())
         return actor
 

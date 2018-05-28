@@ -39,13 +39,27 @@ def direct_cash_reward(action, market_trades, purchases, realized_usage):
         purchases.append(du_trans)
 
     # summing the entire payments. Because one of both is usually negative, abs of mWh amount
-    # negative value --> overall casflow negative --> *(-1)
-    sum_agent = np.array([abs(r[0])*r[1] for r in purchases]).sum() * (-1)
+    # negative value --> overall casflow negative -->
+    sum_agent = np.array([abs(r[0])*r[1] for r in purchases]).sum()
     # average_market is always positive --> negative mWh amount --> reducing costs --> fair, because "what if sold"
-    sum_agent_with_average_prices = np.array([r[0] * abs(average_market) for r in purchases])
+    sum_agent_with_average_prices = realized_usage * abs(average_market)
+
+    if realized_usage > 0:
+        # we are selling energy! it's good if we're positive here!
+        # if agent positive --> if sold better than average -> above 0
+        #                   --> if sold worse than  average -> below 0
+        # if agent negative --> giving difference between the two
+        return sum_agent - sum_agent_with_average_prices
+    if realized_usage <= 0:
+        # we are buying energy --> negative
+        # if agent positive --> crazy good
+        # if agent negative --> if smaller than sum_avg --> above 0
+        #                   --> if larger than  sum_avg --> below 0
+        return sum_agent - sum_agent_with_average_prices
+
+
 
     # if agent paid less than what it would have with average prices --> positive reward
-    return sum_agent_with_average_prices - sum_agent
 
 
 

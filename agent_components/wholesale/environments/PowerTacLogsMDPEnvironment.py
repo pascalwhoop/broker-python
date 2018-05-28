@@ -108,17 +108,19 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
             done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
             info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
         """
-        tb_writer_helper.write_any(action[0], 'mwh')
-        tb_writer_helper.write_any(action[1], 'price')
+        #tb_writer_helper.write_any(action[0], 'mwh')
+        #tb_writer_helper.write_any(action[1], 'price')
 
         # translate into proper mWh/price actions
-        real_action = self.translate_action_to_real_world_vals(action)
+        #real_action = self.translate_action_to_real_world_vals(action)
+        orders =  self.translate_4_actions_to_real_vals(action)
         # get matching market data
         market_data = self.get_market_data_now()
         # evaluate cleared yes/no --> traded for cheaper? cleared (selling cheaper or buying more expensive)
-        cleared = is_cleared(real_action, market_data)
-        if cleared:
-            self.purchases.append(real_action)
+        for o in orders:
+            cleared = is_cleared(o, market_data)
+            if cleared:
+                self.purchases.append(o)
 
         # logging answers every once in a while to see hwo the agent is deciding
         # ---------------------------------------------------------------
@@ -126,9 +128,10 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         # ---------------------------------------------------------------
         self.steps += 1
         reward = 0
-        done = self.is_done(market_data, real_action)
+        done = self.is_done()
 
         if done:
+            #self.log_actions(self.demand_data[0], market_data[1], self.get_sum_purchased_for_ts(), real_action[1])
             # calculate reward for closed timestep
             reward = self.calculate_reward(action, self.wholesale_data[0][3:], self.purchases,
                                            self.get_forecast_for_active_ts())
@@ -138,11 +141,10 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         return observation, reward, done, {}
         # return observation, reward, done, {}
 
-    def is_done(self, market_data, real_action):
+    def is_done(self):
         done = False
         if self.steps >= cfg.WHOLESALE_STEPS_PER_TRIAL:
             done = True
-            self.log_actions(self.demand_data[0], market_data[1], self.get_sum_purchased_for_ts(), real_action[1])
         return done
 
     def reset(self):
@@ -231,12 +233,21 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
             known_results[i] = data[i]
         return known_results
 
+    def translate_4_actions_to_real_vals(self, action):
+        bid_mwh   = action[0]
+        bid_price = action[1]
+        ask_mwh   = action[2]
+        ask_price = action[3]
+
+        ask = [-1 * ask_mwh, ask_price]
+        bid = [bid_mwh, -1 * bid_price]
+        return [ask, bid]
+
     def translate_action_to_real_world_vals(self, action):
         # here is where the meat is.
         # first, amplify the action by 2 --> +1 == x2, -1 == x-2
-        action = action * 2
 
-        missing_energy = calculate_missing_energy(self.get_sum_purchased_for_ts(), self.demand_data[0])
+        missing_energy = calculate_missing_energy(self.get_sum_purchased_for_ts(), self.get_forecast_for_active_ts())
         if self.latest_observeration is not None:
             latest_price = price_scaler.inverse_transform(np.array(self.latest_observeration[-1]).reshape(-1, 1))
         else:
@@ -272,7 +283,7 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         """Observation consists of : energy left to buy and last 24 known prices"""
         obs = []
         # adding required energy, and scaling
-        required_energy = calculate_missing_energy(self.get_sum_purchased_for_ts(), self.demand_data[0])
+        required_energy = calculate_missing_energy(self.get_sum_purchased_for_ts(), self.get_forecast_for_active_ts())
         # scaling according to minmax math
         required_energy = demand_scaler.transform(np.array([required_energy]).reshape(-1, 1))
         obs.append(required_energy)
@@ -296,12 +307,12 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         self.latest_observeration = np_obs
         return np_obs
 
-    def calculate_squared_diff(self, bought):
-        mse_diff = 0
-        if self.demand_data[0] and bought:
-            bought_sum = np.array(bought)[:, 0].sum()
-            mse_diff = (bought_sum - self.demand_data[0]) ** 2
-        return mse_diff
+#    def calculate_squared_diff(self, bought):
+#        mse_diff = 0
+#        if self.demand_data[0] and bought:
+#            bought_sum = np.array(bought)[:, 0].sum()
+#            mse_diff = (bought_sum - self.demand_data[0]) ** 2
+#        return mse_diff
 
     def log_actions(self, demand_forecast, last_price, purchased_sum, price_offered):
         divergence = abs(purchased_sum / demand_forecast)
