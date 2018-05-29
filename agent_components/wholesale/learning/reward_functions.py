@@ -2,6 +2,7 @@ import math
 
 import numpy as np
 
+from agent_components.wholesale.environments import PowerTacLogsMDPEnvironment
 from agent_components.wholesale.learning.util import calculate_balancing_needed
 from agent_components.wholesale.util import calculate_running_averages, calculate_du_fee, average_price_for_power_paid
 
@@ -11,23 +12,20 @@ from agent_components.wholesale.util import calculate_running_averages, calculat
 # - divergence from forecast
 
 
-def simple_truth_ordering(action, market_trades, purchases, realized_usage):
+def simple_truth_ordering(env, action, market_trades, purchases, realized_usage):
     """
     This helper function trains the agent to initially always order exactly the amount it has forecasted to need and
     offer a price that is always 10% better than the market price --> always clearing
     :param action:
     :return:
     """
-    balancing_needed = calculate_balancing_needed(purchases, realized_usage)
-
     amount = action[0]
     price = action[1]
-    mse_amount = (amount-balancing_needed)**2
-    reward_price = abs(price - 0.55)
-    return 1/(mse_amount + reward_price)
+    return -((amount-0.50)**2 + (price-0.60)**2)
 
 
-def direct_cash_reward(action, market_trades, purchases, realized_usage):
+
+def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
     """Gives back the direct relation between paid amount and what the agent would have paid if it achieved average costs"""
     average_market = calculate_running_averages(np.array([market_trades]))[0]
 
@@ -61,9 +59,13 @@ def direct_cash_reward(action, market_trades, purchases, realized_usage):
 
     # if agent paid less than what it would have with average prices --> positive reward
 
+def step_close_to_prediction_reward(env: PowerTacLogsMDPEnvironment, action, *args):
+    #TODO give it a reward if it places a bet close to what it has been told is a prediction.
+    forecasted_need = env.latest_observation[0]
+    return (action[0] - forecasted_need)**2
 
 
-def shifting_balancing_price(action, market_trades, purchases, realized_usage):
+def shifting_balancing_price(env, action, market_trades, purchases, realized_usage):
     """Gives back a relation between the average market price for the target timeslot and the average price the broker achieved"""
     average_market = calculate_running_averages(np.array([market_trades]))[0]
 

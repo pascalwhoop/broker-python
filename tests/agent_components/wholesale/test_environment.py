@@ -6,14 +6,53 @@ import numpy as np
 
 from agent_components import demand
 from agent_components.demand import data
-from agent_components.wholesale.mdp import WholesaleActionSpace, \
-    WholesaleObservationSpace
 from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
 from agent_components.wholesale.environments.PowerTacMDPEnvironment import PowerTacMDPEnvironment
+from agent_components.wholesale.mdp import WholesaleActionSpace, WholesaleObservationSpace, price_scaler
 from agent_components.wholesale.util import average_price_for_power_paid, is_cleared, trim_data
 
 
 class MagickMock(object):
+    pass
+
+
+def make_mock_demand_data():
+    return list(range(1, 50))
+
+
+def make_mock_active_timeslots(data):
+    # mock the active timesteps
+    return deque([row[0] for row in data][:24], maxlen=24)
+
+
+def make_mock_wholesale_data():
+    # creating wholesale style mock data
+    wholesale_data_header = np.zeros((50, 3), dtype=np.int32)
+    wholesale_data_header[:, 0] = np.arange(363, 363 + 50).transpose()
+
+    data_core = np.zeros((50, 24, 2), dtype=np.float32)
+    # iterate over the rows
+    for i in range(len(data_core)):
+        # and each market clearing for each of the 24 times the ts was traded
+        for j in range(len(data_core[i])):
+            # mwh to full numbers
+            data_core[i][j][0] = i + 1
+            # price to 1/10th that
+            data_core[i][j][1] = (i + 1) / 10
+
+    wholesale_data = []
+    for i in range(50):
+        row = []
+        row.extend(wholesale_data_header[i])
+        row.extend(list(data_core[i]))
+        wholesale_data.append(row)
+    return wholesale_data
+
+
+def make_mock_averages():
+    # same as wholesale_data, 50 entries with averages being 1/10th the index+1
+    return [i / 10 for i in range(1, 51)]
+
     pass
 
 
@@ -23,10 +62,12 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
     def setUp(self):
         self.env = PowerTacMDPEnvironment(360)
         self.log_env = PowerTacLogsMDPEnvironment()
-        self.log_env.wholesale_averages = self.make_mock_averages()
-        self.log_env.wholesale_data = self.make_mock_wholesale_data()
-        self.log_env.demand_data = self.make_mock_demand_data()
+        self.log_env.wholesale_averages = make_mock_averages()
+        self.log_env.wholesale_data = make_mock_wholesale_data()
+        self.log_env.demand_data = make_mock_demand_data()
         self.log_env.active_target_timeslot = self.log_env.wholesale_data[0][0]
+        import util.config as cfg
+        cfg.WHOLESALE_FORECAST_ERROR_PER_TS = 0
 
     def tearDown(self):
         demand.data.clear()
@@ -34,6 +75,12 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
     def test_init(self):
         self.assertIsNotNone(self.env)
         self.assertEqual(self.env.target_timestep, 360)
+
+
+    def test_apply_purchase_if_cleared(self):
+        #TODO verify the purchases are created correctly.
+        pass
+
 
     def test_step_24times(self):
         for i in range(23):
@@ -47,15 +94,6 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         games = np.array(games)
         self.assertEqual(1, games.min())
 
-    def test_calculate_running_average(self):
-        # test the calculation of the historical running average prices per kWh for target timeslot
-        # loading wholesale data into entity
-        data_ = [row[3:] for row in self.log_env.wholesale_data]
-        averages = self.log_env.calculate_running_averages(np.array(data_))
-        # print([row[3:] for row in data])
-        assert np.isclose(averages[5], 0.6)
-        # self.log_env.calculate_running_average(target_timeslot)
-        pass
 
     def test_get_market_data_now(self):
         # get's the current trades for the upcoming 24h timeslots. it's the diagonal from the first 24 timeslots from up right to bottom left
@@ -64,7 +102,10 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         assert market_data_now.shape == (2,)
         np.testing.assert_almost_equal(market_data_now, np.array([1, 0.1]), decimal=3)
 
-    def test_translate_action_to_real_world_vals(self):
+    @patch('agent_components.wholesale.environments.PowerTacLogsMDPEnvironment.price_scaler.inverse_transform')
+    def test_translate_action_to_real_world_vals(self, scaler_mock):
+        scaler_mock.return_value = 5
+        self.log_env.latest_observeration = [1]
         # mocked data looks right?
         data = self.log_env.wholesale_data
         assert data[0][3][0] == np.float32(1.0)
@@ -72,23 +113,23 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         assert data[5][3][0] == np.float32(6.0)
         assert data[5][3][1] == np.float32(0.6)
 
-        # mock some demand forecasts
-        self.log_env.forecasts = range(1, 25)
+        # mock some demand forecasts --> demand of 1 in step 1
+        self.log_env.forecasts = list(range(1, 25))
 
-        # first upcoming timeslot, average amount is 1 mWh and price is 0.1 mWh
+        # first upcoming timeslot, latest amount is 1 mWh and price is 0.1 mWh
         # meaning we buy 2 mWh for -0.02
         # print(real_actions)
         self.log_env.steps = 1
         real_action = self.log_env.translate_action_to_real_world_vals(np.array([1, -0.1]))
-        np.testing.assert_almost_equal(real_action, [2, -0.02])
+        np.testing.assert_almost_equal(real_action, [-1, 5 * -0.1])
         real_action = self.log_env.translate_action_to_real_world_vals(np.array([1, -0.5]))
-        np.testing.assert_almost_equal(real_action, [2, -0.1])
+        np.testing.assert_almost_equal(real_action, [-1, -2.5])
         self.log_env.demand_data[0] = 14
         real_action = self.log_env.translate_action_to_real_world_vals(np.array([-1, 1.0]))
-        np.testing.assert_almost_equal(real_action, [-28, 0.2])
+        np.testing.assert_almost_equal(real_action, [14, -5])
 
         # try also with zeros
-        self.log_env.translate_action_to_real_world_vals(np.zeros((24, 2)))
+        self.log_env.translate_action_to_real_world_vals(np.zeros((2)))
 
     def test_action_space(self):
         action = WholesaleActionSpace().sample()
@@ -99,18 +140,11 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         Assuming that this is a flat array of all data that is part of an observation
         :return:
         """
+        obs0 = price_scaler.transform(-self.log_env.demand_data[0])
         obs = self.log_env.make_observation()
-        assert obs[0] == (-1) * self.log_env.demand_data[0]
-        assert len(obs) == 1 + 168 + 24 * 2
+        assert obs[0] == obs0
+        assert len(obs) == 1 + 24
 
-    def test_parse_wholesale_file(self):
-        test_file_path = "tests/agent_components/wholesale/test_marketprices.csv"
-        with open(test_file_path) as f:
-            data = self.log_env.parse_wholesale_file(f)
-        self.assertEqual(len(data), 400)
-        self.assertEqual(len(data[0]), 27)
-        without_intro = [row[3:] for row in data]
-        self.assertEqual(np.array(without_intro).shape, (400, 24, 2))
 
     @patch('agent_components.wholesale.mdp.demand_data.get_demand_data_values')
     @patch('agent_components.wholesale.mdp.demand_data.parse_usage_game_log')
@@ -129,7 +163,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
 
     def test_trim_games(self):
         demand_data = np.zeros((20, 2))
-        wholesale_data = self.make_mock_wholesale_data()
+        wholesale_data = make_mock_wholesale_data()
 
         # making first rows be a range but starting in different points and being of different length
         demand_data, wholesale_data = trim_data(demand_data=demand_data, wholesale_data=wholesale_data,
@@ -141,7 +175,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
 
     def test_observation_space(self):
         os = WholesaleObservationSpace()
-        assert os.shape == (217,)
+        assert os.shape == (25,)
 
     def test_get_sum_purchased_for_ts(self):
         self.log_env.purchases = [[i, i / 10] for i in range(24)]
@@ -213,8 +247,8 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         assert len_demand - 1 == len(self.log_env.demand_data)
 
         def mock_ng():
-            self.log_env.wholesale_data = self.make_mock_wholesale_data()
-            self.log_env.demand_data = self.make_mock_demand_data()
+            self.log_env.wholesale_data = make_mock_wholesale_data()
+            self.log_env.demand_data = make_mock_demand_data()
 
         with patch.object(self.log_env, 'new_game') as new_game_mock:
             new_game_mock.side_effect = mock_ng
@@ -288,41 +322,4 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
             reward = self.log_env.calculate_reward()
             np.testing.assert_almost_equal(reward, 8.999, decimal=3)
 
-    # ---------------------------------------------------------------------------------------------
-    # helpers and generators below
 
-    def make_mock_demand_data(self):
-        return list(range(1, 50))
-
-    def make_mock_active_timeslots(self, data):
-        # mock the active timesteps
-        return deque([row[0] for row in data][:24], maxlen=24)
-
-    def make_mock_wholesale_data(self):
-        # creating wholesale style mock data
-        wholesale_data_header = np.zeros((50, 3), dtype=np.int32)
-        wholesale_data_header[:, 0] = np.arange(363, 363 + 50).transpose()
-
-        data_core = np.zeros((50, 24, 2), dtype=np.float32)
-        # iterate over the rows
-        for i in range(len(data_core)):
-            # and each market clearing for each of the 24 times the ts was traded
-            for j in range(len(data_core[i])):
-                # mwh to full numbers
-                data_core[i][j][0] = i + 1
-                # price to 1/10th that
-                data_core[i][j][1] = (i + 1) / 10
-
-        wholesale_data = []
-        for i in range(50):
-            row = []
-            row.extend(wholesale_data_header[i])
-            row.extend(list(data_core[i]))
-            wholesale_data.append(row)
-        return wholesale_data
-
-    def make_mock_averages(self):
-        # same as wholesale_data, 50 entries with averages being 1/10th the index+1
-        return [i / 10 for i in range(1, 51)]
-
-        pass

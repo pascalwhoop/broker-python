@@ -3,11 +3,13 @@ from typing import List
 
 import numpy as np
 from gym.spaces import Box
+from rl.processors import WhiteningNormalizerProcessor
+from rl.util import WhiteningNormalizer
 
 from agent_components.demand import data as demand_data
 from agent_components.wholesale.learning.reward_functions import simple_truth_ordering
 from agent_components.wholesale.mdp import WholesaleActionSpace, WholesaleObservationSpace, np_low, \
-    np_high, _get_wholesale_as_nparr, parse_wholesale_file, price_scaler, demand_scaler
+    np_high, _get_wholesale_as_nparr, parse_wholesale_file, price_scaler
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
 from agent_components.wholesale.util import calculate_running_averages, calculate_missing_energy, trim_data, is_cleared
 from util import config as cfg
@@ -54,7 +56,7 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
 
     """
 
-    def __init__(self, reward_func=simple_truth_ordering):
+    def __init__(self, normalizer, reward_func=simple_truth_ordering):
         """TODO: to be defined1. """
         super().__init__()
 
@@ -93,6 +95,8 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         self._wholesale_files = get_wholesale_file_paths()
         self._demand_files = get_usage_file_paths()
         self.game_numbers = self._make_random_game_order()
+        self.normalizer: WhiteningNormalizer = normalizer
+
 
     def step(self, action: np.array):
         """
@@ -111,16 +115,16 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         #tb_writer_helper.write_any(action[0], 'mwh')
         #tb_writer_helper.write_any(action[1], 'price')
 
+        #TODO needed?
+        #action = self.normalizer.denormalize(action)
+
         # translate into proper mWh/price actions
-        #real_action = self.translate_action_to_real_world_vals(action)
-        orders =  self.translate_4_actions_to_real_vals(action)
+        real_action = self.translate_action_to_real_world_vals(action)
         # get matching market data
         market_data = self.get_market_data_now()
         # evaluate cleared yes/no --> traded for cheaper? cleared (selling cheaper or buying more expensive)
-        for o in orders:
-            cleared = is_cleared(o, market_data)
-            if cleared:
-                self.purchases.append(o)
+        cleared = is_cleared(real_action, market_data)
+        self.apply_purchase_if_cleared(cleared, market_data, real_action)
 
         # logging answers every once in a while to see hwo the agent is deciding
         # ---------------------------------------------------------------
@@ -133,13 +137,23 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         if done:
             #self.log_actions(self.demand_data[0], market_data[1], self.get_sum_purchased_for_ts(), real_action[1])
             # calculate reward for closed timestep
-            reward = self.calculate_reward(action, self.wholesale_data[0][3:], self.purchases,
+            reward = self.calculate_reward(self, action, self.wholesale_data[0][3:], self.purchases,
                                            self.get_forecast_for_active_ts())
 
         observation = self.make_observation()
 
         return observation, reward, done, {}
         # return observation, reward, done, {}
+
+    def apply_purchase_if_cleared(self, cleared, market_data, real_action):
+        if cleared:
+            # TODO error --> the purchase is actually the market data price!
+            # getting sign of purchase price
+            if real_action[0] > 0:  # --> bid
+                purchase = [real_action[0], abs(market_data[1]) * -1]
+            else:  # loosing energy --> ask
+                purchase = [real_action[0], abs(market_data[1])]
+            self.purchases.append(purchase)
 
     def is_done(self):
         done = False
@@ -209,7 +223,8 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
             self._demand_files)
         # mix up all the game numbers
         game_numbers = list(range(1, max_game))
-        random.shuffle(game_numbers)
+        #for reproducability and comparability, not shuffling this
+        #random.shuffle(game_numbers)
         return game_numbers
 
     def render(self, mode='logging') -> None:
@@ -244,21 +259,26 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         return [ask, bid]
 
     def translate_action_to_real_world_vals(self, action):
+        """
+        Translating the actions of the agent into real world, logical actions.
+        The action output format for the agent is centered around 0 and has 2 outputs.
+        We interpret the first   one as "according to forecast" --> 1 means on spot same as forecast, -1 means opposite of forecast
+                     the second  one as according to the price_scaler which scales -200 , +200 to -1,+1
+        :param action:
+        :return:
+        """
         # here is where the meat is.
         # first, amplify the action by 2 --> +1 == x2, -1 == x-2
 
         missing_energy = calculate_missing_energy(self.get_sum_purchased_for_ts(), self.get_forecast_for_active_ts())
         if self.latest_observeration is not None:
-            latest_price = price_scaler.inverse_transform(np.array(self.latest_observeration[-1]).reshape(-1, 1))
+            latest_price = self.latest_observeration[-1]
         else:
             latest_price = 0
+
         amount = action[0] * missing_energy
-        if amount > 0:
-            # buying
-            price = (-1) * latest_price * action[1]
-        else:
-            # selling
-            price = latest_price * action[1]
+        price = latest_price * action[1]
+
         return np.array([amount, price])
 
     def get_market_data_now(self):
@@ -285,7 +305,7 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         # adding required energy, and scaling
         required_energy = calculate_missing_energy(self.get_sum_purchased_for_ts(), self.get_forecast_for_active_ts())
         # scaling according to minmax math
-        required_energy = demand_scaler.transform(np.array([required_energy]).reshape(-1, 1))
+        #required_energy = demand_scaler.transform(np.array([required_energy]).reshape(-1, 1))
         obs.append(required_energy)
 
         # adding the prices after scaling
@@ -298,7 +318,6 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
                 prices.append(0)
         for i in range(self.steps):
             prices.append(self.wholesale_data[0][3 + i][1])
-        prices = price_scaler.transform(np.array(prices).reshape(-1, 1)).flatten()
         obs.extend(prices)
 
         # turning it into an np array
