@@ -1,5 +1,7 @@
 from agent_components.wholesale.util import get_sum_purchased_for_ts, calculate_missing_energy
+from util.learning_utils import TbWriterHelper
 
+tb_writer_helper = TbWriterHelper('mdp_agent')
 
 def calculate_balancing_needed(purchases, realized_usage):
     # appending final balancing costs for broker for any missing energy

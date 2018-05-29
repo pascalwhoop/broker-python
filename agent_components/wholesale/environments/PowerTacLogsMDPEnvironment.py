@@ -7,15 +7,15 @@ from rl.processors import WhiteningNormalizerProcessor
 from rl.util import WhiteningNormalizer
 
 from agent_components.demand import data as demand_data
-from agent_components.wholesale.learning.reward_functions import simple_truth_ordering
+from agent_components.wholesale.learning.reward_functions import simple_truth_ordering, step_close_to_prediction_reward
+from agent_components.wholesale.learning.util import tb_writer_helper
 from agent_components.wholesale.mdp import WholesaleActionSpace, WholesaleObservationSpace, np_low, \
-    np_high, _get_wholesale_as_nparr, parse_wholesale_file, price_scaler
+    np_high, _get_wholesale_as_nparr, parse_wholesale_file, price_scaler, demand_scaler
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
 from agent_components.wholesale.util import calculate_running_averages, calculate_missing_energy, trim_data, is_cleared
 from util import config as cfg
 from util.learning_utils import get_wholesale_file_paths, get_usage_file_paths, TbWriterHelper
 
-tb_writer_helper = TbWriterHelper('mdp_agent')
 
 
 class PowerTacLogsMDPEnvironment(PowerTacEnv):
@@ -56,11 +56,12 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
 
     """
 
-    def __init__(self, normalizer, reward_func=simple_truth_ordering):
+    def __init__(self, reward_func=simple_truth_ordering):
         """TODO: to be defined1. """
         super().__init__()
 
         # handling params
+        self.step_rewards = None
         self.calculate_reward = reward_func
         # required by framework
         self.num_envs = 1
@@ -95,7 +96,6 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         self._wholesale_files = get_wholesale_file_paths()
         self._demand_files = get_usage_file_paths()
         self.game_numbers = self._make_random_game_order()
-        self.normalizer: WhiteningNormalizer = normalizer
 
 
     def step(self, action: np.array):
@@ -120,6 +120,8 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
 
         # translate into proper mWh/price actions
         real_action = self.translate_action_to_real_world_vals(action)
+
+
         # get matching market data
         market_data = self.get_market_data_now()
         # evaluate cleared yes/no --> traded for cheaper? cleared (selling cheaper or buying more expensive)
@@ -135,12 +137,23 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         done = self.is_done()
 
         if done:
-            #self.log_actions(self.demand_data[0], market_data[1], self.get_sum_purchased_for_ts(), real_action[1])
             # calculate reward for closed timestep
             reward = self.calculate_reward(self, action, self.wholesale_data[0][3:], self.purchases,
                                            self.get_forecast_for_active_ts())
+            reward -= self.step_rewards
+            self.step_rewards = 0
+        else:
+            reward = step_close_to_prediction_reward(self, real_action)
+            self.step_rewards += reward
+
+
+        #self.log_actions(self.demand_data[0], market_data[1], self.get_sum_purchased_for_ts(), real_action[1])
 
         observation = self.make_observation()
+
+        # logging to tensorboard
+        tb_writer_helper.write_any(real_action[0], 'purchase_attempt')
+        tb_writer_helper.write_any(real_action[1], 'price_attempt')
 
         return observation, reward, done, {}
         # return observation, reward, done, {}
@@ -167,6 +180,7 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         :return:
         """
         self.steps = 0
+        self.step_rewards = 0
         # set next active time step
         self.active_target_timeslot += 1
         self.purchases = []
@@ -272,7 +286,7 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
 
         missing_energy = calculate_missing_energy(self.get_sum_purchased_for_ts(), self.get_forecast_for_active_ts())
         if self.latest_observeration is not None:
-            latest_price = self.latest_observeration[-1]
+            latest_price = price_scaler.inverse_transform(np.array(self.latest_observeration[-1]).reshape(-1, 1))
         else:
             latest_price = 0
 
@@ -304,9 +318,11 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         obs = []
         # adding required energy, and scaling
         required_energy = calculate_missing_energy(self.get_sum_purchased_for_ts(), self.get_forecast_for_active_ts())
-        # scaling according to minmax math
-        #required_energy = demand_scaler.transform(np.array([required_energy]).reshape(-1, 1))
-        obs.append(required_energy)
+
+        # scaling according to minmax math. This is a bit verbose but it's using a library instead of having to do it
+        # by hand which is more error prone.
+        required_energy = demand_scaler.transform(np.array([required_energy]).reshape(-1, 1)).flatten()
+        obs.extend(required_energy)
 
         # adding the prices after scaling
         prices = []
@@ -318,6 +334,9 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
                 prices.append(0)
         for i in range(self.steps):
             prices.append(self.wholesale_data[0][3 + i][1])
+
+        #also scaling the prices
+        prices = price_scaler.transform(np.array(prices).reshape(-1, 1)).flatten()
         obs.extend(prices)
 
         # turning it into an np array

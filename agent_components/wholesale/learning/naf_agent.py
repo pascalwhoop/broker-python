@@ -23,9 +23,7 @@ tag = ""
 BATCH_SIZE=32
 NN_INPUT_SHAPE = (1,) + WholesaleObservationSpace().shape
 
-normalizing_processor = WhiteningNormalizerProcessor()
-normalizing_processor.normalizer = WhiteningNormalizer(shape=NN_INPUT_SHAPE, dtype=np.float64)
-env = PowerTacLogsMDPEnvironment(normalizer=normalizing_processor.normalizer, reward_func=direct_cash_reward)
+env = PowerTacLogsMDPEnvironment(reward_func=direct_cash_reward)
 
 
 def get_instance(tag_, fresh):
@@ -92,6 +90,8 @@ class ContinuousDeepQLearner:
         # even the metrics!
         memory = SequentialMemory(limit=100000, window_length=self.memory_length)
         random_process = OrnsteinUhlenbeckProcess(size=self.nb_actions, theta=.002, mu=0., sigma=.3)
+        #creating a normalizing processor. The agent internally normalizes over our already scaled input.
+        normalizing_processor = WhiteningNormalizerProcessor()
         agent = NAFAgent(nb_actions=self.nb_actions,  #number of actions
                          V_model=V_model,  #policy value
                          batch_size=BATCH_SIZE,
@@ -102,7 +102,7 @@ class ContinuousDeepQLearner:
                          random_process=random_process,  #causes exploration
                          processor=normalizing_processor,
                          gamma=1, target_model_update=1e-3)        #
-        agent.compile(Adam(lr=.0001, ), metrics=['mae'])#
+        agent.compile(Adam(lr=.000001, ), metrics=['mae'])#
 
         # Okay, now it's time to learn something! We visualize the training here for show, but this
         # slows down training quite a lot. You can always safely abort the training prematurely using

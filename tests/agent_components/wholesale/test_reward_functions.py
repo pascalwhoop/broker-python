@@ -35,11 +35,10 @@ class TestRewardFunctions(unittest.TestCase):
 
     def test_step_close_to_prediction_reward(self):
         env = PowerTacLogsMDPEnvironment()
-        env.latest_observation = [5, 12]
         action = [3, -4]
         reward = step_close_to_prediction_reward(env, action )
-        assert reward == 4
+        assert reward == -9
         env.latest_observation = [-5, 12]
         action = [3, -4]
         reward = step_close_to_prediction_reward(env, action )
-        assert reward == 8**2
+        assert reward == -8**2

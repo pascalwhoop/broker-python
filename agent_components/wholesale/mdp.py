@@ -30,10 +30,10 @@ MAX_PRICE_SCALE = 200.0
 price_scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
 price_scaler.fit(np.array([MIN_PRICE_SCALE, MAX_PRICE_SCALE]).reshape(-1,1))
 
-#MIN_DEMAND = -100000.0
-#MAX_DEMAND = 100000.0
-#demand_scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
-#demand_scaler.fit(np.array([MIN_DEMAND, MAX_DEMAND]).reshape(-1,1))
+MIN_DEMAND = -100000.0
+MAX_DEMAND = 100000.0
+demand_scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
+demand_scaler.fit(np.array([MIN_DEMAND, MAX_DEMAND]).reshape(-1,1))
 
 class WholesaleActionSpace(spaces.Box):
     """

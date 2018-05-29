@@ -1,9 +1,10 @@
 import math
+import util.config as cfg
 
 import numpy as np
 
 from agent_components.wholesale.environments import PowerTacLogsMDPEnvironment
-from agent_components.wholesale.learning.util import calculate_balancing_needed
+from agent_components.wholesale.learning.util import calculate_balancing_needed, tb_writer_helper
 from agent_components.wholesale.util import calculate_running_averages, calculate_du_fee, average_price_for_power_paid
 
 # what can rewards be based on?
@@ -42,6 +43,14 @@ def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
     # average_market is always positive --> negative mWh amount --> reducing costs --> fair, because "what if sold"
     sum_agent_with_average_prices = realized_usage * abs(average_market)
 
+    #logging to tensorboard
+    p = np.array(purchases)
+    tb_writer_helper.write_any(realized_usage, 'realized_usage')
+    tb_writer_helper.write_any(sum_agent, 'sum_agent')
+    tb_writer_helper.write_any(sum_agent_with_average_prices, 'sum_with_average_pr')
+    tb_writer_helper.write_any(p.max() - p.min(), 'purchases_spread')
+
+    #TODO both do the same? check again
     if realized_usage > 0:
         # we are selling energy! it's good if we're positive here!
         # if agent positive --> if sold better than average -> above 0
@@ -61,8 +70,12 @@ def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
 
 def step_close_to_prediction_reward(env: PowerTacLogsMDPEnvironment, action, *args):
     #TODO give it a reward if it places a bet close to what it has been told is a prediction.
-    forecasted_need = env.latest_observation[0]
-    return (action[0] - forecasted_need)**2
+    if 'latest_observation' in env.__dict__:
+        forecasted_need = env.latest_observation[0]
+    else:
+        forecasted_need = 0
+    # motivates to ensure the portfolio is covered the closer we get to the final timestep.
+    return -abs((action[0] - forecasted_need)) * (env.steps/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
 
 
 def shifting_balancing_price(env, action, market_trades, purchases, realized_usage):
