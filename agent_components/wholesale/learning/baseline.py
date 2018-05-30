@@ -25,7 +25,8 @@ class BaselineLearner:
 
     def learn(self):
         obs = self.env.reset()
-        # always order what is missing and offer 10x the price. has to work
+        # always order what is missing and offer 10x the price. will almost always manage to balance the portfolio and that
+        # early in the bidding chain
         action = np.array([0.5, 5])
         for i in range(100000):
             done = False

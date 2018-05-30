@@ -75,7 +75,7 @@ def step_close_to_prediction_reward(env: PowerTacLogsMDPEnvironment, action, *ar
     else:
         forecasted_need = 0
     # motivates to ensure the portfolio is covered the closer we get to the final timestep.
-    return -abs((action[0] - forecasted_need)) * (env.steps/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
+    return -abs((action[0] - forecasted_need)) * (env.steps+1/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
 
 
 def shifting_balancing_price(env, action, market_trades, purchases, realized_usage):

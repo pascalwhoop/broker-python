@@ -61,7 +61,7 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         super().__init__()
 
         # handling params
-        self.step_rewards = None
+        self.step_rewards = 0
         self.calculate_reward = reward_func
         # required by framework
         self.num_envs = 1

@@ -8,7 +8,7 @@ from agent_components import demand
 from agent_components.demand import data
 from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
 from agent_components.wholesale.environments.PowerTacMDPEnvironment import PowerTacMDPEnvironment
-from agent_components.wholesale.mdp import WholesaleActionSpace, WholesaleObservationSpace, price_scaler
+from agent_components.wholesale.mdp import WholesaleActionSpace, WholesaleObservationSpace, price_scaler, demand_scaler
 from agent_components.wholesale.util import average_price_for_power_paid, is_cleared, trim_data
 
 
@@ -104,6 +104,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
 
     @patch('agent_components.wholesale.environments.PowerTacLogsMDPEnvironment.price_scaler.inverse_transform')
     def test_translate_action_to_real_world_vals(self, scaler_mock):
+        # this makes all results of the inverse_transform be 5. So all [1] actions are multiplied with this
         scaler_mock.return_value = 5
         self.log_env.latest_observeration = [1]
         # mocked data looks right?
@@ -126,7 +127,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         np.testing.assert_almost_equal(real_action, [-1, -2.5])
         self.log_env.demand_data[0] = 14
         real_action = self.log_env.translate_action_to_real_world_vals(np.array([-1, 1.0]))
-        np.testing.assert_almost_equal(real_action, [14, -5])
+        np.testing.assert_almost_equal(real_action, [14, 5 * 1.0])
 
         # try also with zeros
         self.log_env.translate_action_to_real_world_vals(np.zeros((2)))
@@ -140,23 +141,22 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         Assuming that this is a flat array of all data that is part of an observation
         :return:
         """
-        obs0 = price_scaler.transform(-self.log_env.demand_data[0])
+        obs0 = demand_scaler.transform((-1) * self.log_env.demand_data[0]).flatten()[0]
         obs = self.log_env.make_observation()
         assert obs[0] == obs0
         assert len(obs) == 1 + 24
 
-
-    @patch('agent_components.wholesale.mdp.demand_data.get_demand_data_values')
-    @patch('agent_components.wholesale.mdp.demand_data.parse_usage_game_log')
-    def test_make_data_for_game(self, parse_usage, get_demand):
-        get_demand.return_value = np.zeros((31, 2))
+    @patch('agent_components.wholesale.environments.PowerTacLogsMDPEnvironment.trim_data')
+    @patch('agent_components.wholesale.environments.PowerTacLogsMDPEnvironment.parse_wholesale_file')
+    @patch('agent_components.wholesale.environments.PowerTacLogsMDPEnvironment.demand_data.get_demand_data_values')
+    @patch('agent_components.wholesale.environments.PowerTacLogsMDPEnvironment.demand_data.parse_usage_game_log')
+    def test_make_data_for_game(self, parse_usage_mock, get_demand_mock, mock_parse_wholesale, mock_trim):
+        get_demand_mock.return_value = np.zeros((31, 2))
         # mocking another function. setUp creates new object every time so its' ok
-        with patch.object(self.log_env, 'parse_wholesale_file') as mock_parse, patch.object(self.log_env,
-                                                                                            'trim_data') as mock_trim:
-            mock_parse.return_value = [3, 4]
-            # usually returns wholesale data and demand data in trimmed forms
-            mock_trim.return_value = np.zeros((31, 2)), [3, 4]
-            demand_data, ws_data = self.log_env.make_data_for_game(1)
+        mock_parse_wholesale.return_value = [3, 4]
+        # usually returns wholesale data and demand data in trimmed forms
+        mock_trim.return_value = np.zeros((31, 2)), [3, 4]
+        demand_data, ws_data = self.log_env.make_data_for_game(1)
         # assert that the returned data is equal
         assert np.array_equal(np.array(ws_data), np.array([3, 4]))
         assert np.array_equal(demand_data, np.zeros((31, 2)))
@@ -209,7 +209,7 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         assert is_cleared(actions[2], market_closings[2])
         assert not is_cleared(actions[3], market_closings[3])
 
-    @patch('agent_components.wholesale.mdp.cfg')
+    @patch('agent_components.wholesale.environments.PowerTacLogsMDPEnvironment.cfg')
     def test_get_new_forecast(self, mock_cfg):
         mock_cfg.WHOLESALE_FORECAST_ERROR_PER_TS = 0
         self.log_env.demand_data[0] = 10
@@ -261,9 +261,9 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
     def test_average_price_for_power_paid(self):
         in_ = np.arange(6).reshape((3, 2))
         in_[:, 1] = in_[:, 1] * -1
-        avg, stupid = average_price_for_power_paid(in_)
+        type, avg = average_price_for_power_paid(in_)
         np.testing.assert_almost_equal(avg, 4.3333, decimal=4)
-        assert stupid == False
+        assert type == 'bid'
 
         sample_bought = [[-346.49495303, 0.96304058], [81.39146869, 1.38586367],
                          [66.65719033, 8.75573683], [-418.55988655, 8.72186681],
@@ -282,44 +282,5 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         #TODO make sure not clearing anything wrong
         pass
 
-    def test_calculate_reward(self):
-        # market price average is 0.1 per kWh
-        mock_purchases = self.log_env.purchases
-
-        with patch.object(self.log_env, 'calculate_squared_diff') as squared_diff_mock:
-            # mocking the squared diff to be always 0
-            squared_diff_mock.return_value = 0
-
-            mock_purchases.append([5, -0.1])  # same as market
-            self.log_env.demand_data[0] = -5  # making demand equal to purchases --> no DU balancing
-            reward = self.log_env.calculate_reward()
-            np.testing.assert_almost_equal(reward, 1)
-
-            # let's get some balancing happening
-            self.log_env.demand_data[0] = -10  # 10 demand, 5 bought, 5 punishment
-            reward = self.log_env.calculate_reward()
-            np.testing.assert_almost_equal(reward, 0.333, decimal=3)
-            # removing the additional DU balancing
-            mock_purchases.pop()
-
-            # purchasing something for too high a price
-            mock_purchases.append([5, -0.5])  # same as market
-            self.log_env.demand_data[0] = -10
-            reward = self.log_env.calculate_reward()
-            np.testing.assert_almost_equal(reward, 0.333, decimal=3)
-
-            # now selling some energy, should be back to as before
-            mock_purchases.append([-5, 0.5])  # same as market
-            self.log_env.demand_data[0] = -5
-            reward = self.log_env.calculate_reward()
-            np.testing.assert_almost_equal(reward, 1, decimal=3)
-
-            # now selling even more energy, net average for broker is negative now
-            # it bought energy first then sold it for more. That's a good thing to observe and gets rewarded
-            # because the average after the whole round is sold 5kWh for 0.45
-            mock_purchases.append([-10, 0.5])  # same as market
-            self.log_env.demand_data[0] = 5
-            reward = self.log_env.calculate_reward()
-            np.testing.assert_almost_equal(reward, 8.999, decimal=3)
 
 

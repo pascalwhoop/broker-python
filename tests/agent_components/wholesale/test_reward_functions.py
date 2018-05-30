@@ -1,4 +1,6 @@
 import unittest
+from unittest.mock import patch
+import numpy as np
 
 from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
 from agent_components.wholesale.learning.reward_functions import direct_cash_reward, step_close_to_prediction_reward
@@ -37,8 +39,9 @@ class TestRewardFunctions(unittest.TestCase):
         env = PowerTacLogsMDPEnvironment()
         action = [3, -4]
         reward = step_close_to_prediction_reward(env, action )
-        assert reward == -9
+        assert reward == -3 * (1/24)
         env.latest_observation = [-5, 12]
         action = [3, -4]
         reward = step_close_to_prediction_reward(env, action )
-        assert reward == -8**2
+        assert round(reward, 3) == -round(8 * 1/24, 3)
+
