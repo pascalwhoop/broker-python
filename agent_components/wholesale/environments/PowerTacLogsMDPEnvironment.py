@@ -199,6 +199,9 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         # get new game number
         if not self.game_numbers:
             self.game_numbers = self._make_random_game_order()
+            if hasattr(cfg, 'WHOLESALE_OFFLINE_TRAIN_GAME'):
+                #only using this one game!
+                self.game_numbers = [self.game_numbers[cfg.WHOLESALE_OFFLINE_TRAIN_GAME]]
         gn = self.game_numbers.pop()
         # getting data and storing it locally
         dd, wd = self.make_data_for_game(gn)
@@ -224,21 +227,26 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         demand_data.clear()
         demand_data.parse_usage_game_log(demand_file_path)
         demand = demand_data.get_demand_data_values()
-        idx = np.random.randint(0, high=len(demand), size=30)
-        # using only random 30 picks from customers
-        summed_random_30 = demand[idx, :].sum(axis=0)
+        if cfg.WHOLESALE_OFFLINE_TRAIN_RANDOM_CUSTOMERS:
+            #using only random 30 picks from customers
+            idx = np.random.randint(0, high=len(demand), size=30)
+            summed_30 = demand[idx, :].sum(axis=0)
+        else:
+            #taking first 30 customers
+            summed_30 = demand[0:30].sum(axis=0)
 
-        return trim_data(summed_random_30, wholesale_data,
+        return trim_data(summed_30, wholesale_data,
                          demand_data.get_first_timestep_for_file(demand_file_path))
 
     def _make_random_game_order(self):
         # whichever is shorter.
         max_game = len(self._wholesale_files) if len(self._wholesale_files) < len(self._demand_files) else len(
             self._demand_files)
-        # mix up all the game numbers
         game_numbers = list(range(1, max_game))
-        #for reproducability and comparability, not shuffling this
-        #random.shuffle(game_numbers)
+        if cfg.WHOLESALE_OFFLINE_TRAIN_RANDOM_GAME:
+            # mix up all the game numbers
+            #for reproducability and comparability, only shuffling when set in config
+            random.shuffle(game_numbers)
         return game_numbers
 
     def render(self, mode='logging') -> None:
