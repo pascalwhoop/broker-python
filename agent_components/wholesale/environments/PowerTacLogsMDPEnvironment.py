@@ -8,11 +8,11 @@ from rl.util import WhiteningNormalizer
 
 from agent_components.demand import data as demand_data
 from agent_components.wholesale.learning.reward_functions import simple_truth_ordering, step_close_to_prediction_reward
-from agent_components.wholesale.learning.util import tb_writer_helper
 from agent_components.wholesale.mdp import WholesaleActionSpace, WholesaleObservationSpace, np_low, \
     np_high, _get_wholesale_as_nparr, parse_wholesale_file, price_scaler, demand_scaler
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
-from agent_components.wholesale.util import calculate_running_averages, calculate_missing_energy, trim_data, is_cleared
+from agent_components.wholesale.util import calculate_running_averages, calculate_missing_energy, trim_data, is_cleared, \
+    tb_writer_helper
 from util import config as cfg
 from util.learning_utils import get_wholesale_file_paths, get_usage_file_paths, TbWriterHelper
 
@@ -199,9 +199,9 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
         # get new game number
         if not self.game_numbers:
             self.game_numbers = self._make_random_game_order()
-            if hasattr(cfg, 'WHOLESALE_OFFLINE_TRAIN_GAME'):
-                #only using this one game!
-                self.game_numbers = [self.game_numbers[cfg.WHOLESALE_OFFLINE_TRAIN_GAME]]
+        if hasattr(cfg, 'WHOLESALE_OFFLINE_TRAIN_GAME'):
+            #only using this one game!
+            self.game_numbers = [self.game_numbers[cfg.WHOLESALE_OFFLINE_TRAIN_GAME]]
         gn = self.game_numbers.pop()
         # getting data and storing it locally
         dd, wd = self.make_data_for_game(gn)

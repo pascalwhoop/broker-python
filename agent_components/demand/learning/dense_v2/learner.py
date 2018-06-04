@@ -1,7 +1,7 @@
 import logging
 import time
 
-from keras.layers.core import Dense
+from keras.layers.core import Dense, Activation
 from keras.models import Sequential
 from keras.optimizers import sgd
 from keras.regularizers import l2
@@ -41,6 +41,7 @@ class DenseLearner(DemandLearner):
         model.add(Dense(50))
         #model.add(Dropout(0.2))
         model.add(Dense(24))
+        model.add(Activation("linear"))
         start = time.time()
         optimizr = sgd(lr=0.02)
         model.compile(loss='mae', optimizer=optimizr)

@@ -2,6 +2,7 @@ import abc
 import datetime
 import logging
 import os
+import time
 from typing import List
 
 import numpy as np
@@ -28,14 +29,15 @@ class ModelWriter:
         # clearing old and overwriting
         if fresh:
             rmtree(self.storage_dir, ignore_errors=True)
+            time.sleep(1)
 
         os.makedirs(self.storage_dir, exist_ok=True)
         self.count = 0
 
-    def write_model(self, mdl):
+    def write_model(self, mdl: Model):
         self.count += 1
-        file_path = os.path.join(self.storage_dir, "game{:03d}.HDF5".format(self.count))
-        mdl.save_weights(file_path)
+        file_path = os.path.join(self.storage_dir, "model.HDF5")
+        mdl.save(file_path, overwrite=True, include_optimizer=True)
 
     def write_model_source(self, component,name):
         import importlib, inspect
@@ -46,7 +48,11 @@ class ModelWriter:
             f.write(source_code)
 
     def load_model(self):
-        return load_model(self.storage_dir)
+        files = os.listdir(self.storage_dir)
+        files = [f for f in files if "game" in f]
+        files.sort()
+        model_path = os.path.join(self.storage_dir, files[-1])
+        return load_model(model_path)
 
 
 
@@ -55,11 +61,12 @@ class ModelWriter:
 
 class TbWriterHelper:
     def __init__(self, model_name, fresh=True):
-        model_name += str(datetime.datetime.now())
+        #model_name += str(datetime.datetime.now())
         tensorboard_dir = os.path.join(cfg.TENSORBOARD_PATH, model_name)
         # clearing old and overwriting
         if fresh:
             rmtree(tensorboard_dir, ignore_errors=True)
+            time.sleep(1)
         #self.train_writer = tf.summary.FileWriter(os.path.join(tensorboard_dir, 'train'))
         #self.test_writer = tf.summary.FileWriter(os.path.join(tensorboard_dir, 'test'))
         self.train_writer = tf.summary.FileWriter(tensorboard_dir)
@@ -125,4 +132,19 @@ def get_wholesale_file_paths() -> List:
         full = os.path.abspath(os.path.join(cfg.DEMAND_LEARNING_USAGE_PATH, f))
         full_paths.append(full)
     return full_paths
+
+
+
+
+class NoneScaler:
+    """Helper class that has the same API as the other scaler but doesn't do anything with the data"""
+
+    def fit(self, X):
+        pass
+
+    def transform(self, X):
+        return X
+
+    def inverse_transform(self, X):
+        return X
 

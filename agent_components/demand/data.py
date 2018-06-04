@@ -9,10 +9,12 @@ import numpy as np
 from keras.preprocessing.sequence import TimeseriesGenerator
 from keras.utils import Sequence
 from sklearn import preprocessing
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import MinMaxScaler
 
 import util.config as cfg
 from communication.grpc_messages_pb2 import PBCustomerBootstrapData, PBTariffTransaction, PBTimeslotComplete
+from util.learning_utils import NoneScaler
 
 log = logging.getLogger(__name__)
 
@@ -80,50 +82,93 @@ def clear():
     tariff_transactions = {}
 
 
-def sequence_for_usages(usages: np.array, is_flat) -> Sequence:
+def reverse_scale(twen4h, scaler):
+
+    pass
+
+
+def sequence_for_usages(usages: np.array, is_flat, scaler=None) -> Sequence:
     """
     Generates a Sequence for a usages array of a customer
     :param usages:
     :return:
     """
-    #scaler = MinMaxScaler()
-    #usages = scaler.fit_transform(usages.reshape(-1, 1)).flatten()
-    usages = preprocessing.normalize(usages.reshape(-1,1)).flatten()
-    # let's create a targets array by shifting the original by one
+   # let's create a targets array by shifting the original by one
     ys = np.zeros((len(usages), 24))
     for i in range(len(usages)):
         twen4h = usages[i + 1:i + 25]
+        #if scaler is not None and len(twen4h) > 0:
+        #    twen4h = scaler.inverse_transform(twen4h.reshape(-1,1)).flatten()
         ys[i][0:len(twen4h)] = twen4h
 
     if is_flat is False:
         usages = usages.reshape(-1, 1)
 
-    return TimeseriesGenerator(usages, ys, length=168)
+    return TimeseriesGenerator(usages, ys, length=168, batch_size=32)
 
 
 def get_demand_data_values():
     return np.array(list(demand_data.values()))
 
 
-def make_sequences_from_historical(is_flat = True) -> List[Sequence]:
+def make_sequences_from_historical(is_flat=True, scaler=None) -> List[Sequence]:
     """
     Generates sequences from historical data
     :param is_flat: whether or not the sequence is actually flat (for dense/logres etc) or (168,1) style shape for LSTM
     :return:
     """
     customer_records = list(demand_data.values())
-    sequences = [sequence_for_usages(np.array(usages),is_flat) for usages in customer_records]
+    sequences = [sequence_for_usages(np.array(usages),is_flat, scaler) for usages in customer_records]
     #customer_records = np.array(customer_records).sum(axis=0)
     #sequences = [sequence_for_usages(np.array(usages),is_flat) for usages in [customer_records]]
     return sequences
 
 
-def parse_usage_game_log(file_path):
+def preprocess_data(scaler=None, type=None):
+    keys = list(demand_data.keys())
+    data = np.array(list(demand_data.values()))
+    assert 2 == len(data.shape)
+    data_scaled = None
+
+    shape = data.shape
+    data = data.flatten().reshape((-1, 1))
+    if type is None:
+        type = cfg.DEMAND_DATA_PREPROCESSING_TYPE
+    if scaler is None:
+        if type == 'none':
+            scaler = NoneScaler()
+        if type == 'minmax':
+            scaler = preprocessing.MinMaxScaler()
+            #data_scaled, scaler = scale_minmax(data)
+        if type == 'standard':
+            scaler = preprocessing.StandardScaler()
+        if type == 'robust':
+            scaler = preprocessing.RobustScaler()
+        scaler.fit(data)
+
+    data_scaled = scaler.transform(data)
+    data_scaled = data_scaled.flatten().reshape(shape)
+
+    if data_scaled is not None:
+        for i,key in enumerate(keys):
+            demand_data[key] = data_scaled[i]
+    return scaler
+
+
+def parse_usage_game_log(file_path, scaler=None, pp_type=None):
+    clear()
     with open(file_path, 'r') as csvfile:
         for row in csv.DictReader(csvfile, delimiter=','):
-            name = row['cust']
+            name = row['cust'].strip()
             usage = float(row[' production']) + float(row[' consumption'])
             append_usage(name, usage)
+    #clearing users that never use any energy
+    for i in list(demand_data.items()):
+        if (0 == np.array(i[1])).all():
+            demand_data.pop(i[0])
+
+    scaler = preprocess_data(scaler, pp_type)
+    return demand_data, scaler
 
 def get_first_timestep_for_file(file_path):
     with open(file_path, 'r') as csvfile:

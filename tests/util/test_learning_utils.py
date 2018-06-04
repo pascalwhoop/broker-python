@@ -1,7 +1,10 @@
 from unittest import TestCase
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch, mock_open
+
+from sklearn.preprocessing import MinMaxScaler
 
 from util.learning_utils import TbWriterHelper
+import numpy as np
 
 
 class TestLearningUtils(TestCase):

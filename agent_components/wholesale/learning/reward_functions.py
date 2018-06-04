@@ -4,8 +4,9 @@ import util.config as cfg
 import numpy as np
 
 from agent_components.wholesale.environments import PowerTacLogsMDPEnvironment
-from agent_components.wholesale.learning.util import calculate_balancing_needed, tb_writer_helper
-from agent_components.wholesale.util import calculate_running_averages, calculate_du_fee, average_price_for_power_paid
+from agent_components.wholesale.util import calculate_running_averages, calculate_du_fee, average_price_for_power_paid, \
+    calculate_balancing_needed, tb_writer_helper
+
 
 # what can rewards be based on?
 # - action

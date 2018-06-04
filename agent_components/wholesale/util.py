@@ -1,9 +1,11 @@
 import numpy as np
 
 from agent_components.wholesale.mdp import np_high
+from util.learning_utils import TbWriterHelper
 
 """Utility functions for the wholesale trading component"""
 
+tb_writer_helper = TbWriterHelper('mdp_agent')
 
 def calculate_running_averages( known_results: np.array):
     """
@@ -136,3 +138,15 @@ def is_cleared(action, market_data) -> bool:
         return abs(a) > m
     # default, didn't buy anything or no price
     return False
+
+
+def calculate_balancing_needed(purchases, realized_usage):
+    # appending final balancing costs for broker for any missing energy
+    if len(purchases) == 0:
+        balancing_needed = -1 * realized_usage
+    else:
+        energy_sum = get_sum_purchased_for_ts(purchases)
+        balancing_needed = calculate_missing_energy(energy_sum, realized_usage)
+    return balancing_needed
+
+

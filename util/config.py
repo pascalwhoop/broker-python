@@ -29,6 +29,7 @@ VALIDATION_SPLIT         = 0.10  #don't go below 10%, otherwise the hotencoding 
 DEMAND_LEARNING_USAGE_PATH = '../powertac-tools/logtool-examples/data/'
 DEMAND_VALIDATION_PART   = 0.05
 DEMAND_FORECAST_DISTANCE = 24
+DEMAND_DATA_PREPROCESSING_TYPE = 'standard' #'minmax', 'standard', 'none', 'robust'
 DEMAND_SEQUENCE_LENGTH   = 48  # one week sequences because that's a probable range for patterns
 DEMAND_SEQUENCE_STRIDE   = 4  #every 4 timesteps will be used for a new forecasting request
 DEMAND_BATCH_SIZE        = 32  # TODO... higher? number of sequences to feed to the model at once and whose errors are added up before propagated
