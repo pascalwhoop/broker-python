@@ -38,6 +38,6 @@ class DenseLearner(DemandLearner):
         model.add(Dense(50, activation='relu'))
         model.add(Dense(24))
         model.add(Activation('linear'))
-        opti = SGD(lr=0.0001)
+        opti = SGD(lr=0.01)
         model.compile(loss='mse', optimizer='sgd')
         return model

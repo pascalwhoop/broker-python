@@ -42,7 +42,7 @@ class DemandLearner:
         log.info("training on game {} for {} steps".format(f, steps_for_game))
         for step in range(steps_for_game):
             s = random.choice(sequences)
-            self.model.fit_generator(s, verbose=0, epochs=1, callbacks=self.cbs, workers=8, steps_per_epoch=5)
+            self.model.fit_generator(s, verbose=1, epochs=1, callbacks=self.cbs, workers=8, steps_per_epoch=5)
         # when the game is finished, store the model
         clear()
         log.info("storing model to disk")
