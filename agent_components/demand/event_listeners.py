@@ -47,4 +47,4 @@ def handle_bootstrap_data(sender, msg: PBCustomerBootstrapData):
     """
     This is a message that holds a number of usages for a customer. We take it for truth and put it into our usage sums
     """
-    data.update_with_bootstrap(msg)
+    pass

@@ -67,7 +67,6 @@ class TbWriterHelper:
         # clearing old and overwriting
         if fresh:
             rmtree(tensorboard_dir, ignore_errors=True)
-            time.sleep(1)
         #self.train_writer = tf.summary.FileWriter(os.path.join(tensorboard_dir, 'train'))
         #self.test_writer = tf.summary.FileWriter(os.path.join(tensorboard_dir, 'test'))
         self.train_writer = tf.summary.FileWriter(tensorboard_dir)

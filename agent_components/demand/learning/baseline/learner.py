@@ -48,17 +48,12 @@ class FakeModel:
                 #mae = mean_absolute_error(batch_y[i], batch_x[i][-24:])
 
                 # same as saying "same as 1h ago (in last timestep before realization)
-                mae = mean_absolute_error(batch_y[i], shift_by(batch_y[i]))
+                mae = mean_absolute_error(batch_y[i], batch_x[i,-len(batch_y[i]):])
 
                 batch_loss += mae
             batch_loss = batch_loss / len(batch_x)
             self.writer.write_train_loss(batch_loss)
 
-
-def shift_by(arr, shift=1):
-    shifted = np.copy(arr)
-    shifted[shift:] = shifted[:-shift]
-    return shifted
 
 
 

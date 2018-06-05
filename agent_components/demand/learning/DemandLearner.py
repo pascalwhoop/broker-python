@@ -19,6 +19,7 @@ class DemandLearner:
         self.model_writer = ModelWriter(self.model_fs_name, fresh=fresh)
         self.tb_writer_helper = TbWriterHelper(self.model_fs_name, fresh=fresh)
         self.model_writer.write_model_source('demand', self.model_name)
+        self.cbs = get_callbacks_with_generator(self.model_fs_name)
         self.scaler = None
         if fresh:
             self.model = self.fresh_model()
@@ -34,14 +35,14 @@ class DemandLearner:
     def _fit_on_game(self, f, flat):
         # put all usage records into memory
         log.info("learning on game {}".format(f.split("/")[-1]))
-        dd, scaler = parse_usage_game_log(f)
-        if self.scaler is None:
-            # storing scaler as the scaler to go with during learning
-            self.scaler = scaler
-        sequences = make_sequences_from_historical(flat, self.scaler)
-        for s in sequences:
-            # before
-            self.fit_generator(s)
+        parse_usage_game_log(f)
+        sequences = make_sequences_from_historical(flat)
+        #             same as customers * size per epoch below * epoch count
+        steps_for_game = len(sequences) * len(sequences[0])//5 * 1
+        log.info("training on game {} for {} steps".format(f, steps_for_game))
+        for step in range(steps_for_game):
+            s = random.choice(sequences)
+            self.model.fit_generator(s, verbose=0, epochs=1, callbacks=self.cbs, workers=8, steps_per_epoch=5)
         # when the game is finished, store the model
         clear()
         log.info("storing model to disk")
@@ -56,8 +57,6 @@ class DemandLearner:
         """the external API"""
         raise NotImplementedError
 
-    def fit_generator(self, s: Sequence):
-        self.model.fit_generator(s, shuffle=False,use_multiprocessing=True, epochs=1, verbose=1, callbacks=get_callbacks_with_generator(self.model_fs_name), workers=8)
 
     def reload_model(self):
         self.model = self.model_writer.load_model()

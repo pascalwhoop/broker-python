@@ -25,6 +25,7 @@ class Estimator:
     """
 
     def __init__(self):
+        self.dl = DenseLearner('estimator', True)
         self.models = {}  # models can be looked up via customer name
         self.scalers = {}  # scalers can also be looked up via customer name. They scale the customer data
         self.usages = {}  # map of maps. first map --> customer_name, second map --> timeslot ID
@@ -84,7 +85,7 @@ class Estimator:
 
     def handle_sim_end(self, sender, signal: str, msg: PBSimEnd):
         for m in self.models.items():
-            store_model_customer_nn(m[1], m[0], dl.model_name)
+            store_model_customer_nn(m[1], m[0], self.dl.model_name)
 
         # remove all data
         self.usages = {}
@@ -108,10 +109,10 @@ class Estimator:
         """Gets a model for the given customer name from the local models dict or creates a new one if none exists"""
         if customer_name not in self.models:
             #trying to reload from fs first
-            model = reload_model_customer_nn(customer_name, dl.model_name)
+            model = reload_model_customer_nn(customer_name, self.dl.model_name)
             if model is None:
                 log.info("getting new model for {}".format(customer_name))
-                model = dl.fresh_model()
+                model = self.dl.fresh_model()
             self.models[customer_name] = model
         return self.models[customer_name]
 
@@ -153,7 +154,6 @@ class Estimator:
 
 
 # hacky solution right now. Trying to get results
-dl = DenseLearner('estimator', True)
 
 
 class CustomerPredictions:

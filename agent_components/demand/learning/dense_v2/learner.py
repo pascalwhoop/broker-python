@@ -4,7 +4,7 @@ import time
 from keras.layers import BatchNormalization
 from keras.layers.core import Dense, Activation
 from keras.models import Sequential
-from keras.optimizers import sgd
+from keras.optimizers import sgd, SGD
 from keras.regularizers import l2
 from keras.utils import Sequence
 from sklearn import preprocessing
@@ -28,13 +28,16 @@ class DenseLearner(DemandLearner):
         self._fit_offline(True)
 
     def fresh_model(self):
-        model = Sequential()
-        # input layer
         input_shape = (cfg.DEMAND_ONE_WEEK,)
-        model.add(Dense(168, input_shape=input_shape))
-        model.add(BatchNormalization())  # applying batch normalization now
-        model.add(Dense(100))
-        model.add(Dense(50))
+        model = Sequential()
+        model.add(Dense(168, input_shape=input_shape, activation='relu'))
+        model.add(Dense(100, activation='relu'))
+        model.add(Dense(100, activation='relu'))
+        model.add(Dense(100, activation='relu'))
+        model.add(Dense(50, activation='relu'))
+        model.add(Dense(50, activation='relu'))
         model.add(Dense(24))
-        model.compile(loss='mse', optimizer='rmsprop')
+        model.add(Activation('linear'))
+        opti = SGD(lr=0.0001)
+        model.compile(loss='mse', optimizer='sgd')
         return model
