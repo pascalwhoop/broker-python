@@ -2,8 +2,9 @@ import abc
 import datetime
 import logging
 import os
+import pickle
 import time
-from typing import List
+from typing import List, Union
 
 import numpy as np
 import tensorflow as tf
@@ -134,7 +135,31 @@ def get_wholesale_file_paths() -> List:
     return full_paths
 
 
+def store_model_customer_nn(model: Model, customer_name: str, model_name: str) -> None:
+    file_path = get_model_path(customer_name, model_name)
+    model.save(file_path, overwrite=True, include_optimizer=True)
 
+
+def reload_model_customer_nn(customer_name: str, model_name: str) -> Union[Model, None]:
+    file_path = get_model_path(customer_name, model_name)
+    if os.path.exists(file_path):
+        return load_model(file_path, compile=True)
+    else:
+        return None
+
+def store_usage_predictions(usages, predictions, model_name):
+    """Stores all usages and predictions as a dump file for later analysis."""
+    p = os.path.join('data', 'demand_models', model_name, get_now_string(), 'usage_predictions.pickle')
+    with open(p, 'wb') as df:
+        pickle.dump((usages, predictions), df)
+
+
+def get_model_path(customer_name, model_name):
+    file_path = os.path.join('data', 'demand_models', model_name, '{}.hdf5'.format(customer_name))
+    return file_path
+
+def get_now_string() -> str:
+    return datetime.datetime.today().strftime('%Y-%m-%dT%H:%M:%S')
 
 class NoneScaler:
     """Helper class that has the same API as the other scaler but doesn't do anything with the data"""

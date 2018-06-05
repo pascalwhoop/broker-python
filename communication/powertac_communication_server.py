@@ -188,22 +188,19 @@ class GameService(ptac_grpc.GameServiceServicer):
     def handlePBTimeslotUpdate(self, request, context):
         publish_pb_message(request)
         return ptac_pb2.Empty()
-    pass
+
+    def handlePBSimEnd(self, request, context):
+        publish_pb_message(request)
+        return ptac_pb2.Empty()
 
 class ExtraSpyMessageManagerService(ptac_grpc.ExtraSpyMessageManagerServiceServicer):
     def handlePBOrder(self, request, context):
         #log.info('received a spied upon order message')
         return ptac_pb2.Empty()
-    pass
 
 
 # Helper methods
 ################################################################################
-def warn_about_grpc_not_implemented():
-        log.info(GRPC_METHOD_NOT_IMPLEMENTED)
-        #log.debug(traceback.extract_tb())
-        traceback.print_stack(limit=2)
-
 
 class CallLogInterceptor(grpc.ServerInterceptor):
 

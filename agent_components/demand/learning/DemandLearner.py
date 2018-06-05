@@ -26,7 +26,7 @@ class DemandLearner:
             self.model = self.model_writer.load_model()
 
     def _fit_offline(self, flat=False):
-        """runs this model against offline data """
+        """runs this model against offline data"""
         #scaling data is possible
         for f in get_usage_file_paths():
             self._fit_on_game(f, flat)

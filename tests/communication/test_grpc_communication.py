@@ -11,7 +11,6 @@ from communication.powertac_communication_server import GameService
 #    def test_warn_about_grpc_not_implemented(self):
 #        warn_about_grpc_not_implemented()
 
-
 class TestGrpcCommunicationServer(unittest.TestCase):
 
     def test_send_grpc_message_dispatcher(self):

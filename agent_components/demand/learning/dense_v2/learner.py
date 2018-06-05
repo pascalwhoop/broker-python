@@ -1,6 +1,7 @@
 import logging
 import time
 
+from keras.layers import BatchNormalization
 from keras.layers.core import Dense, Activation
 from keras.models import Sequential
 from keras.optimizers import sgd
@@ -27,23 +28,13 @@ class DenseLearner(DemandLearner):
         self._fit_offline(True)
 
     def fresh_model(self):
-        # creating model
         model = Sequential()
         # input layer
         input_shape = (cfg.DEMAND_ONE_WEEK,)
-        # model.add(Dense(1, input_shape=input_shape, kernel_regularizer= l2(0.05)))
-        model.add(Dense(168,
-                        input_shape=input_shape,
-                        kernel_regularizer=l2(0.1)
-                        ))
+        model.add(Dense(168, input_shape=input_shape))
+        model.add(BatchNormalization())  # applying batch normalization now
         model.add(Dense(100))
-        #model.add(Dropout(0.2))
         model.add(Dense(50))
-        #model.add(Dropout(0.2))
         model.add(Dense(24))
-        model.add(Activation("linear"))
-        start = time.time()
-        optimizr = sgd(lr=0.02)
-        model.compile(loss='mae', optimizer=optimizr)
-        log.info('compilation time : {}'.format(time.time() - start))
+        model.compile(loss='mse', optimizer='rmsprop')
         return model

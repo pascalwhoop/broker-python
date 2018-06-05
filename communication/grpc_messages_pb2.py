@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='grpc_messages.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\x13grpc_messages.proto\"1\n\x0fPBCallCompleted\x12\x11\n\tcompleted\x18\x01 \x01(\x08\x12\x0b\n\x03msg\x18\x02 \x01(\t\"\x1e\n\x0fPBRequestStream\x12\x0b\n\x03msg\x18\x01 \x01(\t\"#\n\nPBActivate\x12\x15\n\rtimeslotIndex\x18\x01 \x01(\x05\"X\n\x07PBOrder\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x10\n\x08timeslot\x18\x03 \x01(\x05\x12\x0b\n\x03mWh\x18\x04 \x01(\x01\x12\x12\n\nlimitPrice\x18\x05 \x01(\x01\"\xf3\x04\n\rPBCompetition\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x03 \x01(\t\x12\r\n\x05pomId\x18\x04 \x01(\t\x12\x16\n\x0etimeslotLength\x18\x05 \x01(\x05\x12\x1e\n\x16\x62ootstrapTimeslotCount\x18\x06 \x01(\x05\x12#\n\x1b\x62ootstrapDiscardedTimeslots\x18\x07 \x01(\x05\x12\x1c\n\x14minimumTimeslotCount\x18\x08 \x01(\x05\x12\x1d\n\x15\x65xpectedTimeslotCount\x18\t \x01(\x05\x12\x15\n\rtimeslotsOpen\x18\n \x01(\x05\x12 \n\x18\x64\x65\x61\x63tivateTimeslotsAhead\x18\x0b \x01(\x05\x12\x1c\n\x14minimumOrderQuantity\x18\x0c \x01(\x01\x12#\n\x1bmaxUpRegulationPaymentRatio\x18\x14 \x01(\x01\x12\x1c\n\x14upRegulationDiscount\x18\x15 \x01(\x01\x12\x1e\n\x16\x64ownRegulationDiscount\x18\x16 \x01(\x01\x12#\n\x1b\x65stimatedConsumptionPremium\x18\x17 \x01(\x01\x12\x1a\n\x12simulationBaseTime\x18\r \x01(\x03\x12\x16\n\x0etimezoneOffset\x18\x0e \x01(\x05\x12\x10\n\x08latitude\x18\x0f \x01(\x05\x12\x16\n\x0esimulationRate\x18\x10 \x01(\x03\x12\x18\n\x10simulationModulo\x18\x11 \x01(\x03\x12\x0f\n\x07\x62rokers\x18\x12 \x03(\t\x12\"\n\tcustomers\x18\x13 \x03(\x0b\x32\x0f.PBCustomerInfo\"\xa8\x02\n\x08PBBroker\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x10\n\x08password\x18\x03 \x01(\t\x12\x0b\n\x03key\x18\x04 \x01(\t\x12\x11\n\tqueueName\x18\x05 \x01(\t\x12\x0f\n\x07\x65nabled\x18\x06 \x01(\x08\x12\r\n\x05local\x18\x07 \x01(\x08\x12\x10\n\x08idPrefix\x18\x08 \x01(\x03\x12\x11\n\twholesale\x18\t \x01(\x08\x12\x0c\n\x04\x63\x61sh\x18\n \x01(\x01\x12\x31\n\x0cmktPositions\x18\x0b \x03(\x0b\x32\x1b.PBBroker.MktPositionsEntry\x1a\x46\n\x11MktPositionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x05\x12 \n\x05value\x18\x02 \x01(\x0b\x32\x11.PBMarketPosition:\x02\x38\x01\"\xfb\x02\n\nPBCustomer\x12\x11\n\tidCounter\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\x12\x16\n\x0eidCustomerInfo\x18\x03 \x01(\x03\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x12\n\npopulation\x18\x05 \x01(\x05\x12\x11\n\tpowerType\x18\x06 \x01(\t\x12\x16\n\x0e\x63ontrollableKW\x18\x07 \x01(\x01\x12\x16\n\x0eupRegulationKW\x18\x08 \x01(\x01\x12\x18\n\x10\x64ownRegulationKW\x18\t \x01(\x01\x12\x17\n\x0fstorageCapacity\x18\n \x01(\x01\x12\x18\n\x10multiContracting\x18\x0b \x01(\x08\x12\x14\n\x0c\x63\x61nNegotiate\x18\x0c \x01(\x08\x12\x18\n\x10genericPowerType\x18\r \x01(\t\x12\x19\n\x11\x62ootstrapNetUsage\x18\x0e \x03(\x01\x12\"\n\x06retail\x18\x0f \x01(\x0b\x32\x12.PBRetailKPIHolder\x12\x15\n\rcustomerClass\x18\x10 \x01(\t\"\x96\x01\n\x11PBRetailKPIHolder\x12\x1c\n\x14subscribedPopulation\x18\x01 \x01(\x05\x12\x0b\n\x03kwh\x18\x02 \x01(\x01\x12\r\n\x05money\x18\x03 \x01(\x01\x12\x15\n\ractiveTariffs\x18\x04 \x01(\x05\x12\x16\n\x0erevokedTariffs\x18\x05 \x01(\x05\x12\x18\n\x10publishedTariffs\x18\x06 \x01(\x05\"W\n\x11PBBankTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x0e\n\x06\x61mount\x18\x04 \x01(\x01\"U\n\x0ePBCashPosition\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x0f\n\x07\x62\x61lance\x18\x04 \x01(\x01\"g\n\x14PBDistributionReport\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x10\n\x08timeslot\x18\x02 \x01(\x05\x12\x18\n\x10totalConsumption\x18\x03 \x01(\x01\x12\x17\n\x0ftotalProduction\x18\x04 \x01(\x01\"i\n\x16PBBalancingTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x0b\n\x03kWh\x18\x04 \x01(\x01\x12\x0e\n\x06\x63harge\x18\x05 \x01(\x01\"r\n\x0ePBClearedTrade\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x10\n\x08timeslot\x18\x02 \x01(\x05\x12\x16\n\x0e\x65xecutionPrice\x18\x03 \x01(\x01\x12\x14\n\x0c\x65xecutionMWh\x18\x04 \x01(\x01\x12\x14\n\x0c\x64\x61teExecuted\x18\x05 \x01(\x03\"\x8c\x01\n\x19PBDistributionTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x0b\n\x03kWh\x18\x04 \x01(\x01\x12\x0e\n\x06nSmall\x18\x05 \x01(\x05\x12\x0e\n\x06nLarge\x18\x06 \x01(\x05\x12\x0e\n\x06\x63harge\x18\x07 \x01(\x01\"\x91\x01\n\x15PBCapacityTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x14\n\x0cpeakTimeslot\x18\x04 \x01(\x05\x12\x11\n\tthreshold\x18\x05 \x01(\x01\x12\x0b\n\x03kWh\x18\x06 \x01(\x01\x12\x0e\n\x06\x63harge\x18\x07 \x01(\x01\"E\n\x15PBMarketBootstrapData\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0b\n\x03mwh\x18\x02 \x03(\x01\x12\x13\n\x0bmarketPrice\x18\x05 \x03(\x01\"X\n\x10PBMarketPosition\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x10\n\x08timeslot\x18\x03 \x01(\x05\x12\x16\n\x0eoverallBalance\x18\x04 \x01(\x01\"8\n\nPBTimeslot\x12\x14\n\x0cserialNumber\x18\x01 \x01(\x05\x12\x14\n\x0cstartInstant\x18\x02 \x01(\x03\"w\n\x13PBMarketTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\r\n\x05price\x18\x04 \x01(\x01\x12\x0b\n\x03mWh\x18\x05 \x01(\x01\x12\x10\n\x08timeslot\x18\x06 \x01(\x05\"\x9a\x01\n\x0bPBOrderbook\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0c\x64\x61teExecuted\x18\x02 \x01(\x03\x12\x10\n\x08timeslot\x18\x03 \x01(\x05\x12\x15\n\rclearingPrice\x18\x04 \x01(\x01\x12\x1f\n\x04\x62ids\x18\x06 \x03(\x0b\x32\x11.PBOrderbookOrder\x12\x1f\n\x04\x61sks\x18\x08 \x03(\x0b\x32\x11.PBOrderbookOrder\"?\n\x10PBOrderbookOrder\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x12\n\nlimitPrice\x18\x02 \x01(\x01\x12\x0b\n\x03mWh\x18\x03 \x01(\x01\"k\n\x11PBWeatherForecast\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x17\n\x0f\x63urrentTimeslot\x18\x02 \x01(\x05\x12\x31\n\x0bpredictions\x18\x03 \x03(\x0b\x32\x1c.PBWeatherForecastPrediction\"\x92\x01\n\x1bPBWeatherForecastPrediction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0c\x66orecastTime\x18\x02 \x01(\x05\x12\x13\n\x0btemperature\x18\x03 \x01(\x01\x12\x11\n\twindSpeed\x18\x04 \x01(\x01\x12\x15\n\rwindDirection\x18\x05 \x01(\x01\x12\x12\n\ncloudCover\x18\x06 \x01(\x01\"\x96\x01\n\x0fPBWeatherReport\x12\n\n\x02id\x18\x01 \x01(\x03\x12$\n\x0f\x63urrentTimeslot\x18\x02 \x01(\x0b\x32\x0b.PBTimeslot\x12\x13\n\x0btemperature\x18\x03 \x01(\x01\x12\x11\n\twindSpeed\x18\x04 \x01(\x01\x12\x15\n\rwindDirection\x18\x05 \x01(\x01\x12\x12\n\ncloudCover\x18\x06 \x01(\x01\"J\n\x0fPBBalanceReport\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0cnetImbalance\x18\x02 \x01(\x01\x12\x15\n\rtimeslotIndex\x18\x03 \x01(\x05\"\x1c\n\x0bPBPowerType\x12\r\n\x05label\x18\x01 \x01(\t\"n\n\x17PBCustomerBootstrapData\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0c\x63ustomerName\x18\x02 \x01(\t\x12\x1f\n\tpowerType\x18\x03 \x01(\x0b\x32\x0c.PBPowerType\x12\x10\n\x08netUsage\x18\x04 \x03(\x01\"\xeb\x01\n\x0ePBCustomerInfo\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x12\n\npopulation\x18\x03 \x01(\x05\x12\x1f\n\tpowerType\x18\x04 \x01(\x0b\x32\x0c.PBPowerType\x12\'\n\rcustomerClass\x18\x05 \x01(\x0e\x32\x10.PBCustomerClass\x12\x16\n\x0e\x63ontrollableKW\x18\x06 \x01(\x01\x12\x16\n\x0eupRegulationKW\x18\x07 \x01(\x01\x12\x18\n\x10\x64ownRegulationKW\x18\x08 \x01(\x01\x12\x17\n\x0fstorageCapacity\x18\t \x01(\x01\"*\n\nPBRateCore\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\"\x84\x02\n\x06PBRate\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\x12\x13\n\x0bweeklyBegin\x18\x03 \x01(\x05\x12\x11\n\tweeklyEnd\x18\x04 \x01(\x05\x12\x12\n\ndailyBegin\x18\x05 \x01(\x05\x12\x10\n\x08\x64\x61ilyEnd\x18\x06 \x01(\x05\x12\x15\n\rtierThreshold\x18\x07 \x01(\x01\x12\r\n\x05\x66ixed\x18\x08 \x01(\x08\x12\x10\n\x08minValue\x18\t \x01(\x01\x12\x10\n\x08maxValue\x18\n \x01(\x01\x12\x16\n\x0enoticeInterval\x18\x0b \x01(\x03\x12\x14\n\x0c\x65xpectedMean\x18\x0c \x01(\x01\x12\x16\n\x0emaxCurtailment\x18\r \x01(\x01\"\x8f\x01\n\x10PBRegulationRate\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\x12\x1b\n\x13upRegulationPayment\x18\x03 \x01(\x01\x12\x1d\n\x15\x64ownRegulationPayment\x18\x04 \x01(\x01\x12!\n\x08response\x18\x05 \x01(\x0e\x32\x0f.PBResponseTime\"\xa3\x02\n\x15PBTariffSpecification\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x12\n\nexpiration\x18\x03 \x01(\x03\x12\x13\n\x0bminDuration\x18\x04 \x01(\x03\x12\x1f\n\tpowerType\x18\x05 \x01(\x0b\x32\x0c.PBPowerType\x12\x15\n\rsignupPayment\x18\x06 \x01(\x01\x12\x1c\n\x14\x65\x61rlyWithdrawPayment\x18\x07 \x01(\x01\x12\x17\n\x0fperiodicPayment\x18\x08 \x01(\x01\x12\x16\n\x05rates\x18\t \x03(\x0b\x32\x07.PBRate\x12*\n\x0fregulationRates\x18\n \x03(\x0b\x32\x11.PBRegulationRate\x12\x12\n\nsupersedes\x18\x0b \x03(\x03\"a\n\x0ePBTariffStatus\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\x10\n\x08updateId\x18\x02 \x01(\x03\x12\x10\n\x08_message\x18\x03 \x01(\t\x12\x19\n\x06status\x18\x04 \x01(\x0e\x32\t.PBStatus\"\xcb\x01\n\x13PBTariffTransaction\x12\x19\n\x06txType\x18\x02 \x01(\x0e\x32\t.PBTxType\x12%\n\x0c\x63ustomerInfo\x18\x03 \x01(\x0b\x32\x0f.PBCustomerInfo\x12\x15\n\rcustomerCount\x18\x04 \x01(\x05\x12\x0b\n\x03kWh\x18\x05 \x01(\x01\x12\x0e\n\x06\x63harge\x18\x06 \x01(\x01\x12\x12\n\nregulation\x18\x07 \x01(\x08\x12*\n\ntariffSpec\x18\x08 \x01(\x0b\x32\x16.PBTariffSpecification\"7\n\x17PBBalancingControlEvent\x12\x0b\n\x03kwh\x18\x01 \x01(\x01\x12\x0f\n\x07payment\x18\x02 \x01(\x01\">\n\x0ePBTariffRevoke\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x03 \x01(\t\"h\n\x0cPBProperties\x12)\n\x06values\x18\x01 \x03(\x0b\x32\x19.PBProperties.ValuesEntry\x1a-\n\x0bValuesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x07\n\x05\x45mpty\"]\n\x10PBTimeslotUpdate\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0c\x66irstEnabled\x18\x02 \x01(\x05\x12\x13\n\x0blastEnabled\x18\x03 \x01(\x05\x12\x12\n\npostedTime\x18\x04 \x01(\x03\"+\n\x12PBTimeslotComplete\x12\x15\n\rtimeslotIndex\x18\x01 \x01(\x05\"\x0c\n\nPBSimPause\"\x1c\n\x0bPBSimResume\x12\r\n\x05start\x18\x01 \x01(\x03*\'\n\x0fPBCustomerClass\x12\t\n\x05SMALL\x10\x00\x12\t\n\x05LARGE\x10\x01**\n\x0ePBResponseTime\x12\x0b\n\x07SECONDS\x10\x00\x12\x0b\n\x07MINUTES\x10\x01*q\n\x08PBTxType\x12\x0b\n\x07PUBLISH\x10\x00\x12\x0b\n\x07PRODUCE\x10\x01\x12\x0b\n\x07\x43ONSUME\x10\x02\x12\x0c\n\x08PERIODIC\x10\x03\x12\n\n\x06SIGNUP\x10\x04\x12\x0c\n\x08WITHDRAW\x10\x05\x12\n\n\x06REVOKE\x10\x06\x12\n\n\x06REFUND\x10\x07*\xaf\x01\n\x08PBStatus\x12\x0b\n\x07success\x10\x00\x12\x10\n\x0cnoSuchTariff\x10\x01\x12\x10\n\x0cnoSuchUpdate\x10\x02\x12\x14\n\x10illegalOperation\x10\x03\x12\x11\n\rinvalidTariff\x10\x04\x12\x11\n\rinvalidUpdate\x10\x05\x12\x0f\n\x0b\x64uplicateId\x10\x06\x12\x14\n\x10invalidPowerType\x10\x07\x12\x0f\n\x0bunsupported\x10\x08\x32\xa2\x02\n\x15\x43ontextManagerService\x12\x37\n\x17handlePBBankTransaction\x12\x12.PBBankTransaction\x1a\x06.Empty\"\x00\x12\x31\n\x14handlePBCashPosition\x12\x0f.PBCashPosition\x1a\x06.Empty\"\x00\x12=\n\x1ahandlePBDistributionReport\x12\x15.PBDistributionReport\x1a\x06.Empty\"\x00\x12/\n\x13handlePBCompetition\x12\x0e.PBCompetition\x1a\x06.Empty\"\x00\x12-\n\x12handlePBProperties\x12\r.PBProperties\x1a\x06.Empty\"\x00\x32\xf7\x05\n\x14MarketManagerService\x12)\n\x10handlePBActivate\x12\x0b.PBActivate\x1a\x06.Empty\"\x00\x12/\n\x13handlePBCompetition\x12\x0e.PBCompetition\x1a\x06.Empty\"\x00\x12\x41\n\x1chandlePBBalancingTransaction\x12\x17.PBBalancingTransaction\x1a\x06.Empty\"\x00\x12\x31\n\x14handlePBClearedTrade\x12\x0f.PBClearedTrade\x1a\x06.Empty\"\x00\x12G\n\x1fhandlePBDistributionTransaction\x12\x1a.PBDistributionTransaction\x1a\x06.Empty\"\x00\x12?\n\x1bhandlePBCapacityTransaction\x12\x16.PBCapacityTransaction\x1a\x06.Empty\"\x00\x12?\n\x1bhandlePBMarketBootstrapData\x12\x16.PBMarketBootstrapData\x1a\x06.Empty\"\x00\x12\x35\n\x16handlePBMarketPosition\x12\x11.PBMarketPosition\x1a\x06.Empty\"\x00\x12;\n\x19handlePBMarketTransaction\x12\x14.PBMarketTransaction\x1a\x06.Empty\"\x00\x12+\n\x11handlePBOrderbook\x12\x0c.PBOrderbook\x1a\x06.Empty\"\x00\x12\x37\n\x17handlePBWeatherForecast\x12\x12.PBWeatherForecast\x1a\x06.Empty\"\x00\x12\x33\n\x15handlePBWeatherReport\x12\x10.PBWeatherReport\x1a\x06.Empty\"\x00\x12\x33\n\x15handlePBBalanceReport\x12\x10.PBBalanceReport\x1a\x06.Empty\"\x00\x32\x87\x03\n\x17PortfolioManagerService\x12\x43\n\x1dhandlePBCustomerBootstrapData\x12\x18.PBCustomerBootstrapData\x1a\x06.Empty\"\x00\x12?\n\x1bhandlePBTariffSpecification\x12\x16.PBTariffSpecification\x1a\x06.Empty\"\x00\x12\x31\n\x14handlePBTariffStatus\x12\x0f.PBTariffStatus\x1a\x06.Empty\"\x00\x12;\n\x19handlePBTariffTransaction\x12\x14.PBTariffTransaction\x1a\x06.Empty\"\x00\x12\x31\n\x14handlePBTariffRevoke\x12\x0f.PBTariffRevoke\x1a\x06.Empty\"\x00\x12\x43\n\x1dhandlePBBalancingControlEvent\x12\x18.PBBalancingControlEvent\x1a\x06.Empty\"\x00\x32\xd7\x01\n\x0bGameService\x12\x39\n\x18handlePBTimeslotComplete\x12\x13.PBTimeslotComplete\x1a\x06.Empty\"\x00\x12\x35\n\x16handlePBTimeslotUpdate\x12\x11.PBTimeslotUpdate\x1a\x06.Empty\"\x00\x12)\n\x10handlePBSimPause\x12\x0b.PBSimPause\x1a\x06.Empty\"\x00\x12+\n\x11handlePBSimResume\x12\x0c.PBSimResume\x1a\x06.Empty\"\x00\x32|\n\x1d\x45xtraSpyMessageManagerService\x12#\n\rhandlePBOrder\x12\x08.PBOrder\x1a\x06.Empty\"\x00\x12\x36\n\x12handlePBTariffSpec\x12\x16.PBTariffSpecification\x1a\x06.Empty\"\x00\x32\x31\n\x11\x43onnectionService\x12\x1c\n\x08pingpong\x12\x06.Empty\x1a\x06.Empty\"\x00\x32|\n\rSubmitAdapter\x12+\n\x0bsubmitOrder\x12\x08.PBOrder\x1a\x10.PBCallCompleted\"\x00\x12>\n\x10submitTariffSpec\x12\x16.PBTariffSpecification\x1a\x10.PBCallCompleted\"\x00\x42 \n\x1c\x64\x65.pascalwhoop.powertac.grpcP\x01\x62\x06proto3')
+  serialized_pb=_b('\n\x13grpc_messages.proto\"1\n\x0fPBCallCompleted\x12\x11\n\tcompleted\x18\x01 \x01(\x08\x12\x0b\n\x03msg\x18\x02 \x01(\t\"\x1e\n\x0fPBRequestStream\x12\x0b\n\x03msg\x18\x01 \x01(\t\"#\n\nPBActivate\x12\x15\n\rtimeslotIndex\x18\x01 \x01(\x05\"X\n\x07PBOrder\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x10\n\x08timeslot\x18\x03 \x01(\x05\x12\x0b\n\x03mWh\x18\x04 \x01(\x01\x12\x12\n\nlimitPrice\x18\x05 \x01(\x01\"\xf3\x04\n\rPBCompetition\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x03 \x01(\t\x12\r\n\x05pomId\x18\x04 \x01(\t\x12\x16\n\x0etimeslotLength\x18\x05 \x01(\x05\x12\x1e\n\x16\x62ootstrapTimeslotCount\x18\x06 \x01(\x05\x12#\n\x1b\x62ootstrapDiscardedTimeslots\x18\x07 \x01(\x05\x12\x1c\n\x14minimumTimeslotCount\x18\x08 \x01(\x05\x12\x1d\n\x15\x65xpectedTimeslotCount\x18\t \x01(\x05\x12\x15\n\rtimeslotsOpen\x18\n \x01(\x05\x12 \n\x18\x64\x65\x61\x63tivateTimeslotsAhead\x18\x0b \x01(\x05\x12\x1c\n\x14minimumOrderQuantity\x18\x0c \x01(\x01\x12#\n\x1bmaxUpRegulationPaymentRatio\x18\x14 \x01(\x01\x12\x1c\n\x14upRegulationDiscount\x18\x15 \x01(\x01\x12\x1e\n\x16\x64ownRegulationDiscount\x18\x16 \x01(\x01\x12#\n\x1b\x65stimatedConsumptionPremium\x18\x17 \x01(\x01\x12\x1a\n\x12simulationBaseTime\x18\r \x01(\x03\x12\x16\n\x0etimezoneOffset\x18\x0e \x01(\x05\x12\x10\n\x08latitude\x18\x0f \x01(\x05\x12\x16\n\x0esimulationRate\x18\x10 \x01(\x03\x12\x18\n\x10simulationModulo\x18\x11 \x01(\x03\x12\x0f\n\x07\x62rokers\x18\x12 \x03(\t\x12\"\n\tcustomers\x18\x13 \x03(\x0b\x32\x0f.PBCustomerInfo\"\xa8\x02\n\x08PBBroker\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x10\n\x08password\x18\x03 \x01(\t\x12\x0b\n\x03key\x18\x04 \x01(\t\x12\x11\n\tqueueName\x18\x05 \x01(\t\x12\x0f\n\x07\x65nabled\x18\x06 \x01(\x08\x12\r\n\x05local\x18\x07 \x01(\x08\x12\x10\n\x08idPrefix\x18\x08 \x01(\x03\x12\x11\n\twholesale\x18\t \x01(\x08\x12\x0c\n\x04\x63\x61sh\x18\n \x01(\x01\x12\x31\n\x0cmktPositions\x18\x0b \x03(\x0b\x32\x1b.PBBroker.MktPositionsEntry\x1a\x46\n\x11MktPositionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x05\x12 \n\x05value\x18\x02 \x01(\x0b\x32\x11.PBMarketPosition:\x02\x38\x01\"\xfb\x02\n\nPBCustomer\x12\x11\n\tidCounter\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\x12\x16\n\x0eidCustomerInfo\x18\x03 \x01(\x03\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x12\n\npopulation\x18\x05 \x01(\x05\x12\x11\n\tpowerType\x18\x06 \x01(\t\x12\x16\n\x0e\x63ontrollableKW\x18\x07 \x01(\x01\x12\x16\n\x0eupRegulationKW\x18\x08 \x01(\x01\x12\x18\n\x10\x64ownRegulationKW\x18\t \x01(\x01\x12\x17\n\x0fstorageCapacity\x18\n \x01(\x01\x12\x18\n\x10multiContracting\x18\x0b \x01(\x08\x12\x14\n\x0c\x63\x61nNegotiate\x18\x0c \x01(\x08\x12\x18\n\x10genericPowerType\x18\r \x01(\t\x12\x19\n\x11\x62ootstrapNetUsage\x18\x0e \x03(\x01\x12\"\n\x06retail\x18\x0f \x01(\x0b\x32\x12.PBRetailKPIHolder\x12\x15\n\rcustomerClass\x18\x10 \x01(\t\"\x96\x01\n\x11PBRetailKPIHolder\x12\x1c\n\x14subscribedPopulation\x18\x01 \x01(\x05\x12\x0b\n\x03kwh\x18\x02 \x01(\x01\x12\r\n\x05money\x18\x03 \x01(\x01\x12\x15\n\ractiveTariffs\x18\x04 \x01(\x05\x12\x16\n\x0erevokedTariffs\x18\x05 \x01(\x05\x12\x18\n\x10publishedTariffs\x18\x06 \x01(\x05\"W\n\x11PBBankTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x0e\n\x06\x61mount\x18\x04 \x01(\x01\"U\n\x0ePBCashPosition\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x0f\n\x07\x62\x61lance\x18\x04 \x01(\x01\"g\n\x14PBDistributionReport\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x10\n\x08timeslot\x18\x02 \x01(\x05\x12\x18\n\x10totalConsumption\x18\x03 \x01(\x01\x12\x17\n\x0ftotalProduction\x18\x04 \x01(\x01\"i\n\x16PBBalancingTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x0b\n\x03kWh\x18\x04 \x01(\x01\x12\x0e\n\x06\x63harge\x18\x05 \x01(\x01\"r\n\x0ePBClearedTrade\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x10\n\x08timeslot\x18\x02 \x01(\x05\x12\x16\n\x0e\x65xecutionPrice\x18\x03 \x01(\x01\x12\x14\n\x0c\x65xecutionMWh\x18\x04 \x01(\x01\x12\x14\n\x0c\x64\x61teExecuted\x18\x05 \x01(\x03\"\x8c\x01\n\x19PBDistributionTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x0b\n\x03kWh\x18\x04 \x01(\x01\x12\x0e\n\x06nSmall\x18\x05 \x01(\x05\x12\x0e\n\x06nLarge\x18\x06 \x01(\x05\x12\x0e\n\x06\x63harge\x18\x07 \x01(\x01\"\x91\x01\n\x15PBCapacityTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x14\n\x0cpeakTimeslot\x18\x04 \x01(\x05\x12\x11\n\tthreshold\x18\x05 \x01(\x01\x12\x0b\n\x03kWh\x18\x06 \x01(\x01\x12\x0e\n\x06\x63harge\x18\x07 \x01(\x01\"E\n\x15PBMarketBootstrapData\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0b\n\x03mwh\x18\x02 \x03(\x01\x12\x13\n\x0bmarketPrice\x18\x05 \x03(\x01\"X\n\x10PBMarketPosition\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x10\n\x08timeslot\x18\x03 \x01(\x05\x12\x16\n\x0eoverallBalance\x18\x04 \x01(\x01\"8\n\nPBTimeslot\x12\x14\n\x0cserialNumber\x18\x01 \x01(\x05\x12\x14\n\x0cstartInstant\x18\x02 \x01(\x03\"w\n\x13PBMarketTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\r\n\x05price\x18\x04 \x01(\x01\x12\x0b\n\x03mWh\x18\x05 \x01(\x01\x12\x10\n\x08timeslot\x18\x06 \x01(\x05\"\x9a\x01\n\x0bPBOrderbook\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0c\x64\x61teExecuted\x18\x02 \x01(\x03\x12\x10\n\x08timeslot\x18\x03 \x01(\x05\x12\x15\n\rclearingPrice\x18\x04 \x01(\x01\x12\x1f\n\x04\x62ids\x18\x06 \x03(\x0b\x32\x11.PBOrderbookOrder\x12\x1f\n\x04\x61sks\x18\x08 \x03(\x0b\x32\x11.PBOrderbookOrder\"?\n\x10PBOrderbookOrder\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x12\n\nlimitPrice\x18\x02 \x01(\x01\x12\x0b\n\x03mWh\x18\x03 \x01(\x01\"k\n\x11PBWeatherForecast\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x17\n\x0f\x63urrentTimeslot\x18\x02 \x01(\x05\x12\x31\n\x0bpredictions\x18\x03 \x03(\x0b\x32\x1c.PBWeatherForecastPrediction\"\x92\x01\n\x1bPBWeatherForecastPrediction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0c\x66orecastTime\x18\x02 \x01(\x05\x12\x13\n\x0btemperature\x18\x03 \x01(\x01\x12\x11\n\twindSpeed\x18\x04 \x01(\x01\x12\x15\n\rwindDirection\x18\x05 \x01(\x01\x12\x12\n\ncloudCover\x18\x06 \x01(\x01\"\x96\x01\n\x0fPBWeatherReport\x12\n\n\x02id\x18\x01 \x01(\x03\x12$\n\x0f\x63urrentTimeslot\x18\x02 \x01(\x0b\x32\x0b.PBTimeslot\x12\x13\n\x0btemperature\x18\x03 \x01(\x01\x12\x11\n\twindSpeed\x18\x04 \x01(\x01\x12\x15\n\rwindDirection\x18\x05 \x01(\x01\x12\x12\n\ncloudCover\x18\x06 \x01(\x01\"J\n\x0fPBBalanceReport\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0cnetImbalance\x18\x02 \x01(\x01\x12\x15\n\rtimeslotIndex\x18\x03 \x01(\x05\"\x1c\n\x0bPBPowerType\x12\r\n\x05label\x18\x01 \x01(\t\"n\n\x17PBCustomerBootstrapData\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0c\x63ustomerName\x18\x02 \x01(\t\x12\x1f\n\tpowerType\x18\x03 \x01(\x0b\x32\x0c.PBPowerType\x12\x10\n\x08netUsage\x18\x04 \x03(\x01\"\xeb\x01\n\x0ePBCustomerInfo\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x12\n\npopulation\x18\x03 \x01(\x05\x12\x1f\n\tpowerType\x18\x04 \x01(\x0b\x32\x0c.PBPowerType\x12\'\n\rcustomerClass\x18\x05 \x01(\x0e\x32\x10.PBCustomerClass\x12\x16\n\x0e\x63ontrollableKW\x18\x06 \x01(\x01\x12\x16\n\x0eupRegulationKW\x18\x07 \x01(\x01\x12\x18\n\x10\x64ownRegulationKW\x18\x08 \x01(\x01\x12\x17\n\x0fstorageCapacity\x18\t \x01(\x01\"*\n\nPBRateCore\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\"\x84\x02\n\x06PBRate\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\x12\x13\n\x0bweeklyBegin\x18\x03 \x01(\x05\x12\x11\n\tweeklyEnd\x18\x04 \x01(\x05\x12\x12\n\ndailyBegin\x18\x05 \x01(\x05\x12\x10\n\x08\x64\x61ilyEnd\x18\x06 \x01(\x05\x12\x15\n\rtierThreshold\x18\x07 \x01(\x01\x12\r\n\x05\x66ixed\x18\x08 \x01(\x08\x12\x10\n\x08minValue\x18\t \x01(\x01\x12\x10\n\x08maxValue\x18\n \x01(\x01\x12\x16\n\x0enoticeInterval\x18\x0b \x01(\x03\x12\x14\n\x0c\x65xpectedMean\x18\x0c \x01(\x01\x12\x16\n\x0emaxCurtailment\x18\r \x01(\x01\"\x8f\x01\n\x10PBRegulationRate\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\x12\x1b\n\x13upRegulationPayment\x18\x03 \x01(\x01\x12\x1d\n\x15\x64ownRegulationPayment\x18\x04 \x01(\x01\x12!\n\x08response\x18\x05 \x01(\x0e\x32\x0f.PBResponseTime\"\xa3\x02\n\x15PBTariffSpecification\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x12\n\nexpiration\x18\x03 \x01(\x03\x12\x13\n\x0bminDuration\x18\x04 \x01(\x03\x12\x1f\n\tpowerType\x18\x05 \x01(\x0b\x32\x0c.PBPowerType\x12\x15\n\rsignupPayment\x18\x06 \x01(\x01\x12\x1c\n\x14\x65\x61rlyWithdrawPayment\x18\x07 \x01(\x01\x12\x17\n\x0fperiodicPayment\x18\x08 \x01(\x01\x12\x16\n\x05rates\x18\t \x03(\x0b\x32\x07.PBRate\x12*\n\x0fregulationRates\x18\n \x03(\x0b\x32\x11.PBRegulationRate\x12\x12\n\nsupersedes\x18\x0b \x03(\x03\"a\n\x0ePBTariffStatus\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\x10\n\x08updateId\x18\x02 \x01(\x03\x12\x10\n\x08_message\x18\x03 \x01(\t\x12\x19\n\x06status\x18\x04 \x01(\x0e\x32\t.PBStatus\"\xff\x01\n\x13PBTariffTransaction\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x02 \x01(\t\x12\x16\n\x0epostedTimeslot\x18\x03 \x01(\x05\x12\x19\n\x06txType\x18\x04 \x01(\x0e\x32\t.PBTxType\x12%\n\x0c\x63ustomerInfo\x18\x05 \x01(\x0b\x32\x0f.PBCustomerInfo\x12\x15\n\rcustomerCount\x18\x06 \x01(\x05\x12\x0b\n\x03kWh\x18\x07 \x01(\x01\x12\x0e\n\x06\x63harge\x18\x08 \x01(\x01\x12\x12\n\nregulation\x18\t \x01(\x08\x12*\n\ntariffSpec\x18\n \x01(\x0b\x32\x16.PBTariffSpecification\"7\n\x17PBBalancingControlEvent\x12\x0b\n\x03kwh\x18\x01 \x01(\x01\x12\x0f\n\x07payment\x18\x02 \x01(\x01\">\n\x0ePBTariffRevoke\x12\x10\n\x08tariffId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\x03\x12\x0e\n\x06\x62roker\x18\x03 \x01(\t\"h\n\x0cPBProperties\x12)\n\x06values\x18\x01 \x03(\x0b\x32\x19.PBProperties.ValuesEntry\x1a-\n\x0bValuesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x07\n\x05\x45mpty\"]\n\x10PBTimeslotUpdate\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x14\n\x0c\x66irstEnabled\x18\x02 \x01(\x05\x12\x13\n\x0blastEnabled\x18\x03 \x01(\x05\x12\x12\n\npostedTime\x18\x04 \x01(\x03\"+\n\x12PBTimeslotComplete\x12\x15\n\rtimeslotIndex\x18\x01 \x01(\x05\"\x0c\n\nPBSimPause\"\x1c\n\x0bPBSimResume\x12\r\n\x05start\x18\x01 \x01(\x03\"\n\n\x08PBSimEnd*\'\n\x0fPBCustomerClass\x12\t\n\x05SMALL\x10\x00\x12\t\n\x05LARGE\x10\x01**\n\x0ePBResponseTime\x12\x0b\n\x07SECONDS\x10\x00\x12\x0b\n\x07MINUTES\x10\x01*q\n\x08PBTxType\x12\x0b\n\x07PUBLISH\x10\x00\x12\x0b\n\x07PRODUCE\x10\x01\x12\x0b\n\x07\x43ONSUME\x10\x02\x12\x0c\n\x08PERIODIC\x10\x03\x12\n\n\x06SIGNUP\x10\x04\x12\x0c\n\x08WITHDRAW\x10\x05\x12\n\n\x06REVOKE\x10\x06\x12\n\n\x06REFUND\x10\x07*\xaf\x01\n\x08PBStatus\x12\x0b\n\x07success\x10\x00\x12\x10\n\x0cnoSuchTariff\x10\x01\x12\x10\n\x0cnoSuchUpdate\x10\x02\x12\x14\n\x10illegalOperation\x10\x03\x12\x11\n\rinvalidTariff\x10\x04\x12\x11\n\rinvalidUpdate\x10\x05\x12\x0f\n\x0b\x64uplicateId\x10\x06\x12\x14\n\x10invalidPowerType\x10\x07\x12\x0f\n\x0bunsupported\x10\x08\x32\xa2\x02\n\x15\x43ontextManagerService\x12\x37\n\x17handlePBBankTransaction\x12\x12.PBBankTransaction\x1a\x06.Empty\"\x00\x12\x31\n\x14handlePBCashPosition\x12\x0f.PBCashPosition\x1a\x06.Empty\"\x00\x12=\n\x1ahandlePBDistributionReport\x12\x15.PBDistributionReport\x1a\x06.Empty\"\x00\x12/\n\x13handlePBCompetition\x12\x0e.PBCompetition\x1a\x06.Empty\"\x00\x12-\n\x12handlePBProperties\x12\r.PBProperties\x1a\x06.Empty\"\x00\x32\xf7\x05\n\x14MarketManagerService\x12)\n\x10handlePBActivate\x12\x0b.PBActivate\x1a\x06.Empty\"\x00\x12/\n\x13handlePBCompetition\x12\x0e.PBCompetition\x1a\x06.Empty\"\x00\x12\x41\n\x1chandlePBBalancingTransaction\x12\x17.PBBalancingTransaction\x1a\x06.Empty\"\x00\x12\x31\n\x14handlePBClearedTrade\x12\x0f.PBClearedTrade\x1a\x06.Empty\"\x00\x12G\n\x1fhandlePBDistributionTransaction\x12\x1a.PBDistributionTransaction\x1a\x06.Empty\"\x00\x12?\n\x1bhandlePBCapacityTransaction\x12\x16.PBCapacityTransaction\x1a\x06.Empty\"\x00\x12?\n\x1bhandlePBMarketBootstrapData\x12\x16.PBMarketBootstrapData\x1a\x06.Empty\"\x00\x12\x35\n\x16handlePBMarketPosition\x12\x11.PBMarketPosition\x1a\x06.Empty\"\x00\x12;\n\x19handlePBMarketTransaction\x12\x14.PBMarketTransaction\x1a\x06.Empty\"\x00\x12+\n\x11handlePBOrderbook\x12\x0c.PBOrderbook\x1a\x06.Empty\"\x00\x12\x37\n\x17handlePBWeatherForecast\x12\x12.PBWeatherForecast\x1a\x06.Empty\"\x00\x12\x33\n\x15handlePBWeatherReport\x12\x10.PBWeatherReport\x1a\x06.Empty\"\x00\x12\x33\n\x15handlePBBalanceReport\x12\x10.PBBalanceReport\x1a\x06.Empty\"\x00\x32\x87\x03\n\x17PortfolioManagerService\x12\x43\n\x1dhandlePBCustomerBootstrapData\x12\x18.PBCustomerBootstrapData\x1a\x06.Empty\"\x00\x12?\n\x1bhandlePBTariffSpecification\x12\x16.PBTariffSpecification\x1a\x06.Empty\"\x00\x12\x31\n\x14handlePBTariffStatus\x12\x0f.PBTariffStatus\x1a\x06.Empty\"\x00\x12;\n\x19handlePBTariffTransaction\x12\x14.PBTariffTransaction\x1a\x06.Empty\"\x00\x12\x31\n\x14handlePBTariffRevoke\x12\x0f.PBTariffRevoke\x1a\x06.Empty\"\x00\x12\x43\n\x1dhandlePBBalancingControlEvent\x12\x18.PBBalancingControlEvent\x1a\x06.Empty\"\x00\x32\xd7\x01\n\x0bGameService\x12\x39\n\x18handlePBTimeslotComplete\x12\x13.PBTimeslotComplete\x1a\x06.Empty\"\x00\x12\x35\n\x16handlePBTimeslotUpdate\x12\x11.PBTimeslotUpdate\x1a\x06.Empty\"\x00\x12)\n\x10handlePBSimPause\x12\x0b.PBSimPause\x1a\x06.Empty\"\x00\x12+\n\x11handlePBSimResume\x12\x0c.PBSimResume\x1a\x06.Empty\"\x00\x32|\n\x1d\x45xtraSpyMessageManagerService\x12#\n\rhandlePBOrder\x12\x08.PBOrder\x1a\x06.Empty\"\x00\x12\x36\n\x12handlePBTariffSpec\x12\x16.PBTariffSpecification\x1a\x06.Empty\"\x00\x32\x31\n\x11\x43onnectionService\x12\x1c\n\x08pingpong\x12\x06.Empty\x1a\x06.Empty\"\x00\x32|\n\rSubmitAdapter\x12+\n\x0bsubmitOrder\x12\x08.PBOrder\x1a\x10.PBCallCompleted\"\x00\x12>\n\x10submitTariffSpec\x12\x16.PBTariffSpecification\x1a\x10.PBCallCompleted\"\x00\x42 \n\x1c\x64\x65.pascalwhoop.powertac.grpcP\x01\x62\x06proto3')
 )
 
 _PBCUSTOMERCLASS = _descriptor.EnumDescriptor(
@@ -40,8 +40,8 @@ _PBCUSTOMERCLASS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=5393,
-  serialized_end=5432,
+  serialized_start=5457,
+  serialized_end=5496,
 )
 _sym_db.RegisterEnumDescriptor(_PBCUSTOMERCLASS)
 
@@ -63,8 +63,8 @@ _PBRESPONSETIME = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=5434,
-  serialized_end=5476,
+  serialized_start=5498,
+  serialized_end=5540,
 )
 _sym_db.RegisterEnumDescriptor(_PBRESPONSETIME)
 
@@ -110,8 +110,8 @@ _PBTXTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=5478,
-  serialized_end=5591,
+  serialized_start=5542,
+  serialized_end=5655,
 )
 _sym_db.RegisterEnumDescriptor(_PBTXTYPE)
 
@@ -161,8 +161,8 @@ _PBSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=5594,
-  serialized_end=5769,
+  serialized_start=5658,
+  serialized_end=5833,
 )
 _sym_db.RegisterEnumDescriptor(_PBSTATUS)
 
@@ -2372,50 +2372,71 @@ _PBTARIFFTRANSACTION = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='txType', full_name='PBTariffTransaction.txType', index=0,
-      number=2, type=14, cpp_type=8, label=1,
+      name='id', full_name='PBTariffTransaction.id', index=0,
+      number=1, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='customerInfo', full_name='PBTariffTransaction.customerInfo', index=1,
-      number=3, type=11, cpp_type=10, label=1,
+      name='broker', full_name='PBTariffTransaction.broker', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='postedTimeslot', full_name='PBTariffTransaction.postedTimeslot', index=2,
+      number=3, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='txType', full_name='PBTariffTransaction.txType', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='customerInfo', full_name='PBTariffTransaction.customerInfo', index=4,
+      number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='customerCount', full_name='PBTariffTransaction.customerCount', index=2,
-      number=4, type=5, cpp_type=1, label=1,
+      name='customerCount', full_name='PBTariffTransaction.customerCount', index=5,
+      number=6, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='kWh', full_name='PBTariffTransaction.kWh', index=3,
-      number=5, type=1, cpp_type=5, label=1,
+      name='kWh', full_name='PBTariffTransaction.kWh', index=6,
+      number=7, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='charge', full_name='PBTariffTransaction.charge', index=4,
-      number=6, type=1, cpp_type=5, label=1,
+      name='charge', full_name='PBTariffTransaction.charge', index=7,
+      number=8, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='regulation', full_name='PBTariffTransaction.regulation', index=5,
-      number=7, type=8, cpp_type=7, label=1,
+      name='regulation', full_name='PBTariffTransaction.regulation', index=8,
+      number=9, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='tariffSpec', full_name='PBTariffTransaction.tariffSpec', index=6,
-      number=8, type=11, cpp_type=10, label=1,
+      name='tariffSpec', full_name='PBTariffTransaction.tariffSpec', index=9,
+      number=10, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -2433,7 +2454,7 @@ _PBTARIFFTRANSACTION = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=4768,
-  serialized_end=4971,
+  serialized_end=5023,
 )
 
 
@@ -2470,8 +2491,8 @@ _PBBALANCINGCONTROLEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4973,
-  serialized_end=5028,
+  serialized_start=5025,
+  serialized_end=5080,
 )
 
 
@@ -2515,8 +2536,8 @@ _PBTARIFFREVOKE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5030,
-  serialized_end=5092,
+  serialized_start=5082,
+  serialized_end=5144,
 )
 
 
@@ -2553,8 +2574,8 @@ _PBPROPERTIES_VALUESENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5153,
-  serialized_end=5198,
+  serialized_start=5205,
+  serialized_end=5250,
 )
 
 _PBPROPERTIES = _descriptor.Descriptor(
@@ -2583,8 +2604,8 @@ _PBPROPERTIES = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5094,
-  serialized_end=5198,
+  serialized_start=5146,
+  serialized_end=5250,
 )
 
 
@@ -2607,8 +2628,8 @@ _EMPTY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5200,
-  serialized_end=5207,
+  serialized_start=5252,
+  serialized_end=5259,
 )
 
 
@@ -2659,8 +2680,8 @@ _PBTIMESLOTUPDATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5209,
-  serialized_end=5302,
+  serialized_start=5261,
+  serialized_end=5354,
 )
 
 
@@ -2690,8 +2711,8 @@ _PBTIMESLOTCOMPLETE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5304,
-  serialized_end=5347,
+  serialized_start=5356,
+  serialized_end=5399,
 )
 
 
@@ -2714,8 +2735,8 @@ _PBSIMPAUSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5349,
-  serialized_end=5361,
+  serialized_start=5401,
+  serialized_end=5413,
 )
 
 
@@ -2745,8 +2766,32 @@ _PBSIMRESUME = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5363,
-  serialized_end=5391,
+  serialized_start=5415,
+  serialized_end=5443,
+)
+
+
+_PBSIMEND = _descriptor.Descriptor(
+  name='PBSimEnd',
+  full_name='PBSimEnd',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5445,
+  serialized_end=5455,
 )
 
 _PBCOMPETITION.fields_by_name['customers'].message_type = _PBCUSTOMERINFO
@@ -2813,6 +2858,7 @@ DESCRIPTOR.message_types_by_name['PBTimeslotUpdate'] = _PBTIMESLOTUPDATE
 DESCRIPTOR.message_types_by_name['PBTimeslotComplete'] = _PBTIMESLOTCOMPLETE
 DESCRIPTOR.message_types_by_name['PBSimPause'] = _PBSIMPAUSE
 DESCRIPTOR.message_types_by_name['PBSimResume'] = _PBSIMRESUME
+DESCRIPTOR.message_types_by_name['PBSimEnd'] = _PBSIMEND
 DESCRIPTOR.enum_types_by_name['PBCustomerClass'] = _PBCUSTOMERCLASS
 DESCRIPTOR.enum_types_by_name['PBResponseTime'] = _PBRESPONSETIME
 DESCRIPTOR.enum_types_by_name['PBTxType'] = _PBTXTYPE
@@ -3129,6 +3175,13 @@ PBSimResume = _reflection.GeneratedProtocolMessageType('PBSimResume', (_message.
   ))
 _sym_db.RegisterMessage(PBSimResume)
 
+PBSimEnd = _reflection.GeneratedProtocolMessageType('PBSimEnd', (_message.Message,), dict(
+  DESCRIPTOR = _PBSIMEND,
+  __module__ = 'grpc_messages_pb2'
+  # @@protoc_insertion_point(class_scope:PBSimEnd)
+  ))
+_sym_db.RegisterMessage(PBSimEnd)
+
 
 DESCRIPTOR.has_options = True
 DESCRIPTOR._options = _descriptor._ParseOptions(descriptor_pb2.FileOptions(), _b('\n\034de.pascalwhoop.powertac.grpcP\001'))
@@ -3143,8 +3196,8 @@ _CONTEXTMANAGERSERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=5772,
-  serialized_end=6062,
+  serialized_start=5836,
+  serialized_end=6126,
   methods=[
   _descriptor.MethodDescriptor(
     name='handlePBBankTransaction',
@@ -3203,8 +3256,8 @@ _MARKETMANAGERSERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=1,
   options=None,
-  serialized_start=6065,
-  serialized_end=6824,
+  serialized_start=6129,
+  serialized_end=6888,
   methods=[
   _descriptor.MethodDescriptor(
     name='handlePBActivate',
@@ -3335,8 +3388,8 @@ _PORTFOLIOMANAGERSERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=2,
   options=None,
-  serialized_start=6827,
-  serialized_end=7218,
+  serialized_start=6891,
+  serialized_end=7282,
   methods=[
   _descriptor.MethodDescriptor(
     name='handlePBCustomerBootstrapData',
@@ -3404,8 +3457,8 @@ _GAMESERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=3,
   options=None,
-  serialized_start=7221,
-  serialized_end=7436,
+  serialized_start=7285,
+  serialized_end=7500,
   methods=[
   _descriptor.MethodDescriptor(
     name='handlePBTimeslotComplete',
@@ -3455,8 +3508,8 @@ _EXTRASPYMESSAGEMANAGERSERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=4,
   options=None,
-  serialized_start=7438,
-  serialized_end=7562,
+  serialized_start=7502,
+  serialized_end=7626,
   methods=[
   _descriptor.MethodDescriptor(
     name='handlePBOrder',
@@ -3488,8 +3541,8 @@ _CONNECTIONSERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=5,
   options=None,
-  serialized_start=7564,
-  serialized_end=7613,
+  serialized_start=7628,
+  serialized_end=7677,
   methods=[
   _descriptor.MethodDescriptor(
     name='pingpong',
@@ -3512,8 +3565,8 @@ _SUBMITADAPTER = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=6,
   options=None,
-  serialized_start=7615,
-  serialized_end=7739,
+  serialized_start=7679,
+  serialized_end=7803,
   methods=[
   _descriptor.MethodDescriptor(
     name='submitOrder',

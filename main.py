@@ -8,6 +8,7 @@ import click
 #import util.make_xml_collection as mxc
 #import communication.powertac_communication as comm
 import util.config as cfg
+from agent_components.demand.estimator import Estimator
 from util.strings import MODEL_FS_NAME
 from util.utils import get_now_date_file_ready
 
@@ -54,12 +55,14 @@ def generate_data(component):
 @click.option('--continuous', default=True)
 @click.option('--demand-model', help="name of the model to apply to the demand predictor")
 @click.option('--wholesale-model', help="name of the model to apply to the wholesale learner")
-def compete(continuous, demandModel, wholesaleModel):
+def compete(continuous, demand_model, wholesale_model):
     """take part in a powertac competition"""
 
     #bootstrapping models from stored data
-    demand_config = get_learner_config("demand")
-    demand_config.configure("competition", "", False)
+    #demand_config = get_learner_config("demand")
+    #demand_config.configure("competition", "", False)
+
+    estimator = Estimator()
 
     import communication.powertac_communication_server as server
     server.serve()
@@ -127,5 +130,5 @@ if __name__ == '__main__':
     import sys
     print("calling directly")
     #configure_logging(['file'], 'DEBUG')
-    #cli()
+    cli()
     script_call()

@@ -42,6 +42,7 @@ PB_TIMESLOT_COMPLETE        = "PBTimeslotComplete"
 PB_TIMESLOT_UPDATE          = "PBTimeslotUpdate"
 PB_WEATHER_FORECAST         = "PBWeatherForecast"
 PB_WEATHER_REPORT           = "PBWeatherReport"
+PB_SIM_END                  = "PBSimEnd"
 
 # old signals
 # PT_IN_XML            = "PT_IN_XML"            # incoming xml message strings from the server
