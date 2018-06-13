@@ -2,6 +2,7 @@ import os
 """
 Holds all config variables for python broker
 """
+ME = "slytherin_v1"
 ROUNDING_PRECISION = 3
 DATETIME_PATTERN   = "%Y-%m-%dT%H:%M:%S.000Z"
 TENSORBOARD_PATH   = "tensorboard/"
@@ -14,7 +15,7 @@ LOG_LEVEL          = "INFO"
 AGENT_COMPONENTS   = ['demand', 'tariff', 'wholesale', 'balancing']
 STATE_FILES_ROOT   = "./data/state_files"
 
-GRPC_PORT = 50051
+GRPC_PORT = 50053
 
 ###############################
 # Component configuration
@@ -41,6 +42,9 @@ DEMAND_GRU_EPOCHS_P_GAME = 20
 DEMAND_ONE_WEEK          = 24*7
 DEMAND_LOGREG_FEATURES   = True
 
+#tariffs
+TARIFF_CLONE_COMPETITOR_AGENT = "AgentUDE17"
+
 #wholesale
 #WHOLESALE_AGENT_TEACHER_BROKER = 'tactex'
 WHOLESALE_MIN_KWH_PRICE = -2.0 #
@@ -54,6 +58,11 @@ WHOLESALE_OFFLINE_TRAIN_RANDOM_CUSTOMERS = False
 WHOLESALE_OFFLINE_TRAIN_RANDOM_GAME = False
 WHOLESALE_OFFLINE_TRAIN_GAME = 0 # the game index in the games list to choose
 
+#used in wholesale as scaler minmax to get unified scaling across games
+MIN_PRICE_SCALE = -200.0
+MAX_PRICE_SCALE = 200.0
+MIN_DEMAND = -100000.0
+MAX_DEMAND = 100000.0
 
 
 ###############################
@@ -96,3 +105,5 @@ def get_log_config():
             },
         }
     }
+
+

@@ -48,11 +48,10 @@ class ModelWriter:
         with open(os.path.join(self.storage_dir, "learner_code"), mode='w') as f:
             f.write(source_code)
 
-    def load_model(self):
+    def load_model(self) -> Model:
         files = os.listdir(self.storage_dir)
-        files = [f for f in files if "game" in f]
-        files.sort()
-        model_path = os.path.join(self.storage_dir, files[-1])
+        files = [f for f in files if "model.HDF5" in f]
+        model_path = os.path.join(self.storage_dir, files[0])
         return load_model(model_path)
 
 

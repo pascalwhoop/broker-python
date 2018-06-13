@@ -525,6 +525,16 @@ class GameServiceStub(object):
         request_serializer=grpc__messages__pb2.PBSimResume.SerializeToString,
         response_deserializer=grpc__messages__pb2.Empty.FromString,
         )
+    self.handlePBSimEnd = channel.unary_unary(
+        '/GameService/handlePBSimEnd',
+        request_serializer=grpc__messages__pb2.PBSimEnd.SerializeToString,
+        response_deserializer=grpc__messages__pb2.Empty.FromString,
+        )
+    self.handlePBBrokerAccept = channel.unary_unary(
+        '/GameService/handlePBBrokerAccept',
+        request_serializer=grpc__messages__pb2.PBBrokerAccept.SerializeToString,
+        response_deserializer=grpc__messages__pb2.Empty.FromString,
+        )
 
 
 class GameServiceServicer(object):
@@ -559,6 +569,20 @@ class GameServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def handlePBSimEnd(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def handlePBBrokerAccept(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_GameServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -580,6 +604,16 @@ def add_GameServiceServicer_to_server(servicer, server):
       'handlePBSimResume': grpc.unary_unary_rpc_method_handler(
           servicer.handlePBSimResume,
           request_deserializer=grpc__messages__pb2.PBSimResume.FromString,
+          response_serializer=grpc__messages__pb2.Empty.SerializeToString,
+      ),
+      'handlePBSimEnd': grpc.unary_unary_rpc_method_handler(
+          servicer.handlePBSimEnd,
+          request_deserializer=grpc__messages__pb2.PBSimEnd.FromString,
+          response_serializer=grpc__messages__pb2.Empty.SerializeToString,
+      ),
+      'handlePBBrokerAccept': grpc.unary_unary_rpc_method_handler(
+          servicer.handlePBBrokerAccept,
+          request_deserializer=grpc__messages__pb2.PBBrokerAccept.FromString,
           response_serializer=grpc__messages__pb2.Empty.SerializeToString,
       ),
   }
@@ -691,7 +725,7 @@ def add_ConnectionServiceServicer_to_server(servicer, server):
   server.add_generic_rpc_handlers((generic_handler,))
 
 
-class SubmitAdapterStub(object):
+class SubmitServiceStub(object):
   """answers to the server from the (Python/whatever) client
   """
 
@@ -701,19 +735,24 @@ class SubmitAdapterStub(object):
     Args:
       channel: A grpc.Channel.
     """
-    self.submitOrder = channel.unary_unary(
-        '/SubmitAdapter/submitOrder',
-        request_serializer=grpc__messages__pb2.PBOrder.SerializeToString,
-        response_deserializer=grpc__messages__pb2.PBCallCompleted.FromString,
+    self.submitOrder = channel.unary_stream(
+        '/SubmitService/submitOrder',
+        request_serializer=grpc__messages__pb2.Empty.SerializeToString,
+        response_deserializer=grpc__messages__pb2.PBOrder.FromString,
         )
-    self.submitTariffSpec = channel.unary_unary(
-        '/SubmitAdapter/submitTariffSpec',
-        request_serializer=grpc__messages__pb2.PBTariffSpecification.SerializeToString,
-        response_deserializer=grpc__messages__pb2.PBCallCompleted.FromString,
+    self.submitTariffSpec = channel.unary_stream(
+        '/SubmitService/submitTariffSpec',
+        request_serializer=grpc__messages__pb2.Empty.SerializeToString,
+        response_deserializer=grpc__messages__pb2.PBTariffSpecification.FromString,
+        )
+    self.submitTariffRevoke = channel.unary_stream(
+        '/SubmitService/submitTariffRevoke',
+        request_serializer=grpc__messages__pb2.Empty.SerializeToString,
+        response_deserializer=grpc__messages__pb2.PBTariffRevoke.FromString,
         )
 
 
-class SubmitAdapterServicer(object):
+class SubmitServiceServicer(object):
   """answers to the server from the (Python/whatever) client
   """
 
@@ -731,20 +770,32 @@ class SubmitAdapterServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def submitTariffRevoke(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
 
-def add_SubmitAdapterServicer_to_server(servicer, server):
+
+def add_SubmitServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
-      'submitOrder': grpc.unary_unary_rpc_method_handler(
+      'submitOrder': grpc.unary_stream_rpc_method_handler(
           servicer.submitOrder,
-          request_deserializer=grpc__messages__pb2.PBOrder.FromString,
-          response_serializer=grpc__messages__pb2.PBCallCompleted.SerializeToString,
+          request_deserializer=grpc__messages__pb2.Empty.FromString,
+          response_serializer=grpc__messages__pb2.PBOrder.SerializeToString,
       ),
-      'submitTariffSpec': grpc.unary_unary_rpc_method_handler(
+      'submitTariffSpec': grpc.unary_stream_rpc_method_handler(
           servicer.submitTariffSpec,
-          request_deserializer=grpc__messages__pb2.PBTariffSpecification.FromString,
-          response_serializer=grpc__messages__pb2.PBCallCompleted.SerializeToString,
+          request_deserializer=grpc__messages__pb2.Empty.FromString,
+          response_serializer=grpc__messages__pb2.PBTariffSpecification.SerializeToString,
+      ),
+      'submitTariffRevoke': grpc.unary_stream_rpc_method_handler(
+          servicer.submitTariffRevoke,
+          request_deserializer=grpc__messages__pb2.Empty.FromString,
+          response_serializer=grpc__messages__pb2.PBTariffRevoke.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
-      'SubmitAdapter', rpc_method_handlers)
+      'SubmitService', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))

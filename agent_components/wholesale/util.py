@@ -1,6 +1,13 @@
-import numpy as np
+import ast
+import csv
+from typing import List
 
-from agent_components.wholesale.mdp import np_high
+import numpy as np
+from sklearn import preprocessing
+
+from agent_components.wholesale.environments.PowerTacEnv import np_high
+from util import config as cfg
+from util.config import MIN_PRICE_SCALE, MAX_PRICE_SCALE, MIN_DEMAND, MAX_DEMAND
 from util.learning_utils import TbWriterHelper
 
 """Utility functions for the wholesale trading component"""
@@ -29,7 +36,6 @@ def calculate_running_average(timeslot_trading_data):
     avg = 0
     if sum_total != 0.0:
         avg = (timeslot_trading_data[:, 0] * timeslot_trading_data[:, 1]).sum() / sum_total
-    # if avg was not set or was set but to 0 use last average for this timestep
     return avg
 
 
@@ -150,3 +156,36 @@ def calculate_balancing_needed(purchases, realized_usage):
     return balancing_needed
 
 
+def get_do_nothing():
+    return np.array([0,0])
+
+
+def unflat_action(action: np.array):
+    return action.reshape(cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL, 2)
+
+
+def parse_wholesale_file(file):
+    out = []
+    reader = csv.reader(file)
+    for row in reader:
+        out.append([ast.literal_eval(str.strip(cell).replace(' ', ',')) for cell in row])
+    return out
+
+
+def make_flat_observation(observation) -> np.array:
+    obs = []
+    obs.extend(observation['required_energy'])
+    obs.extend(observation['historical_prices'])
+    obs.extend(observation['current_prices'].flatten())
+    return np.array(obs)
+
+
+def _get_wholesale_as_nparr(wholesale_data: List):
+    """Assumes it's being passed a list of wholesale data, where the first three columns are metadata and then it's raw stuff"""
+    return np.array([row[3:] for row in wholesale_data])
+
+
+price_scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
+price_scaler.fit(np.array([MIN_PRICE_SCALE, MAX_PRICE_SCALE]).reshape(-1, 1))
+demand_scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
+demand_scaler.fit(np.array([MIN_DEMAND, MAX_DEMAND]).reshape(-1, 1))

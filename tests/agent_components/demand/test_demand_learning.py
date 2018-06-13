@@ -4,13 +4,10 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-import util.config as cfg
-
-from agent_components.demand import data
+from agent_components.demand.learning import data
 from agent_components.demand.estimator import Estimator
 from communication.grpc_messages_pb2 import *
 from communication.pubsub import signals
-from environment.messages_cache import PBTariffTransactionCache
 from util.learning_utils import NoneScaler
 
 
@@ -22,7 +19,7 @@ class TestDemandLearning(unittest.TestCase):
 
 
     def test_data_make_sequences_from_historical(self):
-        data.demand_data[0] = np.arange(0,1000)
+        data.demand_data[0] = np.arange(0, 1000)
         sequences = data.make_sequences_from_historical(False)
         seq = sequences[0]
         x,y = seq[0]
@@ -38,15 +35,15 @@ class TestDemandLearning(unittest.TestCase):
 
 class TestEstimator(unittest.TestCase):
     def setUp(self):
-        self.e = Estimator()
-        get_model_mock = Mock()
         model_mock = Mock()
         model_mock.predict.return_value = np.arange(24)
-        get_model_mock.return_value = model_mock
-        self.e.get_model = get_model_mock
+        self.e = Estimator(model_mock)
 
     def tearDown(self):
-        self.e.unsubscribe()
+        try:
+            self.e.unsubscribe()
+        except:
+            pass
 
     def test_add_transaction(self):
         tx = PBTariffTransaction(txType=CONSUME, kWh=5, customerInfo=PBCustomerInfo(name='Jim'), postedTimeslot=4)
@@ -62,32 +59,30 @@ class TestEstimator(unittest.TestCase):
         self.e.handle_customer_bootstrap_data_event(None, None, bs)
         assert len(self.e.usages['Jim'].values()) == 10
 
-        self.e.get_model.assert_called()
-        model_mock = self.e.get_model('Jim')
+        model_mock = self.e.model
         model_mock.fit_generator.assert_called()
 
-    @patch('agent_components.demand.estimator.sequence_for_usages')
-    def test_process_customer_new_data(self,sequence_mock):
-        sequence_mock.return_value = "seq"
+    def test_process_customer_new_data(self):
         test_usages = {}
         self.e.usages['Jim'] = test_usages
         self.e.scalers['Jim'] = NoneScaler()
-        for i in range(300):
+        for i in range(168+24):
             test_usages[i] = i
-        model_mock = self.e.get_model()
+        model_mock = self.e.model
         model_mock.predict.return_value = np.arange(24)
         #listen to the prediction events
         listen_mock = Mock()
         dispatcher.connect(listen_mock, signal=signals.COMP_USAGE_EST)
         self.e.process_customer_new_data()
-        model_mock.fit_generator.assert_called_with('seq')
+        assert (model_mock.fit.call_args[0][0] == np.arange(168)).all()
+        assert (model_mock.fit.call_args[0][1] == 168 + np.arange(24)).all()
         listen_mock.assert_called()
 
-    @patch('agent_components.demand.estimator.store_model_customer_nn')
-    def test_handle_sim_end(self, store_mock: Mock):
-        self.e.models['Jim'] = 'model'
+    def test_handle_sim_end(self):
+        self.e.current_timeslot = 1
         self.e.handle_sim_end(None, None, None)
-        store_mock.assert_called_once_with('model', 'Jim', 'dense_v2')
+        assert self.e.current_timeslot == 0
+
 
     def test_store_predictions(self):
         predictions = np.arange(24)

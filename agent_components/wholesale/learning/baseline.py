@@ -1,4 +1,5 @@
 import numpy as np
+from rl.core import Agent
 
 from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
 from agent_components.wholesale.learning.reward_functions import simple_truth_ordering, shifting_balancing_price
@@ -14,7 +15,31 @@ def get_instance(tag_, fresh):
     return BaselineLearner()
 
 
-class BaselineLearner:
+class BaselineLearner(Agent):
+    """This baseline learner does exactly what the prediction says. It takes the prediction, offers any price
+    (10x the previous, so a lot) and tries to always balance the portfolio no matter what. It adapts the Keras-RL API
+    not because I am using Keras here but because the other agents will too and this will talk to the same APIs and behave
+    the same way as an NN based agents (except that it is just really stupid). """
+    def forward(self, observation):
+        """Takes the observation and returns the action that matches it"""
+        pass
+
+    def backward(self, reward, terminal):
+        """Does nothing really. """
+        pass
+
+    def compile(self, optimizer, metrics=[]):
+        """Nothing to compile here. """
+        pass
+
+    def load_weights(self, filepath):
+        """Nothing to load"""
+        pass
+
+    def save_weights(self, filepath, overwrite=False):
+        """And nothing to save"""
+        pass
+
     def __init__(self):
         self.env = PowerTacLogsMDPEnvironment(reward_func=shifting_balancing_price)
         self.nb_actions = 2

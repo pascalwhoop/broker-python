@@ -3,22 +3,18 @@ from typing import List
 
 import numpy as np
 from gym.spaces import Box
-from rl.processors import WhiteningNormalizerProcessor
-from rl.util import WhiteningNormalizer
 
-from agent_components.demand import data as demand_data
+from agent_components.demand.learning import data as demand_data
 from agent_components.wholesale.learning.reward_functions import simple_truth_ordering, step_close_to_prediction_reward
-from agent_components.wholesale.mdp import WholesaleActionSpace, WholesaleObservationSpace, np_low, \
-    np_high, _get_wholesale_as_nparr, parse_wholesale_file, price_scaler, demand_scaler
-from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
+from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv, WholesaleObservationSpace, \
+    WholesaleActionSpace, np_low, np_high
 from agent_components.wholesale.util import calculate_running_averages, calculate_missing_energy, trim_data, is_cleared, \
-    tb_writer_helper
+    tb_writer_helper, parse_wholesale_file, _get_wholesale_as_nparr, price_scaler, demand_scaler
 from util import config as cfg
-from util.learning_utils import get_wholesale_file_paths, get_usage_file_paths, TbWriterHelper
+from util.learning_utils import get_wholesale_file_paths, get_usage_file_paths
 
 
-
-class PowerTacLogsMDPEnvironment(PowerTacEnv):
+class PowerTacLogsMDPEnvironment:
     """This class simulates a powertac trading environment but is based on logs of historical games.  It assumes that
     the broker actions have no impact on the clearing price which is a reasonable estimation for any market that has a
     large enough volume in relation to the broker trading volume. Of course this does not apply once the broker is large
@@ -57,8 +53,6 @@ class PowerTacLogsMDPEnvironment(PowerTacEnv):
     """
 
     def __init__(self, reward_func=simple_truth_ordering):
-        """TODO: to be defined1. """
-        super().__init__()
 
         # handling params
         self.step_rewards = 0

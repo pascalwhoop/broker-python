@@ -12,7 +12,7 @@ see `PowerTacBroker.java#handleMessage` for details
 import xml.etree.ElementTree as ET
 
 prefix = 0  # invalid default value
-cnt = 0
+counter = 100000 #hacky. starting at counter 100k to avoid collisions in case the java adapter also sends stuff
 multiplier = 100000000
 key = "x"
 
@@ -26,9 +26,9 @@ def extract_prefix(_id):
 
 
 def create_id():
-    global cnt
-    cnt += 1
-    return multiplier * prefix + cnt
+    global counter
+    counter += 1
+    return multiplier * prefix + counter
 
 
 def broker_accept_intercept(msg: str):

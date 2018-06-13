@@ -1,15 +1,10 @@
 import logging
-from unittest.mock import Mock
 
-import numpy as np
 from keras.utils import Sequence
 from sklearn.metrics import mean_absolute_error
 
-import agent_components.demand.event_listeners as el
-from agent_components.demand.data import parse_usage_game_log, make_sequences_from_historical
 from agent_components.demand.learning.DemandLearner import DemandLearner
-from util.learning_utils import ModelWriter, TbWriterHelper, get_usage_file_paths
-from util.strings import MODEL_FS_NAME
+from util.learning_utils import TbWriterHelper
 
 log = logging.getLogger(__name__)
 

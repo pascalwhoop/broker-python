@@ -3,12 +3,16 @@ import importlib
 import os
 import logging
 import logging.config
+import time
+
 import click
 
 #import util.make_xml_collection as mxc
 #import communication.powertac_communication as comm
 import util.config as cfg
 from agent_components.demand.estimator import Estimator
+from agent_components.tariffs.publisher import TariffPublisher
+from util.learning_utils import ModelWriter
 from util.strings import MODEL_FS_NAME
 from util.utils import get_now_date_file_ready
 
@@ -59,13 +63,23 @@ def compete(continuous, demand_model, wholesale_model):
     """take part in a powertac competition"""
 
     #bootstrapping models from stored data
-    #demand_config = get_learner_config("demand")
-    #demand_config.configure("competition", "", False)
+    model = ModelWriter(demand_model, False).load_model()
+    estimator = Estimator(model)
+    estimator.subscribe()
 
-    estimator = Estimator()
+    #TODO wholesale_trader
+
+    publisher = TariffPublisher()
+    publisher.subscribe()
 
     import communication.powertac_communication_server as server
-    server.serve()
+    #main comm thread
+    grpc_server = server.serve()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        grpc_server.stop(0)
 
 
 @cli.command()

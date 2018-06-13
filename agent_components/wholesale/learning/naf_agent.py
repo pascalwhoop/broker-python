@@ -13,7 +13,7 @@ from rl.util import WhiteningNormalizer
 
 from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
 from agent_components.wholesale.learning.reward_functions import direct_cash_reward, simple_truth_ordering
-from agent_components.wholesale.mdp import WholesaleObservationSpace
+from agent_components.wholesale.environments.PowerTacEnv import WholesaleObservationSpace
 from util.learning_utils import get_tb_cb
 
 MODEL_NAME = "continuous-deepq-naf" + str(datetime.datetime.now())

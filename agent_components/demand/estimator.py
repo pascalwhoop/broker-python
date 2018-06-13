@@ -1,40 +1,35 @@
 import logging
 
 import numpy as np
-from keras import Model
 from pydispatch import dispatcher
 from sklearn.preprocessing import MinMaxScaler
 
 import communication.pubsub.signals as signals
 import util.config as cfg
-from agent_components.demand.data import sequence_for_usages
-from agent_components.demand.learning.dense_v2.learner import DenseLearner
+from agent_components.demand.learning.data import sequence_for_usages
 from communication.grpc_messages_pb2 import PBCustomerBootstrapData, PBSimEnd, PBTariffTransaction, PBTimeslotComplete, \
     PBTxType
-from util.learning_utils import reload_model_customer_nn, store_model_customer_nn
+from communication.pubsub.PubSubTypes import SignalConsumer
 
 log = logging.getLogger(__name__)
 
 
 
-class Estimator:
+class Estimator(SignalConsumer):
     """
     Central class that exposes an API to the rest of the broker to get estimations for customers. It automatically subscribes
     on all interesting events and learns whenever new information arrives.
 
     """
 
-    def __init__(self):
-        self.dl = DenseLearner('estimator', True)
-        self.models = {}  # models can be looked up via customer name
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
         self.scalers = {}  # scalers can also be looked up via customer name. They scale the customer data
         self.usages = {}  # map of maps. first map --> customer_name, second map --> timeslot ID
         self.updated = set()
         self.current_timeslot = 0
         self.predictions = {}  # customers -> timeslots -> 24x predictions
-
-        #subscribing to messages
-        self.subscribe()
 
     def subscribe(self):
         """Subscribes this object to the events of interest to the estimator"""
@@ -72,11 +67,12 @@ class Estimator:
         X_scaled = scaler.transform(X.reshape(-1, 1)).flatten()
         seq = sequence_for_usages(X_scaled, True)
 
-        # get model and learn with 10 epochs
-        model = self.get_model(name)
-
+        #TODO not yet shuffled... maybe I should shuffle this
         log.info("fitting model for customer {}".format(name))
-        model.fit_generator(seq, epochs=1, verbose=1, use_multiprocessing=False)
+        try:
+            self.model.fit_generator(seq, epochs=1, verbose=0, use_multiprocessing=True)
+        except Exception as e:
+            log.error(e)
 
     def handle_timeslot_complete(self, sender, signal: str, msg: PBTimeslotComplete):
         self.current_timeslot = msg.timeslotIndex + 1
@@ -84,9 +80,6 @@ class Estimator:
         self.process_customer_new_data()
 
     def handle_sim_end(self, sender, signal: str, msg: PBSimEnd):
-        for m in self.models.items():
-            store_model_customer_nn(m[1], m[0], self.dl.model_name)
-
         # remove all data
         self.usages = {}
         self.predictions = {}
@@ -105,32 +98,17 @@ class Estimator:
             self.usages[customer_name][timeslot] = 0
         self.usages[customer_name][timeslot] += kwh
 
-    def get_model(self, customer_name) -> Model:
-        """Gets a model for the given customer name from the local models dict or creates a new one if none exists"""
-        if customer_name not in self.models:
-            #trying to reload from fs first
-            model = reload_model_customer_nn(customer_name, self.dl.model_name)
-            if model is None:
-                log.info("getting new model for {}".format(customer_name))
-                model = self.dl.fresh_model()
-            self.models[customer_name] = model
-        return self.models[customer_name]
 
     def process_customer_new_data(self):
         """after the timeslot is completed, this triggers prediction and learning on all timeslots."""
         for c in self.usages.items():
             #scale the data
-            backw_size = cfg.DEMAND_ONE_WEEK + cfg.DEMAND_FORECAST_DISTANCE + 10  # equivalent as learning of each info 10x
+            backw_size = cfg.DEMAND_ONE_WEEK + cfg.DEMAND_FORECAST_DISTANCE
             usages = np.array(list(c[1].values()))[-backw_size:]
             scaler = self.scalers[c[0]]
             usages_scaled = scaler.transform(usages.reshape(-1,1)).flatten()
-            # first, learn from the newly available knowledge
-            seq = sequence_for_usages(usages_scaled[-backw_size:], True)
-            model = self.get_model(c[0])
-            model.fit_generator(seq)
-
-            #then predict the next 24h
-            predictions_scaled = model.predict(usages_scaled[-cfg.DEMAND_ONE_WEEK:])
+            #first predict the next 24h
+            predictions_scaled = self.model.predict(usages_scaled[-cfg.DEMAND_ONE_WEEK:])
             #predictions for the next 24h timesteps
             predictions = scaler.inverse_transform(predictions_scaled)
             self.store_predictions(c[0], predictions)
@@ -138,8 +116,13 @@ class Estimator:
             #and publish the new prediction to anyone who is interested
             self.publish_predictions(c[0], predictions, self.current_timeslot)
 
+            # then, learn from the newly available knowledge
+            self.model.fit(usages_scaled[:cfg.DEMAND_ONE_WEEK], usages_scaled[-cfg.DEMAND_FORECAST_DISTANCE:])
+
+
     def publish_predictions(self, customer_name, predictions, first_ts):
         pred = CustomerPredictions(customer_name, predictions, first_ts)
+        log.info("publishing prediction for {} ".format(customer_name))
         dispatcher.send(signals.COMP_USAGE_EST, msg=pred)
 
     def store_predictions(self, customer_name: str, predictions: np.array):

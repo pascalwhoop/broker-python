@@ -1,5 +1,5 @@
 """
-singleton data storage that holds the customers demand data in a form that the learner can work with
+Data processing helper for learning offline off the data.
 """
 import csv
 import logging

@@ -1,6 +1,9 @@
 """
 this module allows easy sharing of arbitrary grpc messages via the event pubsub architecture.
+It works async, meaning the client takes the messages of the Java adapter and immidiately returns an OK instead of
+blocking the connection until whatever handlers are completed.
 """
+import asyncio
 import logging
 
 from pydispatch import dispatcher
@@ -14,7 +17,10 @@ def publish_pb_message(pb_message):
     :param pb_message: the message to share with the other components
     :return:
     """
-    signal = pb_message.DESCRIPTOR.name
 
+    return asyncio.ensure_future(send_message_async(pb_message))
+
+async def send_message_async(pb_message):
+    signal = pb_message.DESCRIPTOR.name
     log.info("dispatching {}".format(signal))
     dispatcher.send(signal=signal, msg=pb_message, sender=dispatcher.Anonymous)

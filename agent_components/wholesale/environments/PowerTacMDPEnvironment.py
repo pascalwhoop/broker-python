@@ -1,13 +1,16 @@
 from typing import List
 
 from gym import Env
+from pydispatch import dispatcher
 
-from agent_components.demand import data as demand_data
+from agent_components.demand.learning import data as demand_data
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
-from communication.grpc_messages_pb2 import PBClearedTrade, PBMarketTransaction
+from communication.grpc_messages_pb2 import PBClearedTrade, PBMarketTransaction, PBOrderbook
+from communication.pubsub import signals
+from communication.pubsub.PubSubTypes import SignalConsumer
 
 
-class PowerTacMDPEnvironment(PowerTacEnv):
+class PowerTacMDPEnvironment(PowerTacEnv, SignalConsumer):
     """This class creates an adapter between the OpenAI Env class and the powertac environment where a RL agent performs
     the wholesale trading. Each timeslot is considered a distinct environment and the agent performs 24 steps before
     arriving at the terminal t-0 state.
@@ -22,11 +25,12 @@ class PowerTacMDPEnvironment(PowerTacEnv):
     """
 
     def __init__(self, target_timestep):
-        """TODO: to be defined1. """
+        """"""
         Env.__init__(self)
 
         # powertac specifics
         self.target_timestep = target_timestep
+        self.steps = 0
         self.cleared_trades: List[PBClearedTrade] = []
         self.transactions: List[PBMarketTransaction] = []
         self.forecasts: List[demand_data.DemandForecasts]
@@ -47,8 +51,11 @@ class PowerTacMDPEnvironment(PowerTacEnv):
         """
 
         # pass action to server
+
         # block until answers are all collected
         # return with observation (TODO build this), reward (TODO calc) and done if reached terminal state
+
+
 
         pass
 
@@ -66,4 +73,20 @@ class PowerTacMDPEnvironment(PowerTacEnv):
         """
         May be used for cleaning up things. Not needed now
         """
+        pass
+
+    def handle_orderbook(self, sender, signal, msg:PBOrderbook):
+        #TODO is applicable to current ts?
+        pass
+
+    def handle_cleared_trade(self, sender, signal, msg:PBClearedTrade):
+        #TODO is applicable to current ts?
+        pass
+
+    def subscribe(self):
+        dispatcher.connect(self.handle_orderbook, signal=signals.PB_ORDERBOOK)
+        dispatcher.connect(self.handle_orderbook, signal=signals.PB_CLEARED_TRADE)
+        pass
+
+    def unsubscribe(self):
         pass
