@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from agent_components.wholesale.util import calculate_running_averages, parse_wholesale_file
-from tests.agent_components.wholesale.test_log_environment import make_mock_wholesale_data
+from agent_components.wholesale.environments.test_log_environment import make_mock_wholesale_data
 
 
 class TestMdp(unittest.TestCase):
