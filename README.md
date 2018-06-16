@@ -2,9 +2,19 @@
 
 ## Installation
 
-1. TODO
-2. Install all packages with pip, ideally in a virtual environment to avoid conflicts with locally installed packages
-3. `pip install editable .` to install the agent cli tool in the local `venv`
+```
+pip install virtualenv
+virtualenv -p python3.6 venv/
+source venv/bin/activate
+python setup.py install
+pip install editable .
+agent --help
+```
+
+## Running the tests
+
+you may either run `pytest` or the `/run_tests.sh` script. The latter may need you to have `inotify-tools`
+installed as well as a proper limit for file watches [like so](https://unix.stackexchange.com/questions/13751/kernel-inotify-watch-limit-reached#13757)
 
 ## Architecture
 

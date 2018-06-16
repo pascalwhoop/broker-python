@@ -7,19 +7,21 @@ setup(
     install_requires=[
         'Click',
         'grpcio',
-        'grpcio-tools'
+        'grpcio-tools',
         'gym',
         'h5py',
         'keras',
         'keras-rl',
         'mypy',
-        'mypy-protbuf',
+        #'mypy-protbuf',
         'numpy',
         'pandas',
         'PyDispatcher',
         'protobuf',
         'scikit-learn',
-        'tensorflow-gpu=1.8.0',
+        'beautifulsoup4',
+        'lxml',
+        #'tensorflow-gpu',
         ],
     extras_require = {
         'visualize':[
@@ -27,7 +29,8 @@ setup(
             'tensorboard'
             ],
         'tests':[
-            'nose'
+            'pytest',
+            'pytest-watch'
             ]
         },
     entry_points='''
