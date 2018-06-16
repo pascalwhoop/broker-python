@@ -7,7 +7,8 @@ from unittest.mock import Mock, patch
 from pydispatch import dispatcher
 
 from agent_components.demand.estimator import CustomerPredictions
-from agent_components.wholesale.environments.PowerTacEnv import WholesaleEnvironmentManager
+from agent_components.wholesale.environments.PowerTacEnv import WholesaleEnvironmentManager, PowerTacWholesaleAgent, \
+    PowerTacWholesaleObservation
 from agent_components.wholesale.environments.PowerTacMDPEnvironment import PowerTacMDPEnvironment
 from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade
 import numpy as np
@@ -24,7 +25,8 @@ class TestPowerTacMDPEnvironment(unittest.TestCase):
 
 class TestWholesaleEnvironmentManager(unittest.TestCase):
     def setUp(self):
-        self.e = WholesaleEnvironmentManager()
+        self.agent_mock = Mock()
+        self.e = WholesaleEnvironmentManager(agent=self.agent_mock)
 
     def test_handle_market_transaction(self):
         trans = PBMarketTransaction(timeslot=1, mWh=2, price=-12)
@@ -66,26 +68,21 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
         assert res[-2] == 50.25
 
     def test_handle_predictions(self):
-        orders_received = []
-        def listen_orders(signal, sender, msg):
-            orders_received.append(orders_received)
-        dispatcher.connect(listen_orders, signals.OUT_PB_ORDER)
         #create some active timeslots --> active environments
         with patch.object(self.e, 'get_historical_prices') as hp_mock:
             hp_mock.return_value = np.zeros(168)
-            self.e.handle_timeslot_update(None, None, PBTimeslotUpdate(firstEnabled=1, lastEnabled=24))
+            self.e.handle_timeslot_update(None, None, PBTimeslotUpdate(firstEnabled=169, lastEnabled=169+24))
         #some mock preds
         preds:List[CustomerPredictions] = []
         for i in range(3):
-            cp = CustomerPredictions("jim{}".format(i), np.arange(24), 1)
+            cp = CustomerPredictions("jim{}".format(i), np.arange(24), 169)
             preds.append(cp)
         #call
         self.e.handle_predictions(None, None, preds)
         #assert some orders being sent to server via submitservice
-        assert len(orders_received) == 3
+        arg = self.agent_mock.forward.call_args
+        assert isinstance(arg[0][0], PowerTacWholesaleObservation)
 
-        #cleanup
-        dispatcher.disconnect(listen_orders, signals.OUT_PB_ORDER)
 
     def test_get_sums_from_preds(self):
         preds = []
@@ -95,7 +92,9 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
             pred = CustomerPredictions("john", vals, first_ts=1)
             preds.append(pred)
         sums = self.e.get_sums_from_preds(preds)
-        assert (np.empty(24).fill(15) == sums)
+        expected = {i: 10 for i in range(1, 25)}
+        for i in expected:
+            assert expected[i] == sums[i]
 
 
 

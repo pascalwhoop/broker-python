@@ -16,13 +16,18 @@ from agent_components.wholesale.util import calculate_running_average
 from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade, PBOrderbook
 from communication.pubsub.PubSubTypes import SignalConsumer
 import communication.pubsub.signals as signals
+from util.utils import deprecated
 
 
 class PowerTacWholesaleAgent:
     """Abstract wholesale agent that can act in a `PowerTacEnv`"""
 
-    def forward(self, observation) -> np.array:
+    def forward(self, observation: "PowerTacWholesaleObservation") -> np.array:
         """Get an action based on an observation."""
+        raise NotImplementedError
+
+    def backward(self, action, reward):
+        """Receive the reward for the action and learn from historical data"""
         raise NotImplementedError
 
     def learn(self, observation, action, reward, observation2):
@@ -34,10 +39,10 @@ class WholesaleEnvironmentManager(SignalConsumer):
     Agents in the classic literature step the environment after they have made a decision. PowerTAC doesn't wait for an agent.
     If the agent is too slow, shit goes on. So this ties it all together. """
 
-    def __init__(self, ):
+    def __init__(self, agent:PowerTacWholesaleAgent):
         super().__init__()
         self.environments: Dict[int, "PowerTacEnv"] = {}  # a map of Environments. Key is the target timestep
-        self.agent: PowerTacWholesaleAgent = None
+        self.agent: PowerTacWholesaleAgent = agent
 
         self.historical_average_prices = {}  # a map of arrays
 
@@ -164,8 +169,10 @@ class PowerTacEnv(Env):
 
         self._step = 0
         self.orderbooks: Dict[int, PBOrderbook] = {}  #
-        self.purchases: List[int, np.array[float]] = {}
-        self.actions: List[int, np.array[float]] = {}
+        self.purchases: Dict[int, PBMarketTransaction] = {}
+        self.cleared_trades: Dict[int, PBClearedTrade] = {}
+        self.actions: Dict[int, np.array] = {}
+        self.predictions: List[float] = []
 
     def step(self, action) -> Generator:
         # TODO crit > implement and test
@@ -186,16 +193,63 @@ class PowerTacEnv(Env):
         # TODO crit > implement and test
         raise NotImplementedError
 
-    def handle_prediction(self, param):
+    def handle_prediction(self, prediction):
+        """
+        at this point the broker is ready to calculate an action! This component is not aware of the exact interests
+        of the broker in the environment and therefore it's best to hand the broker everything we know about the environment.
+        That usually includes:
+        - historical price data of the last X time steps
+        - historical price data of the last Y market closings for the target timestep
+        - historical predictions for the target timestep
+        - historical Orderbooks for the target timestep
+        - historical purchases for the target timeslot
+
+        :param prediction: The newest prediction for this target step
+        :return:
+        """
+        self.predictions.append(prediction)
+        obs = PowerTacWholesaleObservation(hist_avg_prices=self._historical_prices,
+                                           step=self._step,
+                                           orderbooks=self.orderbooks,
+                                           purchases=self.purchases,
+                                           predictions=self.predictions,
+                                           cleared_trades=self.cleared_trades,
+                                           actions=self.actions
+                                           )
+        self.agent.forward(obs)
         # TODO crit > implement and test
-        # at this point the broker is ready to calculate an action!
-        # 1. build the environment observation
-        # 2. pass the observation to the agent
-        # 3. store the observation and the returned action
-        # SARSA STATE ACTION REWARD STATE ACTION
-        raise NotImplementedError
+
+    def handle_cleared_trade(self, msg: PBClearedTrade):
+        # just storing this for later
+        self.cleared_trades[msg.timeslot] = msg
+
+    def handle_market_transaction(self, msg: PBMarketTransaction):
+        """this tells the agent when it was able to buy something successfully"""
+        self.purchases[msg.timeslot] = msg
 
 
+class PowerTacWholesaleObservation:
+    """Helper class that wraps all the components of an observation that can be passed to the agent.
+    Each agent implementation can decide what parts of this observation to make use of"""
+
+    def __init__(self, hist_avg_prices: np.array,
+                 step: int,
+                 orderbooks: Dict[int, PBOrderbook],
+                 purchases: Dict[int, np.array],
+                 cleared_trades: Dict[int, PBClearedTrade],
+                 predictions:List[float],
+                 actions: Dict[int, np.array]):
+        self.hist_avg_prices: np.array = hist_avg_prices
+        self.step = step
+        self.orderbooks: Dict[int, PBOrderbook] = orderbooks
+        self.purchases: Dict[int, PBMarketTransaction] = purchases
+        self.cleared_trades: Dict[int, PBClearedTrade] = cleared_trades
+        self.predictions:List[float] = predictions
+        self.actions: Dict[int, np.array] = actions
+
+
+# not really needed anymore
+#@deprecated
 class WholesaleObservationSpace(spaces.Box):
     """
     - demand prediction - purchases 24x float

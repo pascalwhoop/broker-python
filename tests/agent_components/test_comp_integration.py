@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from agent_components.demand.estimator import Estimator, CustomerPredictions
 from agent_components.wholesale.environments.PowerTacEnv import WholesaleEnvironmentManager
+from agent_components.wholesale.learning.baseline import BaselineTrader
 from communication.grpc_messages_pb2 import PBTimeslotComplete, PBTimeslotUpdate
 from communication.pubsub import signals
 
@@ -28,7 +29,7 @@ class TestIntegration(unittest.TestCase):
         self.e.scalers['jim'] = MinMaxScaler().fit(np.array([1,1000],dtype=np.float64).reshape(-1,1))
 
         #create a new env manager
-        self.wem = WholesaleEnvironmentManager()
+        self.wem = WholesaleEnvironmentManager(Mock())
         self.wem.get_historical_prices = Mock()
         self.wem.get_historical_prices.return_value = np.zeros(168)
         self.wem.subscribe()
@@ -38,6 +39,8 @@ class TestIntegration(unittest.TestCase):
         self.wem.unsubscribe()
 
     def test_estimator_wholesale_integration(self):
+        # the integration actually requires a proper Model
+        self.wem.agent = BaselineTrader()
         #listen for predictions calculated
         predictions_received: List[CustomerPredictions] = []
         def listen_pred_ev(signal, sender, msg):
@@ -57,7 +60,8 @@ class TestIntegration(unittest.TestCase):
         # 2. send pubsub messages that trigger prediction
         dispatcher.send(signal=signals.PB_TIMESLOT_COMPLETE, msg=PBTimeslotComplete(timeslotIndex=TIMESLOT_NOW-1))
         assert len(predictions_received) == 1
-        assert len(predictions_received[0].predictions) == 24
+        #predictions are lists of predictions for each customer
+        assert len(predictions_received[0][0].predictions) == 24
 
         # 3. expect wholesale market to react to prediction
         assert len(orders_received) == 24
