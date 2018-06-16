@@ -7,7 +7,7 @@ from gym.spaces import Box
 from agent_components.demand.learning import data as demand_data
 from agent_components.wholesale.learning.reward_functions import simple_truth_ordering, step_close_to_prediction_reward
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv, WholesaleObservationSpace, \
-    WholesaleActionSpace, np_low, np_high
+    WholesaleActionSpace
 from agent_components.wholesale.util import calculate_running_averages, calculate_missing_energy, trim_data, is_cleared, \
     tb_writer_helper, parse_wholesale_file, _get_wholesale_as_nparr, price_scaler, demand_scaler
 from util import config as cfg
@@ -61,7 +61,7 @@ class PowerTacLogsMDPEnvironment:
         self.num_envs = 1
         self.action_space = WholesaleActionSpace()
         self.observation_space = WholesaleObservationSpace()
-        self.reward_range = Box(low=np_low, high=np_high, shape=(1,), dtype=np.float32)
+        self.reward_range = Box(low=cfg.np_low, high=cfg.np_high, shape=(1,), dtype=np.float32)
 
         # holds the historical averages prices
         # ---------------------------------------------------------------

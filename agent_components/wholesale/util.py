@@ -5,7 +5,6 @@ from typing import List
 import numpy as np
 from sklearn import preprocessing
 
-from agent_components.wholesale.environments.PowerTacEnv import np_high
 from util import config as cfg
 from util.config import MIN_PRICE_SCALE, MAX_PRICE_SCALE, MIN_DEMAND, MAX_DEMAND
 from util.learning_utils import TbWriterHelper
@@ -29,7 +28,7 @@ def calculate_running_averages( known_results: np.array):
     return averages
 
 
-def calculate_running_average(timeslot_trading_data):
+def calculate_running_average(timeslot_trading_data:np.array):
     # data is a 24 item long array of 2 vals each
     # average is sum(price_i * kwh_i) / kwh_total
     sum_total = timeslot_trading_data[:, 0].sum()
@@ -75,7 +74,7 @@ def average_price_for_power_paid(bought):
     # if both positive --> broker got energy for free --> 0
     # if both negative --> broker paid and lost energy --> infinite
     if total_energy < 0 and total_money < 0:
-        return 'bid',  np_high #max number possible. simulates infinite
+        return 'bid',  cfg.np_high #max number possible. simulates infinite
     # broker lost energy --> sold it
     if total_energy < 0:
         return 'ask',  abs(total_money / total_energy)

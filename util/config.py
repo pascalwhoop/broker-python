@@ -1,4 +1,5 @@
 import os
+import numpy as np
 """
 Holds all config variables for python broker
 """
@@ -57,6 +58,10 @@ WHOLESALE_FORECAST_ERROR_PER_TS = 0.2
 WHOLESALE_OFFLINE_TRAIN_RANDOM_CUSTOMERS = False
 WHOLESALE_OFFLINE_TRAIN_RANDOM_GAME = False
 WHOLESALE_OFFLINE_TRAIN_GAME = 0 # the game index in the games list to choose
+#some min max data
+sizes = np.finfo(np.array([1.0], dtype=np.float32)[0])
+np_high = sizes.max
+np_low = sizes.min
 
 #used in wholesale as scaler minmax to get unified scaling across games
 MIN_PRICE_SCALE = -200.0

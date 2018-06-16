@@ -1,4 +1,5 @@
 import logging
+from typing import List, Dict
 
 import numpy as np
 from pydispatch import dispatcher
@@ -34,15 +35,15 @@ class Estimator(SignalConsumer):
     def subscribe(self):
         """Subscribes this object to the events of interest to the estimator"""
         dispatcher.connect(self.handle_tariff_transaction_event, signals.PB_TARIFF_TRANSACTION)
-        dispatcher.connect(self.handle_customer_bootstrap_data_event, signals.PB_CUSTOMER_BOOTSTRAP_DATA)
         dispatcher.connect(self.handle_timeslot_complete, signals.PB_TIMESLOT_COMPLETE)
         dispatcher.connect(self.handle_sim_end, signals.PB_SIM_END)
+        dispatcher.connect(self.handle_customer_bootstrap_data_event, signals.PB_CUSTOMER_BOOTSTRAP_DATA)
 
     def unsubscribe(self):
         dispatcher.disconnect(self.handle_tariff_transaction_event, signals.PB_TARIFF_TRANSACTION)
-        dispatcher.disconnect(self.handle_customer_bootstrap_data_event, signals.PB_CUSTOMER_BOOTSTRAP_DATA)
         dispatcher.disconnect(self.handle_timeslot_complete, signals.PB_TIMESLOT_COMPLETE)
         dispatcher.disconnect(self.handle_sim_end, signals.PB_SIM_END)
+        dispatcher.disconnect(self.handle_customer_bootstrap_data_event, signals.PB_CUSTOMER_BOOTSTRAP_DATA)
 
     def handle_tariff_transaction_event(self, sender, signal: str, msg: PBTariffTransaction):
         """Add any consume/produce to historic records for customer"""
@@ -63,6 +64,10 @@ class Estimator(SignalConsumer):
         scaler.fit(X.reshape(-1, 1))
         self.scalers[name] = scaler
 
+        # TODO skipping bootstrap data, too much to handle in under 5 sec
+        # ignoring bootstrap fitting, takes too long otherwise
+        return
+
         # scale data before using it to learn
         X_scaled = scaler.transform(X.reshape(-1, 1)).flatten()
         seq = sequence_for_usages(X_scaled, True)
@@ -70,7 +75,7 @@ class Estimator(SignalConsumer):
         #TODO not yet shuffled... maybe I should shuffle this
         log.info("fitting model for customer {}".format(name))
         try:
-            self.model.fit_generator(seq, epochs=1, verbose=0, use_multiprocessing=True)
+            self.model.fit_generator(seq, epochs=1, verbose=0, use_multiprocessing=False)
         except Exception as e:
             log.error(e)
 
@@ -101,6 +106,7 @@ class Estimator(SignalConsumer):
 
     def process_customer_new_data(self):
         """after the timeslot is completed, this triggers prediction and learning on all timeslots."""
+        predictions_list:List[CustomerPredictions]= []
         for c in self.usages.items():
             #scale the data
             backw_size = cfg.DEMAND_ONE_WEEK + cfg.DEMAND_FORECAST_DISTANCE
@@ -114,16 +120,15 @@ class Estimator(SignalConsumer):
             self.store_predictions(c[0], predictions)
 
             #and publish the new prediction to anyone who is interested
-            self.publish_predictions(c[0], predictions, self.current_timeslot)
+            pred = CustomerPredictions(c[0], predictions, self.current_timeslot)
+            predictions_list.append(pred)
 
             # then, learn from the newly available knowledge
             self.model.fit(usages_scaled[:cfg.DEMAND_ONE_WEEK], usages_scaled[-cfg.DEMAND_FORECAST_DISTANCE:])
 
+        #after all customers have been predicted, one message is spread
+        dispatcher.send(signal=signals.COMP_USAGE_EST, msg=predictions_list)
 
-    def publish_predictions(self, customer_name, predictions, first_ts):
-        pred = CustomerPredictions(customer_name, predictions, first_ts)
-        log.info("publishing prediction for {} ".format(customer_name))
-        dispatcher.send(signals.COMP_USAGE_EST, msg=pred)
 
     def store_predictions(self, customer_name: str, predictions: np.array):
         """Stores all new predictions in the memory. This let's us compare predictions and real values later. """
@@ -143,7 +148,8 @@ class CustomerPredictions:
     """Holds a 24 hour set of predictions"""
     def __init__(self, name, predictions, first_ts):
         self.customer_name = name
+        self.first_ts = first_ts
         tss = [i for i in range(first_ts, first_ts + len(predictions))]
-        self.predictions = {}
+        self.predictions:Dict[int, float] = {}
         for i, ts in enumerate(tss):
             self.predictions[ts] = predictions[i]

@@ -16,3 +16,6 @@ tensorboard/
 build/
 core
 OLD_tensorboard
+
+BrokerPython\.egg-info/
+dist/

@@ -1,11 +1,18 @@
 import asyncio
 import unittest
 from collections import Coroutine, Generator
+from typing import List
 from unittest.mock import Mock, patch
 
+from pydispatch import dispatcher
+
+from agent_components.demand.estimator import CustomerPredictions
 from agent_components.wholesale.environments.PowerTacEnv import WholesaleEnvironmentManager
 from agent_components.wholesale.environments.PowerTacMDPEnvironment import PowerTacMDPEnvironment
-from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate
+from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade
+import numpy as np
+
+from communication.pubsub import signals
 
 
 class TestPowerTacMDPEnvironment(unittest.TestCase):
@@ -44,6 +51,53 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
         assert list(self.e.environments[1]._historical_prices) == [1,2,3]
         # agent set on the new ones
         assert self.e.environments[1].agent == "agent"
+
+
+    def test_historical_prices(self):
+        for i in range(200):
+            self.e.append_historical(PBClearedTrade(timeslot=i, executionPrice=i, executionMWh=1))
+        #one extra to show the averaging works
+        self.e.append_historical(PBClearedTrade(timeslot=198, executionPrice=1, executionMWh=3))
+        res = self.e.get_historical_prices(200)
+        assert len(res) == 168
+        assert res[0] == 200-168
+        assert res[-1] == 199
+        #the extra one that was added above makes it on average 100
+        assert res[-2] == 50.25
+
+    def test_handle_predictions(self):
+        orders_received = []
+        def listen_orders(signal, sender, msg):
+            orders_received.append(orders_received)
+        dispatcher.connect(listen_orders, signals.OUT_PB_ORDER)
+        #create some active timeslots --> active environments
+        with patch.object(self.e, 'get_historical_prices') as hp_mock:
+            hp_mock.return_value = np.zeros(168)
+            self.e.handle_timeslot_update(None, None, PBTimeslotUpdate(firstEnabled=1, lastEnabled=24))
+        #some mock preds
+        preds:List[CustomerPredictions] = []
+        for i in range(3):
+            cp = CustomerPredictions("jim{}".format(i), np.arange(24), 1)
+            preds.append(cp)
+        #call
+        self.e.handle_predictions(None, None, preds)
+        #assert some orders being sent to server via submitservice
+        assert len(orders_received) == 3
+
+        #cleanup
+        dispatcher.disconnect(listen_orders, signals.OUT_PB_ORDER)
+
+    def test_get_sums_from_preds(self):
+        preds = []
+        for i in range(5):
+            vals = np.zeros(24)
+            vals.fill(i)
+            pred = CustomerPredictions("john", vals, first_ts=1)
+            preds.append(pred)
+        sums = self.e.get_sums_from_preds(preds)
+        assert (np.empty(24).fill(15) == sums)
+
+
 
 
     def test_multiple_coroutines(self):
