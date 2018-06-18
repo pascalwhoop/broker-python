@@ -8,6 +8,9 @@ from communication.pubsub.PubSubTypes import SignalConsumer
 from util import id_generator
 
 
+import logging
+log = logging.getLogger(__name__)
+
 class TariffPublisher(SignalConsumer):
     def __init__(self):
         super().__init__()
@@ -16,6 +19,7 @@ class TariffPublisher(SignalConsumer):
     def subscribe(self):
         dispatcher.connect(self.handle_tariff_spec, signals.PB_TARIFF_SPECIFICATION)
         dispatcher.connect(self.handle_tariff_revoke, signals.PB_TARIFF_REVOKE)
+        log.info("tariff publisher is listenening")
 
     def unsubscribe(self):
         dispatcher.disconnect(self.handle_tariff_spec, signals.PB_TARIFF_SPECIFICATION)

@@ -50,7 +50,7 @@ class TestIntegration(unittest.TestCase):
         orders_received = []
         def listen_orders_ev(signal, sender, msg):
             orders_received.append(msg)
-        dispatcher.connect(listen_orders_ev, signals.PB_ORDER)
+        dispatcher.connect(listen_orders_ev, signals.OUT_PB_ORDER)
 
         # 1. send some market messages that get picked up by wholesale
         dispatcher.send(signal=signals.PB_TIMESLOT_UPDATE, msg=PBTimeslotUpdate(firstEnabled=TIMESLOT_NOW, lastEnabled=TIMESLOT_NOW+24))
@@ -63,14 +63,13 @@ class TestIntegration(unittest.TestCase):
         #predictions are lists of predictions for each customer
         assert len(predictions_received[0][0].predictions) == 24
 
+        # 3.5 meanwhile the wholesale agent reacted to the predictions and sent its orders
         # 3. expect wholesale market to react to prediction
         assert len(orders_received) == 24
 
-
-        # 4. expect wholesale market to now trigger
         # clean up listeners
         dispatcher.disconnect(listen_pred_ev, signals.COMP_USAGE_EST)
-        dispatcher.disconnect(listen_orders_ev, signals.PB_ORDER)
+        dispatcher.disconnect(listen_orders_ev, signals.OUT_PB_ORDER)
 
 
 

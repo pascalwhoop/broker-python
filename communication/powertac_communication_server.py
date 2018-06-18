@@ -16,12 +16,15 @@ import threading
 import time
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
+from pydispatch import dispatcher
 from queue import Queue
 
 import grpc
 from grpc import _server
 
 import communication.grpc_messages_pb2 as ptac_pb2
+from communication.pubsub import signals
+from communication.pubsub.PubSubTypes import SignalConsumer
 import communication.grpc_messages_pb2_grpc as ptac_grpc
 import util.config as cfg
 from communication.pubsub.grpc_adapter import publish_pb_message
@@ -59,11 +62,18 @@ def serve():
 ################################################################################
 
 
-class SubmitService(ptac_grpc.SubmitServiceServicer):
+class SubmitService(ptac_grpc.SubmitServiceServicer, SignalConsumer):
     def __init__(self):
         self._order_queue = Queue()
         self._tariff_spec_queue = Queue()
         self._tariff_revoke_queue = Queue()
+
+    def subscribe(self):
+        dispatcher.connect(self.send_order, signal=signals.OUT_PB_ORDER)
+        log.info("submitService is listenening")
+
+    def unsubscribe(self):
+        dispatcher.disconnect(self.send_order, signal=signals.OUT_PB_ORDER)
 
     def send_order(self, msg: ptac_pb2.PBOrder):
         self._order_queue.put_nowait(msg)

@@ -11,6 +11,8 @@ import click
 #import communication.powertac_communication as comm
 import util.config as cfg
 from agent_components.demand.estimator import Estimator
+from agent_components.wholesale.learning.baseline import BaselineTrader
+from agent_components.wholesale.environments.PowerTacEnv import WholesaleEnvironmentManager
 from agent_components.tariffs.publisher import TariffPublisher
 from util.learning_utils import ModelWriter
 from util.strings import MODEL_FS_NAME
@@ -67,14 +69,23 @@ def compete(continuous, demand_model, wholesale_model):
     estimator = Estimator(model)
     estimator.subscribe()
 
-    #TODO wholesale_trader
+    #TODO wholesale_trader dynamic loading
+    ws_agent = BaselineTrader()
+    wholesale = WholesaleEnvironmentManager(ws_agent)
+    wholesale.subscribe()
 
+    #simple tariff mirroring
     publisher = TariffPublisher()
     publisher.subscribe()
 
-    import communication.powertac_communication_server as server
+    #GRPC comm with powertac
+    import communication.powertac_communication_server as grpc_com
+
+    #subscribing to outgoing messages
+    grpc_com.submit_service.subscribe()
+
     #main comm thread
-    grpc_server = server.serve()
+    grpc_server = grpc_com.serve()
     try:
         while True:
             time.sleep(1)

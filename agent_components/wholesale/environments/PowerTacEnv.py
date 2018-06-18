@@ -13,11 +13,14 @@ from gym.spaces import Box
 
 from agent_components.demand.estimator import CustomerPredictions
 from agent_components.wholesale.util import calculate_running_average
-from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade, PBOrderbook
+from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade, PBOrderbook, PBOrder
 from communication.pubsub.PubSubTypes import SignalConsumer
 import communication.pubsub.signals as signals
+from util.id_generator import create_id
 from util.utils import deprecated
 
+import logging
+log = logging.getLogger(__name__)
 
 class PowerTacWholesaleAgent:
     """Abstract wholesale agent that can act in a `PowerTacEnv`"""
@@ -52,6 +55,7 @@ class WholesaleEnvironmentManager(SignalConsumer):
         dispatcher.connect(self.handle_timeslot_update, signal=signals.PB_TIMESLOT_UPDATE)
         dispatcher.connect(self.handle_cleared_trade, signal=signals.PB_CLEARED_TRADE)
         dispatcher.connect(self.handle_predictions, signal=signals.COMP_USAGE_EST)
+        log.info("env manager is listenening")
         # TODO
         # tells imbalance after DU has performed balancing
         # dispatcher.connect(None,signal=signals.PB_BALANCE_REPORT)
@@ -216,7 +220,8 @@ class PowerTacEnv(Env):
                                            cleared_trades=self.cleared_trades,
                                            actions=self.actions
                                            )
-        self.agent.forward(obs)
+        action = self.agent.forward(obs)
+        self.send_order(action)
         # TODO crit > implement and test
 
     def handle_cleared_trade(self, msg: PBClearedTrade):
@@ -226,6 +231,12 @@ class PowerTacEnv(Env):
     def handle_market_transaction(self, msg: PBMarketTransaction):
         """this tells the agent when it was able to buy something successfully"""
         self.purchases[msg.timeslot] = msg
+
+    def send_order(self, action):
+        order = PBOrder(broker=cfg.ME, timeslot=self._target_timeslot, mWh=action[0], limitPrice=action[1])
+        #gotta send via dispatcher
+        dispatcher.send(signals.OUT_PB_ORDER, msg=order)
+
 
 
 class PowerTacWholesaleObservation:

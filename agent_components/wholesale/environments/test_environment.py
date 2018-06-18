@@ -10,6 +10,7 @@ from agent_components.demand.estimator import CustomerPredictions
 from agent_components.wholesale.environments.PowerTacEnv import WholesaleEnvironmentManager, PowerTacWholesaleAgent, \
     PowerTacWholesaleObservation
 from agent_components.wholesale.environments.PowerTacMDPEnvironment import PowerTacMDPEnvironment
+from agent_components.wholesale.learning.baseline import BaselineTrader
 from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade
 import numpy as np
 
@@ -68,6 +69,7 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
         assert res[-2] == 50.25
 
     def test_handle_predictions(self):
+        self.agent_mock.forward.return_value = np.zeros(2)
         #create some active timeslots --> active environments
         with patch.object(self.e, 'get_historical_prices') as hp_mock:
             hp_mock.return_value = np.zeros(168)

@@ -38,6 +38,7 @@ class Estimator(SignalConsumer):
         dispatcher.connect(self.handle_timeslot_complete, signals.PB_TIMESLOT_COMPLETE)
         dispatcher.connect(self.handle_sim_end, signals.PB_SIM_END)
         dispatcher.connect(self.handle_customer_bootstrap_data_event, signals.PB_CUSTOMER_BOOTSTRAP_DATA)
+        log.info("estimator is listening!")
 
     def unsubscribe(self):
         dispatcher.disconnect(self.handle_tariff_transaction_event, signals.PB_TARIFF_TRANSACTION)
