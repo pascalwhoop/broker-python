@@ -3,7 +3,7 @@ import util.config as cfg
 
 import numpy as np
 
-from agent_components.wholesale.environments import PowerTacLogsMDPEnvironment
+from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
 from agent_components.wholesale.util import calculate_running_averages, calculate_du_fee, average_price_for_power_paid, \
     calculate_balancing_needed, tb_writer_helper
 
@@ -12,8 +12,10 @@ from agent_components.wholesale.util import calculate_running_averages, calculat
 # - action
 # - realized cost
 # - divergence from forecast
+from util.utils import deprecated
 
 
+@deprecated
 def simple_truth_ordering(env, action, market_trades, purchases, realized_usage):
     """
     This helper function trains the agent to initially always order exactly the amount it has forecasted to need and
@@ -25,8 +27,33 @@ def simple_truth_ordering(env, action, market_trades, purchases, realized_usage)
     price = action[1]
     return -((amount-0.50)**2 + (price-0.60)**2)
 
+def market_relative_prices(env:PowerTacEnv):
+    market_trades = [[tr.executionMWh, tr.executionPrice] for tr in env.cleared_trades]
+    purchases = [[p.mWh, p.price] for p in env.purchases]
+    realized_usage = env.realized_usage
+
+    average_market = calculate_running_averages(np.array([market_trades]))[0]
+
+    balancing_needed = calculate_balancing_needed(purchases, realized_usage)
+
+    # TODO for now just a fixed punishment for every balanced mWh. Later maybe based on balancing stats data
+    du_trans = calculate_du_fee(average_market, balancing_needed)
+    if du_trans:
+        purchases.append(du_trans)
+
+    type_, average_agent = average_price_for_power_paid(purchases)
+    market_relative_prices = 0
+    if type_ == 'ask':
+        # broker is overall selling --> higher is better
+        market_relative_prices = average_agent / average_market
+    if type_ == 'bid':
+        # broker is overall buyer --> lower is better
+        market_relative_prices = average_market / average_agent
+    #large market_relative_prices --> good
+    return -100 + (market_relative_prices* 100)
 
 
+@deprecated
 def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
     """Gives back the direct relation between paid amount and what the agent would have paid if it achieved average costs"""
     average_market = calculate_running_averages(np.array([market_trades]))[0]
@@ -67,20 +94,24 @@ def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
 
 
 
-    # if agent paid less than what it would have with average prices --> positive reward
 
-def step_close_to_prediction_reward(env: PowerTacLogsMDPEnvironment, action, *args):
-    #TODO give it a reward if it places a bet close to what it has been told is a prediction.
-    if 'latest_observation' in env.__dict__:
-        forecasted_need = env.latest_observation[0]
-    else:
-        forecasted_need = 0
+def step_close_to_prediction_reward(env: PowerTacEnv):
     # motivates to ensure the portfolio is covered the closer we get to the final timestep.
-    return -abs((action[0] - forecasted_need)) * (env.steps+1/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
+    latest_news = env.predictions[-1]
+    purchased_already = np.array([p.mWh for p in env.purchases]).sum()
+    needed = latest_news + purchased_already
+    action = env.actions[-1]
+    return -abs((action[0] + needed)) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
 
 
-def shifting_balancing_price(env, action, market_trades, purchases, realized_usage):
+
+def shifting_balancing_price(env:PowerTacEnv):
     """Gives back a relation between the average market price for the target timeslot and the average price the broker achieved"""
+    market_trades = [[tr.executionMWh, tr.executionPrice] for tr in env.cleared_trades]
+    purchases = [[p.mWh, p.price] for p in env.purchases]
+    realized_usage = env.realized_usage
+
+
     average_market = calculate_running_averages(np.array([market_trades]))[0]
 
     balancing_needed = calculate_balancing_needed(purchases, realized_usage)

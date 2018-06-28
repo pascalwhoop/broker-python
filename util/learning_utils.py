@@ -171,3 +171,6 @@ class NoneScaler:
     def inverse_transform(self, X):
         return X
 
+    def fit_transform(self, X):
+        return X
+

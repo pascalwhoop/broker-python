@@ -19,12 +19,14 @@ class TestIntegration(unittest.TestCase):
 
     def setUp(self):
         self.mm = Mock()
-        self.mm.predict.return_value = np.arange(0,24, dtype=np.float64).reshape(-1,1)
+        self.mm.predict.return_value = np.arange(0,24, dtype=np.float64).reshape((1,24))
         self.e = Estimator(self.mm)
+        self.e.customer_counts["jim"] = 1
+        self.e.customer_populations["jim"] = 1
         self.e.subscribe()
 
         #mocking some values in the estimator
-        for i in range(TIMESLOT_NOW-1):
+        for i in range(TIMESLOT_NOW):
             self.e._apply_usage('jim', i,i)
         self.e.scalers['jim'] = MinMaxScaler().fit(np.array([1,1000],dtype=np.float64).reshape(-1,1))
 
@@ -42,7 +44,7 @@ class TestIntegration(unittest.TestCase):
         # the integration actually requires a proper Model
         self.wem.agent = BaselineTrader()
         #listen for predictions calculated
-        predictions_received: List[CustomerPredictions] = []
+        predictions_received: List[List[CustomerPredictions]] = []
         def listen_pred_ev(signal, sender, msg):
             predictions_received.append(msg)
         dispatcher.connect(listen_pred_ev, signals.COMP_USAGE_EST)

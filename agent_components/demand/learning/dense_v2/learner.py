@@ -24,8 +24,8 @@ class DenseLearner(DemandLearner):
     def __init__(self, tag, fresh):
         super().__init__("dense_v2", tag, fresh)
 
-    def learn(self):
-        self._fit_offline(True)
+    def learn(self, games=None):
+        self._fit_offline(True, games=games)
 
     def fresh_model(self):
         input_shape = (cfg.DEMAND_ONE_WEEK,)

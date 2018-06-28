@@ -11,6 +11,11 @@ from pydispatch import dispatcher
 
 log = logging.getLogger(__name__)
 
+
+def log_message(pb_message):
+    pass
+
+
 def publish_pb_message(pb_message, loop=None):
     """
     Publishes a message from grpc based on its name via the pubsub architecture.
@@ -22,11 +27,17 @@ def publish_pb_message(pb_message, loop=None):
 
     #asyncio.ensure_future(send_message_async(pb_message), loop=loop)
     send_message_async(pb_message)
+    log_message(pb_message)
 
 def send_message_async(pb_message):
     signal = pb_message.DESCRIPTOR.name
     log.info("dispatching {}".format(signal))
-    dispatcher.send(signal=signal, msg=pb_message, sender=dispatcher.Anonymous)
+    try:
+        dispatcher.send(signal=signal, msg=pb_message, sender=dispatcher.Anonymous)
+    except Exception as e:
+        # catching all exceptions that boil up here, to avoid the agent from not working anymore
+        log.exception(e)
+
 
 #async def send_message_async(pb_message):
 #    signal = pb_message.DESCRIPTOR.name

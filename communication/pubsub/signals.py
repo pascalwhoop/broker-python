@@ -9,7 +9,8 @@ PT_IN_STATE_LINE     = "PT_IN_STATE_LINE"     # state lines read and destined fo
 COMP_SUB_EST         = "COMP_SUB_EST"         # subscription estimation by agent component
 COMP_USAGE_EST       = "COMP_USAGE_EST"       # usage estimations by agent component
 OUT_PB_ORDER         = "OUT_PB_ORDER"         # wholesale trading action by agent component
-COMP_TARIFF_ACTION   = "COMP_TARIFF_ACTION"   # tariff action by agent component
+OUT_PB_TARIFF_REVOKE = "OUT_PB_TARIFF_REVOKE"
+OUT_PB_TARIFF_SPECIFICATION = "OUT_PB_TARIFF_SPECIFICATION"
 STATE_EXTRACTOR_NEXT = "STATE_EXTRACTOR_NEXT" # sent when the agent requests the next environment parsing
 
 # any Protobuf message is a signal that can be subscribed to.
@@ -47,3 +48,6 @@ PB_SIM_END                  = "PBSimEnd"
 # old signals
 # PT_IN_XML            = "PT_IN_XML"            # incoming xml message strings from the server
 # PT_OUT_XML           = "PT_OUT_XML"           # xml strings destined to the server
+
+#logging signals
+LOG_OBSERVATION_TENSORFORCE = "LogObsTensorforce"

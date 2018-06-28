@@ -16,7 +16,7 @@ class DemandLearner:
         self.model_fs_name = MODEL_FS_NAME.format(name, tag)
         self.model_writer = ModelWriter(self.model_fs_name, fresh=fresh)
         self.tb_writer_helper = TbWriterHelper(self.model_fs_name, fresh=fresh)
-        self.model_writer.write_model_source('demand', self.model_fs_name)
+        self.model_writer.write_model_source('demand', self.model_name)
         self.cbs = get_callbacks_with_generator(self.model_fs_name)
 
         #finally loading the model or creating a fresh one
@@ -25,10 +25,13 @@ class DemandLearner:
         else:
             self.model = self.reload_model()
 
-    def _fit_offline(self, flat=False):
+    def _fit_offline(self, flat=False, games=None):
         """runs this model against offline data"""
         #scaling data is possible
-        for f in get_usage_file_paths()[0:5]:
+        if games is None:
+            games = get_usage_file_paths()
+
+        for f in games:
             self._fit_on_game(f, flat)
 
     def _fit_on_game(self, f, flat):
@@ -52,7 +55,7 @@ class DemandLearner:
         """Here is where you implement your model"""
         raise NotImplementedError
 
-    def learn(self):
+    def learn(self, games=None):
         """the external API"""
         raise NotImplementedError
 

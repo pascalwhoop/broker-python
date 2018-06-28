@@ -1,5 +1,5 @@
 """
-Data processing helper for learning offline off the data.
+Data processing helper for learning offline in the prediction of usage data
 """
 import csv
 import logging

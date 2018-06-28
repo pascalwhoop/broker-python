@@ -14,10 +14,13 @@ from agent_components.demand.estimator import Estimator
 from agent_components.wholesale.learning.baseline import BaselineTrader
 from agent_components.wholesale.environments.PowerTacEnv import WholesaleEnvironmentManager
 from agent_components.tariffs.publisher import TariffPublisher
+from environment import messages_cache
+from util.hook_stack_debugger import hook_debugger_to_signal
 from util.learning_utils import ModelWriter
 from util.strings import MODEL_FS_NAME
 from util.utils import get_now_date_file_ready
 
+hook_debugger_to_signal()
 
 @click.group()
 @click.option('--log-target', multiple=True, type=click.Choice(['file']))
@@ -26,6 +29,7 @@ def cli(log_target, log_level):
     """CLI interface for a python learning agent in the PowerTAC environment. Call it with the different subcommands to
     perform various activities such as learning, competing, generating data etc."""
     configure_logging(log_target, log_level)
+
 
 
 @cli.command()
@@ -63,6 +67,9 @@ def generate_data(component):
 @click.option('--wholesale-model', help="name of the model to apply to the wholesale learner")
 def compete(continuous, demand_model, wholesale_model):
     """take part in a powertac competition"""
+
+    #bootstrapping logging and caching of messages
+    messages_cache.subscribe()
 
     #bootstrapping models from stored data
     model = ModelWriter(demand_model, False).load_model()

@@ -15,14 +15,14 @@ log = logging.getLogger(__name__)
 
 
 def get_instance(tag, fresh):
-    return LstmLearner(tag, fresh)
+    return HugeLearner(tag, fresh)
 
 
-class LstmLearner(DemandLearner):
+class HugeLearner(DemandLearner):
     def __init__(self, tag, fresh, ):
-        super().__init__("lstm_v2", tag, fresh)
+        super().__init__("lstm_dense_huge", tag, fresh)
 
-    def learn(self, games=None ):
+    def learn(self, games=None):
         """Meant for offline, record based learning. Not meant for competition learning"""
         self._fit_offline(False, games=games)
 
@@ -31,8 +31,10 @@ class LstmLearner(DemandLearner):
         # input layer
         input_shape = (cfg.DEMAND_ONE_WEEK, 1)
         model.add(CuDNNLSTM(168, input_shape=input_shape, kernel_regularizer=l2(0.002), return_sequences=True))
-        model.add(Dropout(0.2))
-        model.add(CuDNNLSTM(50))
+        model.add(CuDNNLSTM(168, input_shape=input_shape, kernel_regularizer=l2(0.002), return_sequences=True))
+        model.add(CuDNNLSTM(168, input_shape=input_shape, kernel_regularizer=l2(0.002), return_sequences=False))
+        model.add(Dense(500))
+        model.add(Dense(200))
         model.add(Dense(24))
         model.add(Activation('linear'))
 

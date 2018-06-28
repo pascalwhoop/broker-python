@@ -1,3 +1,4 @@
+from google.protobuf.json_format import MessageToJson, Parse
 from pydispatch import dispatcher
 
 import util.config as cfg
@@ -29,13 +30,26 @@ class TariffPublisher(SignalConsumer):
         """Handling incoming specs. Let's just clone the babies!"""
         #if from our idol
         if msg.broker == cfg.TARIFF_CLONE_COMPETITOR_AGENT:
-            #let's clone this
-            msg.broker = cfg.ME
-            new_id = id_generator.create_id()
-            self.clones[msg.id] = new_id
-            msg.id = new_id
+            spec = self.make_spec_mine(msg)
+            self.clones[msg.id] = spec.id
             #and send it to the server as if it was ours
-            submit_service.send_tariff_spec(msg)
+            log.info("cloning tariff !")
+            dispatcher.send(signals.OUT_PB_TARIFF_SPECIFICATION, msg=spec)
+
+    def make_spec_mine(self, msg)-> PBTariffSpecification:
+        # let's clone this
+        mine = Parse(MessageToJson(msg), PBTariffSpecification())
+        #set the broker
+        mine.broker = cfg.ME
+        #set new ID
+        mine.id = id_generator.create_id()
+        # also set the IDs of the rates
+        for r in mine.rates:
+            r.tariffId = mine.id
+        for r in mine.regulationRates:
+            r.tariffId = mine.id
+        return mine
+
 
     def handle_tariff_revoke(self, sender, signal: str, msg: PBTariffRevoke):
         """if our idol revokes, let's revoke too"""
@@ -45,6 +59,6 @@ class TariffPublisher(SignalConsumer):
                 other = msg.tariffId
                 msg.broker = cfg.ME
                 msg.tariffId = self.clones[other]
-                submit_service.send_tariff_revoke(msg)
+                dispatcher.send(signals.OUT_PB_TARIFF_REVOKE, msg=msg)
                 del self.clones[other]
 

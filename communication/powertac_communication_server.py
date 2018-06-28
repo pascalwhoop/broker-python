@@ -63,6 +63,9 @@ def serve():
 
 
 class SubmitService(ptac_grpc.SubmitServiceServicer, SignalConsumer):
+    """
+    Doesn't handle dropped connections very well. A proper connection loss needs to be implemented for flaky net connections
+    """
     def __init__(self):
         self._order_queue = Queue()
         self._tariff_spec_queue = Queue()
@@ -70,6 +73,8 @@ class SubmitService(ptac_grpc.SubmitServiceServicer, SignalConsumer):
 
     def subscribe(self):
         dispatcher.connect(self.send_order, signal=signals.OUT_PB_ORDER)
+        dispatcher.connect(self.send_tariff_spec, signal=signals.OUT_PB_TARIFF_SPECIFICATION)
+        dispatcher.connect(self.send_tariff_revoke, signal=signals.OUT_PB_TARIFF_REVOKE)
         log.info("submitService is listenening")
 
     def unsubscribe(self):
@@ -85,21 +90,27 @@ class SubmitService(ptac_grpc.SubmitServiceServicer, SignalConsumer):
         self._tariff_spec_queue.put_nowait(msg)
 
     def submitOrder(self, request, context):
+        log.info("submitOrder connection")
         """DO NOT CALL from python. This is the API to the adapter"""
         while True:
             it = self._order_queue.get()
+            log.info("SENDING order to SERVER")
             yield it
 
     def submitTariffRevoke(self, request, context):
+        log.info("submitTariffRevoke connection")
         """DO NOT CALL from python. This is the API to the adapter"""
         while True:
             it = self._tariff_revoke_queue.get()
+            log.info("SENDING TariffRevoke to SERVER")
             yield it
 
     def submitTariffSpec(self, request, context):
+        log.info("submitTariffSpec connection")
         """DO NOT CALL from python. This is the API to the adapter"""
         while True:
             it = self._tariff_spec_queue.get()
+            log.info("SENDING TariffSpec to SERVER")
             yield it
 
 

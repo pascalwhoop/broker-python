@@ -8,10 +8,10 @@ from pydispatch import dispatcher
 
 from agent_components.demand.estimator import CustomerPredictions
 from agent_components.wholesale.environments.PowerTacEnv import WholesaleEnvironmentManager, PowerTacWholesaleAgent, \
-    PowerTacWholesaleObservation
+    PowerTacWholesaleObservation, PowerTacEnv
 from agent_components.wholesale.environments.PowerTacMDPEnvironment import PowerTacMDPEnvironment
 from agent_components.wholesale.learning.baseline import BaselineTrader
-from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade
+from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade, PBMarketBootstrapData
 import numpy as np
 
 from communication.pubsub import signals
@@ -54,6 +54,7 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
         assert list(self.e.environments[1]._historical_prices) == [1,2,3]
         # agent set on the new ones
         assert self.e.environments[1].agent == "agent"
+        assert len(self.e.environments.keys()) == 24
 
 
     def test_historical_prices(self):
@@ -61,12 +62,20 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
             self.e.append_historical(PBClearedTrade(timeslot=i, executionPrice=i, executionMWh=1))
         #one extra to show the averaging works
         self.e.append_historical(PBClearedTrade(timeslot=198, executionPrice=1, executionMWh=3))
+        #for the timeslot just after all historical pricesj
         res = self.e.get_historical_prices(200)
         assert len(res) == 168
         assert res[0] == 200-168
         assert res[-1] == 199
         #the extra one that was added above makes it on average 100
         assert res[-2] == 50.25
+
+        #in the bootstrap situation, we have 336 timeslots and for some reason start at 360. Therefore, it's 24h "lost"
+        res = self.e.get_historical_prices(200+24)
+        assert(len(res)) == 168
+        assert res[-1] == res[-24]
+        assert res[0] == 224-168
+
 
     def test_handle_predictions(self):
         self.agent_mock.forward.return_value = np.zeros(2)
@@ -81,9 +90,18 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
             preds.append(cp)
         #call
         self.e.handle_predictions(None, None, preds)
+        #assert
         #assert some orders being sent to server via submitservice
         arg = self.agent_mock.forward.call_args
         assert isinstance(arg[0][0], PowerTacWholesaleObservation)
+
+    def test_handle_cleared_trade(self):
+        self.e.handle_timeslot_update(None, None, PBTimeslotUpdate(firstEnabled=1, lastEnabled=1))
+        msg = PBClearedTrade(timeslot=1, executionMWh=2, executionPrice=3)
+        self.e.handle_cleared_trade(None, None, msg)
+        self.e.handle_cleared_trade(None, None, msg)
+        self.e.handle_cleared_trade(None, None, msg)
+        assert len(self.e.historical_average_prices[1]) == 3
 
 
     def test_get_sums_from_preds(self):
@@ -97,6 +115,15 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
         expected = {i: 10 for i in range(1, 25)}
         for i in expected:
             assert expected[i] == sums[i]
+
+    def test_handle_market_bootstrap_data(self):
+        mWh = np.arange(360)
+        price = np.arange(360) * 10
+        mbd = PBMarketBootstrapData(mwh=mWh, marketPrice=price)
+        self.e.handle_market_bootstrap_data(None, None, mbd)
+        for i in range(360):
+            assert self.e.historical_average_prices[i][0][0] == i
+            assert self.e.historical_average_prices[i][0][1] == i*10
 
 
 
@@ -134,5 +161,10 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
                 pass
 
             assert len(received) == i+1
+
+class TestPowerTacEnv(unittest.TestCase):
+    def setUp(self):
+        self.testable: PowerTacEnv = PowerTacEnv(Mock(), target_ts=360, historical_prices=np.arange(168))
+
 
 

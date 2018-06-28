@@ -8,6 +8,7 @@ ROUNDING_PRECISION = 3
 DATETIME_PATTERN   = "%Y-%m-%dT%H:%M:%S.000Z"
 TENSORBOARD_PATH   = "tensorboard/"
 DATA_PATH          = "data/"
+DATA_LOG_PATH      = "data/logs"
 MODEL_PATH         = os.path.join(DATA_PATH, "models")
 LOG_PATH           = "log/"
 LOG_LEVEL          = "INFO"
@@ -44,20 +45,20 @@ DEMAND_ONE_WEEK          = 24*7
 DEMAND_LOGREG_FEATURES   = True
 
 #tariffs
-TARIFF_CLONE_COMPETITOR_AGENT = "AgentUDE17"
+TARIFF_CLONE_COMPETITOR_AGENT = "cwiBroker"
 
 #wholesale
-#WHOLESALE_AGENT_TEACHER_BROKER = 'tactex'
 WHOLESALE_MIN_KWH_PRICE = -2.0 #
 WHOLESALE_OPEN_FOR_TRADING_PARALLEL = 24
 WHOLESALE_LEARNING_USAGE_PATH = '../powertac-tools/logtool-examples/data/'
 WHOLESALE_FORECASTS_TYPE = 'perfect' # 'error1', 'error2', ..., 'forecast'
 WHOLESALE_HISTORICAL_DATA_LENGTH = 168
 WHOLESALE_STEPS_PER_TRIAL = 24
-WHOLESALE_FORECAST_ERROR_PER_TS = 0.2
+WHOLESALE_FORECAST_ERROR_PER_TS = 0.02
 WHOLESALE_OFFLINE_TRAIN_RANDOM_CUSTOMERS = False
 WHOLESALE_OFFLINE_TRAIN_RANDOM_GAME = False
 WHOLESALE_OFFLINE_TRAIN_GAME = 0 # the game index in the games list to choose
+WHOLESALE_TENSORFORCE_CONFIGS = "agent_components/wholesale/configs/"
 #some min max data
 sizes = np.finfo(np.array([1.0], dtype=np.float32)[0])
 np_high = sizes.max

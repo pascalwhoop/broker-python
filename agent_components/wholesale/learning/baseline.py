@@ -1,11 +1,14 @@
+import logging
 import numpy as np
 from rl.core import Agent
 
-from agent_components.wholesale.environments.PowerTacEnv import PowerTacWholesaleAgent, PowerTacWholesaleObservation
+from agent_components.wholesale.environments.PowerTacEnv import PowerTacWholesaleAgent, PowerTacWholesaleObservation, \
+    PowerTacEnv
 from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
 from agent_components.wholesale.learning.reward_functions import simple_truth_ordering, shifting_balancing_price
 from communication.grpc_messages_pb2 import PBOrderbook
 from util.learning_utils import get_tb_cb, TbWriterHelper
+log = logging.getLogger(__name__)
 
 model_name = "baseline-log-rl"
 tag = ""
@@ -25,27 +28,42 @@ class BaselineTrader(PowerTacWholesaleAgent):
     def forward(self, observation: PowerTacWholesaleObservation) -> np.array:
         """Takes the observation and returns the action that matches it"""
 
-        #we need to buy the opposite of the customers predictions
-        mWh = observation.predictions[-1] * -1
-        if len(observation.orderbooks.values()) > 0:
-            ob:PBOrderbook = list(observation.orderbooks.values())[-1]
+        mWh = self.determine_mWh(observation)
+        price = self.determine_price(observation, mWh)
+
+        return np.array([mWh, price]), None #passing 2 things back to avoid unpack errors
+
+    def determine_mWh(self, observation):
+        # we need to buy the opposite of the customers predictions
+        mWh = observation.predictions[-1]
+        # but reduce it by what we already purchased
+        bought = np.array([a.mWh for a in observation.purchases]).sum()
+        mWh = mWh + bought
+        mWh *= -1
+        return mWh
+
+    def determine_price(self, observation:PowerTacWholesaleObservation, needed):
+        if len(observation.orderbooks) > 0:
+            ob: PBOrderbook = observation.orderbooks[-1]
             price = ob.clearingPrice * 10
         else:
-            price = observation.hist_avg_prices[-1] * 10
-
-        #if we buy mWh --> negative price
-        if mWh > 0:
-            price = abs(price) * -1
+            price = observation.hist_avg_prices[-24]
+         #if we buy mWh --> negative price
+        if needed > 0:
+            price = abs(price) * -1 * 10 # offering 10 x the price
         #else positive price
         else:
-            price = abs(price)
+            price = abs(price) / 10  # asking 1/10th the market price
 
-        return np.array([mWh, price])
+        return price
 
-    def backward(self, reward, terminal):
+    def backward(self, env: PowerTacEnv, observation:PowerTacWholesaleObservation,  action, reward):
         """Does nothing really. """
         pass
 
+    def save_model(self):
+        log.info("the baseline agent doesn't need to save itself")
+        pass
 
     def __init__(self):
         self.env = PowerTacLogsMDPEnvironment(reward_func=shifting_balancing_price)
@@ -54,23 +72,6 @@ class BaselineTrader(PowerTacWholesaleAgent):
         self.memory_length = 1
 
         super().__init__()
-
-    def learn(self):
-        obs = self.env.reset()
-        # always order what is missing and offer 10x the price. will almost always manage to balance the portfolio and that
-        # early in the bidding chain
-        action = np.array([0.5, 5])
-        for i in range(100000):
-            done = False
-            reward_episode = 0
-            while not done:
-                obs, reward, done, info = self.env.step(action)
-                reward_episode += reward
-            # timeslot completed, reset
-            obs = self.env.reset()
-            tb_writer.write_any(reward_episode, "episode_reward")
-
-
 
 
 

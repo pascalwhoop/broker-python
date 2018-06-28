@@ -31,6 +31,9 @@ def calculate_running_averages( known_results: np.array):
 def calculate_running_average(timeslot_trading_data:np.array):
     # data is a 24 item long array of 2 vals each
     # average is sum(price_i * kwh_i) / kwh_total
+    s = timeslot_trading_data.shape
+    if len(s) == 1 or s[1] != 2:
+        return 0
     sum_total = timeslot_trading_data[:, 0].sum()
     avg = 0
     if sum_total != 0.0:
@@ -57,17 +60,17 @@ def calculate_missing_energy(purchases: float, demand: float):
     return (-1) * (demand + purchases)
 
 
-def average_price_for_power_paid(bought):
+def average_price_for_power_paid(purchases):
     """
     calculates the average price per mWh the agent paid in the market. If the agent actually sold more than
     bought, the value becomes negative
-    :param bought:
-    :return: average price, stupidBoolean --> stupid if it paid money to sell energy on average
+    :param purchases:
+    :return: type and average price paid --> stupid if it paid money to sell energy on average
     """
     # [:,0] is the mWh purchased and [:,1] is the average price for that amount
     total_energy = 0
     total_money = 0
-    for t in bought:
+    for t in purchases:
         total_energy += t[0]
         total_money += abs(t[0]) * t[1]
 
@@ -84,6 +87,8 @@ def average_price_for_power_paid(bought):
     #broker purchased energy
     if total_energy > 0:
         return 'bid', abs(total_money / total_energy)
+    #if all else fails
+    return 'bid', 0
 
 
 def calculate_du_fee(average_market, balancing_needed):
@@ -100,6 +105,13 @@ def calculate_du_fee(average_market, balancing_needed):
 
 
 def trim_data(demand_data: np.array, wholesale_data: np.array, first_timestep_demand):
+    """
+    Trims the demand_data and wholesale_data arrays to ensure they both cover the same timesteps for the game
+    :param demand_data:
+    :param wholesale_data:
+    :param first_timestep_demand:
+    :return:
+    """
     min_dd = first_timestep_demand
     # the wholesale data holds 3 columns worth of metadata (slot, dayofweek,hourofday)
     ws_header = np.array([row[0:3] for row in wholesale_data])
