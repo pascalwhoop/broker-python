@@ -92,12 +92,15 @@ def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
 
 
 def step_close_to_prediction_reward(env: PowerTacEnv):
+    """A reward function that rewards actions that order energy close to what was forecasted. This allows the agent
+    to deviate from the forecasts a little but not too much. Generally, the forecast is supposed to be considered as
+     a "true" value, i.e. it's assumed that the predictor knows better than the wholesale trader. """
     # motivates to ensure the portfolio is covered the closer we get to the final timestep.
     latest_news = env.predictions[-1]
     purchased_already = np.array([p.mWh for p in env.purchases]).sum()
     needed = latest_news + purchased_already
     action = env.actions[-1]
-    return -abs((action[0] + needed)) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
+    return -abs((action[0] - needed)) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
 
 
 

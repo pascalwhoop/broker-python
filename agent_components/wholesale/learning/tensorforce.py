@@ -48,23 +48,17 @@ class TensorforceAgent(PowerTacWholesaleAgent):
         #TODO should be in the PowerTacWholesaleAgent as an inherited thing for all agents
         self.tb_log_helper = TbWriterHelper("dqn", True)
 
-    def forward(self, observation: PowerTacWholesaleObservation):
-        obs = self.make_observation(observation)
+    def forward(self, env: PowerTacEnv):
+        obs = self.make_observation(env)
+        env.observations.append(obs)
         nn_action, states, internals = self.agent.act(obs, buffered=False)
-        actions = translate_two_armed(observation, nn_action)
+        actions = translate_two_armed(env, nn_action)
         return actions, nn_action, internals
 
-    def make_observation(self, observation: PowerTacWholesaleObservation = None, env: PowerTacEnv = None):
-        if not observation and not env:
-            raise Exception("missing env and observation")
-        if observation:
-            purchases = np.array([p.mWh for p in observation.purchases])
-            hist_prices = observation.hist_avg_prices
-            predictions = observation.predictions
-        else:
-            purchases = np.array([p.mWh for p in env.purchases])
-            hist_prices = np.array(env._historical_prices)
-            predictions = env.predictions
+    def make_observation(self, env: PowerTacEnv):
+        purchases = np.array([p.mWh for p in env.purchases])
+        hist_prices = np.array(env._historical_prices)
+        predictions = env.predictions
         # padding properly to keep same position and size
         pad = 24 - len(purchases)
         purchases = np.pad(purchases, (0, pad), 'constant', constant_values=0)
@@ -75,13 +69,12 @@ class TensorforceAgent(PowerTacWholesaleAgent):
         obs = np.concatenate((predictions, hist_prices, purchases))
         return obs
 
-    def backward(self, env: PowerTacEnv, obs, action, reward):
-        obs = self.make_observation(env=env)
+    def backward(self, env: PowerTacEnv, action, reward):
+        obs = env.observations[-1]
         #action = env.actions[-1]
         action = env.nn_actions[-1]
         terminal = env._step > 23
         last_purchase = env.purchases[-1].mWh if env.purchases else 0
-        reward = self.calculate_reward(env)
         self.tb_log_helper.write_any(reward, "reward")
 
         try:
@@ -89,15 +82,6 @@ class TensorforceAgent(PowerTacWholesaleAgent):
         except Exception as e:
             log.exception(e)
 
-    def calculate_reward(self, env: PowerTacEnv):
-        if env._step == 25:  # terminal step
-            # calculate terminal reward
-            rew = market_relative_prices(env)
-            log.info("agent reward for terimal state {}".format(rew))
-            return rew
-        else:
-            return step_close_to_prediction_reward(env)
-            # calculate intermediate reward
 
 
 # =========================== Agent configs
@@ -131,7 +115,7 @@ model_kwargs = {
 }
 
 
-def translate_two_armed(env: PowerTacWholesaleObservation, actions):
+def translate_two_armed(env: PowerTacEnv, actions):
     if not actions[0]:
         log.warning("agent chose random stupid action, shouldn't")
         return np.random.randint(-100,100, size=2)
@@ -146,7 +130,7 @@ def translate_two_armed(env: PowerTacWholesaleObservation, actions):
         ob: PBOrderbook = env.orderbooks[-1]
         price = ob.clearingPrice * 10
     else:
-        price = env.hist_avg_prices[-24]
+        price = env._historical_prices[-24]
     # if we buy mWh --> negative price
     if mWh > 0:
         price = abs(price) * -1 * 10  # offering 10 x the price

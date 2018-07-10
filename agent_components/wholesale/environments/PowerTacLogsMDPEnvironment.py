@@ -12,8 +12,11 @@ from agent_components.wholesale.util import calculate_running_averages, calculat
     parse_wholesale_file, _get_wholesale_as_nparr, price_scaler, demand_scaler
 from util import config as cfg
 from util.learning_utils import get_wholesale_file_paths, get_usage_file_paths
+from util.utils import deprecated
 
 
+#replaced by a pubsub based adapter LogEnvManagerAdapter class
+#@deprecated
 class PowerTacLogsMDPEnvironment:
     """This class simulates a powertac trading environment but is based on logs of historical games.  It assumes that
     the broker actions have no impact on the clearing price which is a reasonable estimation for any market that has a
@@ -135,7 +138,7 @@ class PowerTacLogsMDPEnvironment:
             reward -= self.step_rewards
             self.step_rewards = 0
         else:
-            reward = step_close_to_prediction_reward(self, real_action)
+            reward = step_close_to_prediction_reward(self)
             self.step_rewards += reward
 
 

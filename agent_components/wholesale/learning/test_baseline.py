@@ -18,19 +18,19 @@ class TestBaseline(unittest.TestCase):
 
     def test_forward(self):
         obs = self._make_sample_observation()
-        action = self.testable.forward(obs)
+        action = self.testable.forward(obs)[0]
         assert action[0] == 30
         #pred now -90
         obs.predictions.append(-90)
-        action = self.testable.forward(obs)
+        action = self.testable.forward(obs)[0]
         assert action[0] == 70
         #pred now +90
         obs.predictions.append(90)
-        action = self.testable.forward(obs)
+        action = self.testable.forward(obs)[0]
         assert action[0] == -110
         #purchase something more
         obs.purchases.append(PBMarketTransaction(mWh=-110))
-        action = self.testable.forward(obs)
+        action = self.testable.forward(obs)[0]
         assert action[0] == 0
 
     def _make_sample_observation(self):

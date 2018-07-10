@@ -78,7 +78,7 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
 
 
     def test_handle_predictions(self):
-        self.agent_mock.forward.return_value = np.zeros(2)
+        self.agent_mock.forward.return_value = ([0,0], None, None)
         #create some active timeslots --> active environments
         with patch.object(self.e, 'get_historical_prices') as hp_mock:
             hp_mock.return_value = np.zeros(168)
@@ -93,7 +93,7 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
         #assert
         #assert some orders being sent to server via submitservice
         arg = self.agent_mock.forward.call_args
-        assert isinstance(arg[0][0], PowerTacWholesaleObservation)
+        assert isinstance(arg[0][0], PowerTacEnv)
 
     def test_handle_cleared_trade(self):
         self.e.handle_timeslot_update(None, None, PBTimeslotUpdate(firstEnabled=1, lastEnabled=1))

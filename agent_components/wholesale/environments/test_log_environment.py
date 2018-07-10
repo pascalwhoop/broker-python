@@ -81,7 +81,8 @@ class TestPowerTacMDPLogEnvironment(unittest.TestCase):
         pass
 
 
-    def test_step_24times(self):
+    @patch('agent_components.wholesale.environments.PowerTacLogsMDPEnvironment.step_close_to_prediction_reward')
+    def test_step_24times(self, reward_mock):
         for i in range(23):
             obs, rew, done, info = self.log_env.step(np.array([0, 0]))
             assert not done

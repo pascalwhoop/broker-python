@@ -1,14 +1,16 @@
+import pytest
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import numpy as np
 
+from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
 from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
 from agent_components.wholesale.learning.reward_functions import direct_cash_reward, step_close_to_prediction_reward
 
 
 class TestRewardFunctions(unittest.TestCase):
 
-
+    @pytest.mark.kskip
     def test_direct_cash_reward(self):
         #going through the various cases
         #agent buys 5 under market value. good
@@ -36,12 +38,17 @@ class TestRewardFunctions(unittest.TestCase):
 
 
     def test_step_close_to_prediction_reward(self):
-        env = PowerTacLogsMDPEnvironment()
+        agent = Mock()
+        env = PowerTacEnv(agent, 1, np.zeros(168))
         action = [3, -4]
-        reward = step_close_to_prediction_reward(env, action )
+        env.actions.append(action)
+        env.predictions.append(0)
+        reward = step_close_to_prediction_reward(env)
         assert reward == -3 * (1/24)
-        env.latest_observation = [-5, 12]
-        action = [3, -4]
-        reward = step_close_to_prediction_reward(env, action )
-        assert round(reward, 3) == -round(8 * 1/24, 3)
+        env.predictions.append(-5)
+        reward = step_close_to_prediction_reward(env)
+        assert round(reward, 3) == round(-8 * 1/24, 3)
+        env.predictions.append(6)
+        reward = step_close_to_prediction_reward(env)
+        assert round(reward, 3) == round(-3 * 1/24, 3)
 

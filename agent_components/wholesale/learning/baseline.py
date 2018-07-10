@@ -24,13 +24,13 @@ class BaselineTrader(PowerTacWholesaleAgent):
     (10x the previous, so a lot) and tries to always balance the portfolio no matter what. It adapts the Keras-RL API
     not because I am using Keras here but because the other agents will too and this will talk to the same APIs and behave
     the same way as an NN based agents (except that it is just really stupid). """
-    def forward(self, observation: PowerTacWholesaleObservation) -> np.array:
+    def forward(self, observation: PowerTacEnv) -> np.array:
         """Takes the observation and returns the action that matches it"""
 
         mWh = self.determine_mWh(observation)
         price = self.determine_price(observation, mWh)
 
-        return np.array([mWh, price]), None #passing 2 things back to avoid unpack errors
+        return np.array([mWh, price]), None, None #passing 3 things back to avoid unpack errors
 
     def determine_mWh(self, observation):
         # we need to buy the opposite of the customers predictions
@@ -41,12 +41,12 @@ class BaselineTrader(PowerTacWholesaleAgent):
         mWh *= -1
         return mWh
 
-    def determine_price(self, observation:PowerTacWholesaleObservation, needed):
+    def determine_price(self, observation:PowerTacEnv, needed):
         if len(observation.orderbooks) > 0:
             ob: PBOrderbook = observation.orderbooks[-1]
             price = ob.clearingPrice * 10
         else:
-            price = observation.hist_avg_prices[-24]
+            price = observation._historical_prices[-24]
          #if we buy mWh --> negative price
         if needed > 0:
             price = abs(price) * -1 * 10 # offering 10 x the price
@@ -56,7 +56,7 @@ class BaselineTrader(PowerTacWholesaleAgent):
 
         return price
 
-    def backward(self, env: PowerTacEnv, observation:PowerTacWholesaleObservation,  action, reward):
+    def backward(self, env: PowerTacEnv, action, reward):
         """Does nothing really. """
         pass
 

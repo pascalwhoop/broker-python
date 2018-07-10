@@ -42,10 +42,13 @@ class TestLogEnvManagerAdapter(unittest.TestCase):
         self.testable.current_timestep = 364
         #mock_wholesale_data gives 50 timesteps --> expect 50 rounds
         self.testable.step_game()
-        #assert first 24 messages to be cleared_trades
-        assert dispatcher_mock.send.call_args_list[0][0] == signals.PB_CLEARED_TRADE
+        assert dispatcher_mock.send.call_args_list[0][0][0] == signals.PB_TIMESLOT_COMPLETE
+        assert dispatcher_mock.send.call_args_list[1][0][0] == signals.PB_TIMESLOT_UPDATE
+        assert dispatcher_mock.send.call_args_list[2][0][0] == signals.COMP_USAGE_EST
+        #assert now next  24 messages to be cleared_trades
+        assert dispatcher_mock.send.call_args_list[3][0][0] == signals.PB_CLEARED_TRADE
         #and 25th to be a new timeslot_update
-        assert dispatcher_mock.send.call_args_list[24][0] == signals.PB_TIMESLOT_UPDATE
+        assert dispatcher_mock.send.call_args_list[27][0][0] == signals.PB_TIMESLOT_COMPLETE
         #TODO finish
 
     def test_fuzz_forecast_for_training(self):

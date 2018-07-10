@@ -21,11 +21,11 @@ log = logging.getLogger(__name__)
 class PowerTacWholesaleAgent:
     """Abstract wholesale agent that can act in a `PowerTacEnv`"""
 
-    def forward(self, observation: "PowerTacWholesaleObservation"):
-        """Get an action based on an observation."""
+    def forward(self, env: "PowerTacEnv"):
+        """Gets an action based on the environment. The agent is responsible for interpreting the environment"""
         raise NotImplementedError
 
-    def backward(self, env: "PowerTacEnv", obs, action, reward):
+    def backward(self, env: "PowerTacEnv", action, reward):
         """Receive the reward for the action and learn from historical data"""
         raise NotImplementedError
 
@@ -194,9 +194,7 @@ class WholesaleEnvironmentManager(SignalConsumer):
 
 
 class PowerTacEnv(Env):
-    """A close resembling of the OpenAI Gym but in PowerTAC, the flow of execution is reversed. That means,
-    the `step` method is expected to `yield` and be a Generator that data can be passed to.  that gets fed more data whenever it arrives to
-    calculate the reward etc.
+    """A close resembling of the OpenAI Gym but in PowerTAC, the flow of execution is reversed. This means the agent doesn't call the environment but the other way around
     """
 
     def __init__(self, agent: PowerTacWholesaleAgent, target_ts, historical_prices):
@@ -210,12 +208,14 @@ class PowerTacEnv(Env):
         self._historical_prices = deque(maxlen=cfg.WHOLESALE_HISTORICAL_DATA_LENGTH)
         self._historical_prices.extend(historical_prices)
 
-        self._step = 0
+        self._step = 1
         self.orderbooks: List[PBOrderbook] = []  #
         self.purchases: List[PBMarketTransaction] = []
         self.cleared_trades: List[PBClearedTrade] = []
         self.observations: List[PowerTacWholesaleObservation] = []
+        #the functional (powertac logic) actions, i.e. mWh, price
         self.actions: List[np.array] = []
+        #the raw action values returned by the NN
         self.nn_actions = []
         self.predictions: List[float] = []
 
@@ -235,14 +235,27 @@ class PowerTacEnv(Env):
         raise NotImplementedError
 
     def handle_timeslot_update(self, msg: PBTimeslotUpdate):
-        self._step += 1
         last_action = self.actions[-1] if self.actions else None
         last_observation = self.observations[-1] if self.observations else None
-        reward = 0
+        reward = self.calculate_reward()
         # TODO crit > calculate reward!
         if last_observation is None or last_action is None or self.realized_usage == 0:
             return
         self.agent.backward(self, last_observation, last_action, reward)
+        self._step += 1
+
+    def calculate_reward(self):
+        from agent_components.wholesale.learning.reward_functions import market_relative_prices, step_close_to_prediction_reward
+        if self._step == 25:  # terminal step
+            # calculate terminal reward
+            rew = market_relative_prices(self)
+
+            log.info("agent reward for terimal state {}".format(rew))
+            return rew
+        else:
+            return step_close_to_prediction_reward(self)
+            # calculate intermediate reward
+
 
     def handle_prediction(self, prediction):
         """
@@ -260,20 +273,11 @@ class PowerTacEnv(Env):
         """
         log.debug("predictions received in wholesale, starting trading actions")
         self.predictions.append(prediction)
-        obs = PowerTacWholesaleObservation(hist_avg_prices=np.array(self._historical_prices),
-                                           step=self._step,
-                                           orderbooks=self.orderbooks,
-                                           purchases=self.purchases,
-                                           predictions=self.predictions,
-                                           cleared_trades=self.cleared_trades,
-                                           actions=self.actions
-                                           )
-        action, nn_action, internals = self.agent.forward(obs)
+        action, nn_action, internals = self.agent.forward(self)
         self.internals.append(internals)
         # store the action and observation
         self.actions.append(action)
         self.nn_actions.append(nn_action)
-        self.observations.append(obs)
         self.send_order(action)
 
     def handle_cleared_trade(self, msg: PBClearedTrade):
