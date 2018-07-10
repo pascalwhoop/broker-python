@@ -64,8 +64,9 @@ class TbWriterHelper:
         #model_name += str(datetime.datetime.now())
         tensorboard_dir = os.path.join(cfg.TENSORBOARD_PATH, model_name)
         # clearing old and overwriting
-        if fresh:
+        if fresh and os.path.exists(tensorboard_dir):
             rmtree(tensorboard_dir, ignore_errors=True)
+        os.makedirs(tensorboard_dir)
         #self.train_writer = tf.summary.FileWriter(os.path.join(tensorboard_dir, 'train'))
         #self.test_writer = tf.summary.FileWriter(os.path.join(tensorboard_dir, 'test'))
         self.train_writer = tf.summary.FileWriter(tensorboard_dir)
@@ -104,7 +105,6 @@ def get_callbacks_with_generator(model_name):
 
 def get_tb_cb(model_name, **kwargs):
     log_path = os.path.join(cfg.TENSORBOARD_PATH, model_name)
-    rmtree(log_path, ignore_errors=True)
     kwargs['log_dir'] = log_path
     return TensorBoard(**kwargs)
 

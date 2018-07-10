@@ -3,6 +3,7 @@ import json
 import logging
 import numpy as np
 import os
+from  util.learning_utils import TbWriterHelper 
 from tensorforce.agents import Agent
 
 import util.config as cfg
@@ -44,6 +45,8 @@ class TensorforceAgent(PowerTacWholesaleAgent):
 
     def __init__(self, spec, kwargs):
         self.agent = Agent.from_spec(spec, kwargs=kwargs)
+        #TODO should be in the PowerTacWholesaleAgent as an inherited thing for all agents
+        self.tb_log_helper = TbWriterHelper("dqn", True)
 
     def forward(self, observation: PowerTacWholesaleObservation):
         obs = self.make_observation(observation)
@@ -79,6 +82,8 @@ class TensorforceAgent(PowerTacWholesaleAgent):
         terminal = env._step > 23
         last_purchase = env.purchases[-1].mWh if env.purchases else 0
         reward = self.calculate_reward(env)
+        self.tb_log_helper.write_any(reward, "reward")
+
         try:
             return self.agent.atomic_observe(obs, action, env.internals[-1], reward, terminal)
         except Exception as e:
@@ -103,6 +108,7 @@ model_configs = {
         actions={'shape': (2,), 'type': 'float'},
 
     ),
+    # 
     'discrete': dict(
         states={'shape': NN_INPUT_SHAPE, 'type': "float"},
         actions={'shape': (2,), 'type': 'int'}
@@ -116,12 +122,12 @@ model_configs = {
 
 model_kwargs = {
     'random': {**model_configs['base']},
-    'naf': {**model_configs['base'], **{'network': load_spec('mlp2_network')}},
-    'trpo': {**model_configs['base'], **{'network': load_spec('mlp2_network')}},
-    'vpg': {**model_configs['base'], **{'network': load_spec('mlp2_network')}},
-    'ppo': {**model_configs['base'], **{'network': load_spec('mlp2_network')}},
-    # 'dqn': {**model_configs['base'], **{'network': load_spec('mlp2_normalized_network')}}
-    'dqn': {**model_configs['twoarmedbandit'], **{'network': load_spec('mlp2_normalized_network')}}
+    'naf': {**model_configs['base'], **{'network': load_spec('mlp2_network')}}, # same as trpo
+    'trpo': {**model_configs['base'], **{'network': load_spec('mlp2_network')}},# suffers from some bug that lets it crash on start
+    'vpg': {**model_configs['base'], **{'network': load_spec('mlp2_network')}}, # not yet tested
+    'ppo': {**model_configs['base'], **{'network': load_spec('mlp2_network')}}, # ppo bug https://github.com/reinforceio/tensorforce/issues/391
+    'dqn': {**model_configs['base'], **{'network': load_spec('mlp2_normalized_network')}}
+    #'dqn': {**model_configs['twoarmedbandit'], **{'network': load_spec('mlp2_normalized_network')}}
 }
 
 

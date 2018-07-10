@@ -5,7 +5,7 @@ import numpy as np
 
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
 from agent_components.wholesale.util import calculate_running_averages, calculate_du_fee, average_price_for_power_paid, \
-    calculate_balancing_needed, tb_writer_helper
+    calculate_balancing_needed
 
 
 # what can rewards be based on?
@@ -73,10 +73,6 @@ def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
 
     #logging to tensorboard
     p = np.array(purchases)
-    tb_writer_helper.write_any(realized_usage, 'realized_usage')
-    tb_writer_helper.write_any(sum_agent, 'sum_agent')
-    tb_writer_helper.write_any(sum_agent_with_average_prices, 'sum_with_average_pr')
-    tb_writer_helper.write_any(p.max() - p.min(), 'purchases_spread')
 
     #TODO both do the same? check again
     if realized_usage > 0:

@@ -11,7 +11,6 @@ from util.learning_utils import TbWriterHelper
 
 """Utility functions for the wholesale trading component"""
 
-tb_writer_helper = TbWriterHelper('mdp_agent')
 
 def calculate_running_averages( known_results: np.array):
     """

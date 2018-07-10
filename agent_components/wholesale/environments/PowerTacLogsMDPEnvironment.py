@@ -9,7 +9,7 @@ from agent_components.wholesale.learning.reward_functions import simple_truth_or
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv, WholesaleObservationSpace, \
     WholesaleActionSpace
 from agent_components.wholesale.util import calculate_running_averages, calculate_missing_energy, trim_data, is_cleared, \
-    tb_writer_helper, parse_wholesale_file, _get_wholesale_as_nparr, price_scaler, demand_scaler
+    parse_wholesale_file, _get_wholesale_as_nparr, price_scaler, demand_scaler
 from util import config as cfg
 from util.learning_utils import get_wholesale_file_paths, get_usage_file_paths
 
@@ -106,8 +106,6 @@ class PowerTacLogsMDPEnvironment:
             done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
             info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
         """
-        #tb_writer_helper.write_any(action[0], 'mwh')
-        #tb_writer_helper.write_any(action[1], 'price')
 
         #TODO needed?
         #action = self.normalizer.denormalize(action)
@@ -146,8 +144,6 @@ class PowerTacLogsMDPEnvironment:
         observation = self.make_observation()
 
         # logging to tensorboard
-        tb_writer_helper.write_any(real_action[0], 'purchase_attempt')
-        tb_writer_helper.write_any(real_action[1], 'price_attempt')
 
         return observation, reward, done, {}
         # return observation, reward, done, {}
@@ -357,5 +353,3 @@ class PowerTacLogsMDPEnvironment:
     def log_actions(self, demand_forecast, last_price, purchased_sum, price_offered):
         divergence = abs(purchased_sum / demand_forecast)
         price_diff = last_price - abs(price_offered)
-        tb_writer_helper.write_any(divergence, 'divergence')
-        tb_writer_helper.write_any(price_diff, 'price_diff')

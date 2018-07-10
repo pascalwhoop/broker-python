@@ -1,7 +1,7 @@
 import logging
 
 from keras.utils import Sequence
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from agent_components.demand.learning.DemandLearner import DemandLearner
 from util.learning_utils import TbWriterHelper
@@ -42,10 +42,11 @@ class FakeModel:
                 # equivalent to saying "same as 24h ago"
                 #mae = mean_absolute_error(batch_y[i], batch_x[i][-24:])
 
-                # same as saying "same as 1h ago (in last timestep before realization)
-                mae = mean_absolute_error(batch_y[i], batch_x[i,-len(batch_y[i]):])
+                # same as saying "same as 24h ago (in last timestep before realization)
+                #mae = mean_absolute_error(batch_y[i], batch_x[i,-len(batch_y[i]):])
+                mse = mean_squared_error(batch_y[i], batch_x[i,-len(batch_y[i]):])
 
-                batch_loss += mae
+                batch_loss += mse
             batch_loss = batch_loss / len(batch_x)
             self.writer.write_train_loss(batch_loss)
 

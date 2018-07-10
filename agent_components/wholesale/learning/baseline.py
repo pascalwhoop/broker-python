@@ -12,7 +12,6 @@ log = logging.getLogger(__name__)
 
 model_name = "baseline-log-rl"
 tag = ""
-tb_writer = TbWriterHelper(model_name= model_name)
 
 def get_instance(tag_, fresh):
     global tag
