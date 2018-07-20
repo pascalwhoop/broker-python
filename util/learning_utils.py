@@ -111,6 +111,23 @@ def get_tb_cb(model_name, **kwargs):
 
 ######################## ############################################################
 
+def tensorboard_write_mpd_sum(env):
+    """Writes summaries to the tensorboard for later analysis"""
+    from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
+    _env: PowerTacEnv = env
+    if not _env.predictions:
+        return
+    writer = _env.agent.tb_log_helper
+    last_pred = _env.predictions[-1]
+    #except for the balancing purchase, all purchases
+    purchased_already = np.array([p.mWh for p in _env.purchases[:-1]]).sum() if _env.purchases else 0
+    attempted = np.array([p[0] for p in _env.actions]).sum()
+    writer.write_any(last_pred, "preds")
+    writer.write_any(attempted, "attempted purchases")
+    writer.write_any(purchased_already, "purchased")
+
+
+
 def get_usage_file_paths() -> List:
     files = os.listdir(cfg.DEMAND_LEARNING_USAGE_PATH)
     full_paths = []

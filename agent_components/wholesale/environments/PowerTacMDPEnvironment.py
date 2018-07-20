@@ -7,7 +7,7 @@ from agent_components.demand.learning import data as demand_data
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
 from communication.grpc_messages_pb2 import PBClearedTrade, PBMarketTransaction, PBOrderbook
 from communication.pubsub import signals
-from communication.pubsub.PubSubTypes import SignalConsumer
+from communication.pubsub.SignalConsumer import SignalConsumer
 
 
 class PowerTacMDPEnvironment(PowerTacEnv, SignalConsumer):

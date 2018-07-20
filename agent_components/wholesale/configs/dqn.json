@@ -21,19 +21,12 @@
         }
     },
 
-    "discount": 0.99,
+    "discount": 1.00,
     "entropy_regularization": null,
     "double_q_model": true,
 
     "target_sync_frequency": 1000,
     "target_update_weight": 1.0,
-
-    "actions_exploration": {
-        "type": "epsilon_anneal",
-        "initial_epsilon": 0.5,
-        "final_epsilon": 0.0,
-        "timesteps": 10000
-    },
 
     "saver": {
         "directory": null,

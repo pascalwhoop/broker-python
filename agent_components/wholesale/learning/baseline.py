@@ -1,13 +1,11 @@
 import logging
 import numpy as np
-from rl.core import Agent
 
-from agent_components.wholesale.environments.PowerTacEnv import PowerTacWholesaleAgent, PowerTacWholesaleObservation, \
-    PowerTacEnv
-from agent_components.wholesale.environments.PowerTacLogsMDPEnvironment import PowerTacLogsMDPEnvironment
-from agent_components.wholesale.learning.reward_functions import simple_truth_ordering, shifting_balancing_price
+from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
+from agent_components.wholesale.environments.PowerTacWholesaleAgent import PowerTacWholesaleAgent
 from communication.grpc_messages_pb2 import PBOrderbook
-from util.learning_utils import get_tb_cb, TbWriterHelper
+from util.learning_utils import get_tb_cb
+
 log = logging.getLogger(__name__)
 
 model_name = "baseline-log-rl"
@@ -24,6 +22,11 @@ class BaselineTrader(PowerTacWholesaleAgent):
     (10x the previous, so a lot) and tries to always balance the portfolio no matter what. It adapts the Keras-RL API
     not because I am using Keras here but because the other agents will too and this will talk to the same APIs and behave
     the same way as an NN based agents (except that it is just really stupid). """
+
+    def __init__(self):
+        super().__init__('baseline')
+
+
     def forward(self, observation: PowerTacEnv) -> np.array:
         """Takes the observation and returns the action that matches it"""
 
@@ -63,14 +66,6 @@ class BaselineTrader(PowerTacWholesaleAgent):
     def save_model(self):
         log.info("the baseline agent doesn't need to save itself")
         pass
-
-    def __init__(self):
-        self.env = PowerTacLogsMDPEnvironment(reward_func=shifting_balancing_price)
-        self.nb_actions = 2
-        self.env.new_game()
-        self.memory_length = 1
-
-        super().__init__()
 
 
 

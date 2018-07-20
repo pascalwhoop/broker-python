@@ -1,18 +1,21 @@
 import ast
 import csv
+import logging
+import random
 from typing import List
 
 import numpy as np
 from sklearn import preprocessing
 
+from communication.grpc_messages_pb2 import PBMarketTransaction, PBOrder, PBClearedTrade
 from util import config as cfg
 from util.config import MIN_PRICE_SCALE, MAX_PRICE_SCALE, MIN_DEMAND, MAX_DEMAND
-from util.learning_utils import TbWriterHelper
 
 """Utility functions for the wholesale trading component"""
 
+log = logging.getLogger(__name__)
 
-def calculate_running_averages( known_results: np.array):
+def calculate_running_averages(known_results: np.array):
     """
     Calculates the running averages of all timeslots.
     """
@@ -27,7 +30,8 @@ def calculate_running_averages( known_results: np.array):
     return averages
 
 
-def calculate_running_average(timeslot_trading_data:np.array):
+def calculate_running_average(timeslot_trading_data: np.array):
+    """Assumes an input being an array of [mWH price] items"""
     # data is a 24 item long array of 2 vals each
     # average is sum(price_i * kwh_i) / kwh_total
     s = timeslot_trading_data.shape
@@ -40,7 +44,8 @@ def calculate_running_average(timeslot_trading_data:np.array):
     return avg
 
 
-def get_sum_purchased_for_ts(purchases) -> float:
+def get_sum_purchased_for_ts(purchases: List[np.array]) -> float:
+    """Assumes input as [mWh, price] array"""
     if not purchases:
         return 0
     return np.array(purchases)[:, 0].sum()
@@ -61,8 +66,7 @@ def calculate_missing_energy(purchases: float, demand: float):
 
 def average_price_for_power_paid(purchases):
     """
-    calculates the average price per mWh the agent paid in the market. If the agent actually sold more than
-    bought, the value becomes negative
+    calculates the average price per mWh the agent paid in the market.
     :param purchases:
     :return: type and average price paid --> stupid if it paid money to sell energy on average
     """
@@ -76,17 +80,17 @@ def average_price_for_power_paid(purchases):
     # if both positive --> broker got energy for free --> 0
     # if both negative --> broker paid and lost energy --> infinite
     if total_energy < 0 and total_money < 0:
-        return 'bid',  cfg.np_high #max number possible. simulates infinite
+        return 'bid', cfg.np_high  # max number possible. simulates infinite
     # broker lost energy --> sold it
     if total_energy < 0:
-        return 'ask',  abs(total_money / total_energy)
-    #broker purchased energy and still made profit
+        return 'ask', abs(total_money / total_energy)
+    # broker purchased energy and still made profit
     if total_money > 0 and total_energy > 0:
         return 'bid', 0
-    #broker purchased energy
+    # broker purchased energy
     if total_energy > 0:
         return 'bid', abs(total_money / total_energy)
-    #if all else fails
+    # if all else fails
     return 'bid', 0
 
 
@@ -103,57 +107,55 @@ def calculate_du_fee(average_market, balancing_needed):
     return du_trans
 
 
-def trim_data(demand_data: np.array, wholesale_data: np.array, first_timestep_demand):
-    """
-    Trims the demand_data and wholesale_data arrays to ensure they both cover the same timesteps for the game
-    :param demand_data:
-    :param wholesale_data:
-    :param first_timestep_demand:
-    :return:
-    """
-    min_dd = first_timestep_demand
-    # the wholesale data holds 3 columns worth of metadata (slot, dayofweek,hourofday)
-    ws_header = np.array([row[0:3] for row in wholesale_data])
-    min_ws = int(ws_header[:, 0].min())
-    # getting the first common ts
-    starting_timeslot = min_dd if min_dd > min_ws else min_ws
-
-    # trim both at beginning to ensure common starting TS
-    if min_dd > min_ws:
-        # trim ws
-        wholesale_data = wholesale_data[min_dd - min_ws:]
-    else:
-        # trim other
-        demand_data = demand_data[min_ws - min_ws:]
-
-    # now trim both at end to ensure same length
-    max_len = len(demand_data) if len(demand_data) < len(wholesale_data) else len(wholesale_data)
-    demand_data = demand_data[:max_len - 1]
-    wholesale_data = wholesale_data[:max_len - 1]
-    return demand_data, wholesale_data
+#def trim_data(demand_data: np.array, wholesale_data: np.array, first_timestep_demand):
+#    :param demand_data:
+#    :param wholesale_data:
+#    :param first_timestep_demand:
+#    :return:
+#    """
+#    min_dd = first_timestep_demand
+#    # the wholesale data holds 3 columns worth of metadata (slot, dayofweek,hourofday)
+#    ws_header = np.array([row[0:3] for row in wholesale_data])
+#    min_ws = int(ws_header[:, 0].min())
+#    # getting the first common ts
+#    starting_timeslot = min_dd if min_dd > min_ws else min_ws
+#
+#    # trim both at beginning to ensure common starting TS
+#    if min_dd > min_ws:
+#        # trim ws
+#        wholesale_data = wholesale_data[min_dd - min_ws:]
+#    else:
+#        # trim other
+#        demand_data = demand_data[min_ws - min_ws:]
+#
+#    # now trim both at end to ensure same length
+#    max_len = len(demand_data) if len(demand_data) < len(wholesale_data) else len(wholesale_data)
+#    demand_data = demand_data[:max_len - 1]
+#    wholesale_data = wholesale_data[:max_len - 1]
+#    return demand_data, wholesale_data
 
 
-def is_cleared(action, market_data) -> bool:
-    # if both positive, the agent it trying to pull a fast one. Nope
-    if action[0] > 0 and action[1] > 0:
-        return False
-    # ignoring amounts in offline learning files, just checking prices
-    a = action[1]
-    m = market_data[1]
-    z = np.zeros(a.shape)
-
-    # market not active, nothing sold/bought
-    if market_data[0] == 0:
-        return False
-
-    if a > 0:
-        # selling for less -> cleared
-        return a < abs(m)
-    if a < 0:
-        # buying for more -> cleared
-        return abs(a) > m
-    # default, didn't buy anything or no price
-    return False
+#def is_cleared(action, market_data) -> bool:
+#    # if both positive, the agent it trying to pull a fast one. Nope
+#    if action[0] > 0 and action[1] > 0:
+#        return False
+#    # ignoring amounts in offline learning files, just checking prices
+#    a = action[1]
+#    m = market_data[1]
+#    z = np.zeros(a.shape)
+#
+#    # market not active, nothing sold/bought
+#    if market_data[0] == 0:
+#        return False
+#
+#    if a > 0:
+#        # selling for less -> cleared
+#        return a < abs(m)
+#    if a < 0:
+#        # buying for more -> cleared
+#        return abs(a) > m
+#    # default, didn't buy anything or no price
+#    return False
 
 
 def calculate_balancing_needed(purchases, realized_usage):
@@ -166,12 +168,6 @@ def calculate_balancing_needed(purchases, realized_usage):
     return balancing_needed
 
 
-def get_do_nothing():
-    return np.array([0,0])
-
-
-def unflat_action(action: np.array):
-    return action.reshape(cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL, 2)
 
 
 def parse_wholesale_file(file):
@@ -182,20 +178,74 @@ def parse_wholesale_file(file):
     return out
 
 
-def make_flat_observation(observation) -> np.array:
-    obs = []
-    obs.extend(observation['required_energy'])
-    obs.extend(observation['historical_prices'])
-    obs.extend(observation['current_prices'].flatten())
-    return np.array(obs)
-
-
 def _get_wholesale_as_nparr(wholesale_data: List):
     """Assumes it's being passed a list of wholesale data, where the first three columns are metadata and then it's raw stuff"""
     return np.array([row[3:] for row in wholesale_data])
 
 
-price_scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
+price_scaler = preprocessing.MinMaxScaler(feature_range=(-1, 1))
 price_scaler.fit(np.array([MIN_PRICE_SCALE, MAX_PRICE_SCALE]).reshape(-1, 1))
-demand_scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
+demand_scaler = preprocessing.MinMaxScaler(feature_range=(-1, 1))
 demand_scaler.fit(np.array([MIN_DEMAND, MAX_DEMAND]).reshape(-1, 1))
+
+
+def calculate_energy_needed(latest_news, purchases: List[PBMarketTransaction]):
+    purchased_already = np.array([p.mWh for p in purchases]).sum()
+    #        what we need *(-1)  + sum purchased (reduces need)
+    needed = - latest_news       + purchased_already
+    return needed
+
+
+def is_cleared_with_volume_probability(order:PBOrder, marketClearing: np.array) -> (bool, float):
+    """clears the order with a high probability if the offer was very generous and less prob if it is close to the market price"""
+    action = np.array([order.mWh, order.limitPrice])
+    clearing_probability = 1
+
+    # if both positive, the agent it trying to pull a fast one. Nope
+    if action[0] > 0 and action[1] > 0:
+        #log.warning("agent is returning irrational bids")
+        return False, 0
+    if action[0] < 0 and action[1] < 0:
+        #log.warning("agent is giving away money")
+        return False, 0
+
+    market_volume = abs(marketClearing[0])
+    action_volume = abs(action[0])
+    if market_volume == 0:
+        return False, 0
+    if action_volume > market_volume:
+        log.warning("agent is asking for large volume {} in market {}".format(action_volume, market_volume))
+        return False, 0
+    volume_diff = market_volume - action_volume
+    #the larger the action_volume, the less likely that the market will clear it.
+    clearing_probability *=  (volume_diff / market_volume)
+
+
+    action_price = action[1]
+    market_price = abs(marketClearing[1])
+
+    #selling energy
+    if action_price >= 0:
+        # selling for less -> cleared
+        price_diff = market_price - action_price
+    else:
+        # buying for more -> cleared
+        price_diff = abs(action_price) - market_price
+
+    if price_diff <= 0:
+        #buying too cheap or selling to expensive
+        return False, 0
+    price_multiplicator = (price_diff / market_price)
+    price_multiplicator = np.array([price_multiplicator, 1]).min()
+    clearing_probability *= price_multiplicator
+
+    return random.random() < clearing_probability, clearing_probability
+
+
+def fuzz_forecast_for_training(customer_data):
+    """fuzzes the data a bit according to configured noise factor"""
+    for i in range(len(customer_data)):
+        err_mult = random.uniform(-cfg.WHOLESALE_FORECAST_ERROR_PER_TS, cfg.WHOLESALE_FORECAST_ERROR_PER_TS)
+        # fuzz them increasingly much
+        customer_data[i:] = customer_data[i:] + err_mult * customer_data[i:]
+    return customer_data

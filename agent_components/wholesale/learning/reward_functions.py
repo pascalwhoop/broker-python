@@ -1,20 +1,24 @@
 import math
+
+import logging
+
 import util.config as cfg
 
 import numpy as np
 
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
 from agent_components.wholesale.util import calculate_running_averages, calculate_du_fee, average_price_for_power_paid, \
-    calculate_balancing_needed
-
+    calculate_balancing_needed, calculate_energy_needed, is_cleared_with_volume_probability
 
 # what can rewards be based on?
 # - action
 # - realized cost
 # - divergence from forecast
+from communication.grpc_messages_pb2 import PBOrder
 from util.utils import deprecated
 
 
+log = logging.getLogger(__name__)
 @deprecated
 def simple_truth_ordering(env, action, market_trades, purchases, realized_usage):
     """
@@ -28,6 +32,10 @@ def simple_truth_ordering(env, action, market_trades, purchases, realized_usage)
     return -((amount-0.50)**2 + (price-0.60)**2)
 
 def market_relative_prices(env:PowerTacEnv):
+    """Calculates the relationship between the agents prices paid and the average market price"""
+    #this only allows the agent to receive feedback at the end of the timeslot, so at the last trading opportunity.
+    #if env._step != 25:
+    #    return 0
     market_trades = [[tr.executionMWh, tr.executionPrice] for tr in env.cleared_trades]
     purchases = [[p.mWh, p.price] for p in env.purchases]
     realized_usage = env.realized_usage
@@ -35,6 +43,7 @@ def market_relative_prices(env:PowerTacEnv):
     average_market = calculate_running_averages(np.array([market_trades]))[0]
 
     balancing_needed = calculate_balancing_needed(purchases, realized_usage)
+    log.info("balancing needed for target ts {}  -- {}".format(env._target_timeslot, balancing_needed))
 
     # TODO for now just a fixed punishment for every balanced mWh. Later maybe based on balancing stats data
     du_trans = calculate_du_fee(average_market, balancing_needed)
@@ -43,14 +52,14 @@ def market_relative_prices(env:PowerTacEnv):
 
     type_, average_agent = average_price_for_power_paid(purchases)
     market_relative_prices = 0
-    if type_ == 'ask':
+    if type_ == 'ask' and average_market != 0:
         # broker is overall selling --> higher is better
         market_relative_prices = average_agent / average_market
-    if type_ == 'bid':
+    if type_ == 'bid' and average_agent != 0:
         # broker is overall buyer --> lower is better
         market_relative_prices = average_market / average_agent
     #large market_relative_prices --> good
-    return -100 + (market_relative_prices* 100)
+    return market_relative_prices
 
 
 @deprecated
@@ -70,7 +79,6 @@ def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
     sum_agent = np.array([abs(r[0])*r[1] for r in purchases]).sum()
     # average_market is always positive --> negative mWh amount --> reducing costs --> fair, because "what if sold"
     sum_agent_with_average_prices = realized_usage * abs(average_market)
-
     #logging to tensorboard
     p = np.array(purchases)
 
@@ -89,6 +97,45 @@ def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
         return sum_agent - sum_agent_with_average_prices
 
 
+#def reduce_imbalance_cheap_at_end(env:PowerTacEnv):
+#    """every time there is still energy left to be purchased, a negative reward is given. additionally, the market_relative_prices areused with a factor of 100"""
+#    latest_news = env.predictions[-1] if env.predictions else 0
+#    # sum purchased
+#    needed = calculate_energy_needed(latest_news, env.purchases)
+    # PROBLEM: -needed gives negative reward in round 0 but the agent isn't at fault, it had no chance to buy yet
+#    return -needed + 100 * market_relativeis_prices(env)
+
+
+# PROBLEM bad structure... converges towards attempting to buy nothing because that always has a likelihood of 1
+#def succ_orders_then_cheap(env:PowerTacEnv):
+#    """gives back the probability of the action clearing. this makes the agent learn to always bid so that the market
+#    clears """
+#    if not env.actions or not env.cleared_trades:
+#        #TODO 0 or something else? is the reward neg or
+#        return 0
+#    mWh = env.actions[-1][0]
+#    price = env.actions[-1][0]
+#    o = PBOrder(mWh=mWh, limitPrice=price)
+#    last_ct = env.cleared_trades[-1]
+#    cl, r_prob = is_cleared_with_volume_probability(o, np.array([last_ct.executionMWh, last_ct.executionPrice]))
+#    #trial 1... just the probability of clearing is learned
+#    return r_prob
+
+def unified_step_close_relative_market(env:PowerTacEnv):
+    #TODO add factor \alpha for weighing the components
+    #usually negative, the closer to 0 the better
+    r_pred = step_close_to_prediction_reward(env)
+    # usually positive, the larger the better
+    r_rel = market_relative_prices(env) if env._step == 25 else 0
+    r_price = close_to_market_price(env)
+    log.info("r_pred {} r_rel {} r_price {}".format(r_pred, r_rel, r_price))
+    return r_pred + r_rel + r_price
+
+def close_to_market_price(env:PowerTacEnv):
+    r_price = 0
+    if not env.cleared_trades or not env.actions:
+        return r_price
+    return -abs(env.cleared_trades[-1].executionPrice - env.actions[-1][1])
 
 
 def step_close_to_prediction_reward(env: PowerTacEnv):
@@ -96,10 +143,12 @@ def step_close_to_prediction_reward(env: PowerTacEnv):
     to deviate from the forecasts a little but not too much. Generally, the forecast is supposed to be considered as
      a "true" value, i.e. it's assumed that the predictor knows better than the wholesale trader. """
     # motivates to ensure the portfolio is covered the closer we get to the final timestep.
-    latest_news = env.predictions[-1]
+    # prediction.
+    latest_news = env.predictions[-1] if env.predictions else 0
+    # sum purchased
     purchased_already = np.array([p.mWh for p in env.purchases]).sum()
     needed = latest_news + purchased_already
-    action = env.actions[-1]
+    action = env.actions[-1] if env.actions else [0,0]
     return -abs((action[0] - needed)) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
 
 

@@ -1,40 +1,57 @@
+"""The second attempt at getting a RL agent up and running within Python when talking to PowerTAC. This agent makes use of the TensorForce library (soon to be replaced with YARL).
+ It's still in a very rough form, doesn't support loading/saving of the model yet etc. """
 import datetime
 import json
 import logging
 import numpy as np
 import os
-from  util.learning_utils import TbWriterHelper 
+
+from agent_components.wholesale.learning import reward_functions
+from agent_components.wholesale.learning.postprocessor import get_action_translator
 from tensorforce.agents import Agent
 
 import util.config as cfg
-from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv, PowerTacWholesaleAgent, \
-    PowerTacWholesaleObservation
-from agent_components.wholesale.learning.reward_functions import market_relative_prices, step_close_to_prediction_reward
-from communication.grpc_messages_pb2 import PBOrderbook
+from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
+from agent_components.wholesale.environments.PowerTacWholesaleAgent import PowerTacWholesaleAgent
+from agent_components.wholesale.learning.preprocessor import get_observation_preprocessor
 
 log = logging.getLogger(__name__)
 
 MODEL_NAME = "cdq_v2_inverse_agent" + str(datetime.datetime.now())
-tag = ""
 BATCH_SIZE = 32
-# TODO determine input shape
-NN_INPUT_SHAPE = (
-    cfg.WHOLESALE_HISTORICAL_DATA_LENGTH + cfg.DEMAND_FORECAST_DISTANCE + cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL,)
-nb_actions = 2
+NN_INPUT_SHAPE = ( cfg.WHOLESALE_HISTORICAL_DATA_LENGTH + cfg.DEMAND_FORECAST_DISTANCE + cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL,)
 
+model_configs = {
+    'continuous': dict(
+        states={'shape': NN_INPUT_SHAPE, 'type': "float"},
+        actions={'shape': (2,), 'type': 'float'},
 
-def load_spec(tag):
-    p = os.path.join(cfg.WHOLESALE_TENSORFORCE_CONFIGS, "{}.json".format(tag))
+    ),
+    #
+    'discrete': dict(
+        states={'shape': NN_INPUT_SHAPE, 'type': "float"},
+        actions={'shape': (2,), 'type': 'int', 'num_actions': 11}
+    ),
+
+    'twoarmedbandit': dict(
+        states= {'shape': NN_INPUT_SHAPE, 'type': "float"},
+        actions={'shape':(1,),            'type':'int', 'num_actions': 2}
+    )
+}
+
+def load_spec_file(spec):
+    p = os.path.join(cfg.WHOLESALE_TENSORFORCE_CONFIGS, "{}.json".format(spec))
     with open(p) as f:
         return json.load(f)
 
 
-def get_instance(tag_, fresh):
-    global tag
-    tag = tag_
-    spec = load_spec(tag)
-    kwargs = model_kwargs[tag]
-    return TensorforceAgent(spec, kwargs)
+def create_spec(action_type, agent_type, network):
+    """Combines all the information to an tensorforce agent spec"""
+    agent_spec = load_spec_file(agent_type)
+    network = load_spec_file(network)
+    agent_spec['network'] = network
+    agent_spec = {**agent_spec, **model_configs[action_type]}
+    return agent_spec
 
 
 class TensorforceAgent(PowerTacWholesaleAgent):
@@ -43,31 +60,22 @@ class TensorforceAgent(PowerTacWholesaleAgent):
     which return actions for observations and learn from past actions and rewards.
     """
 
-    def __init__(self, spec, kwargs):
-        self.agent = Agent.from_spec(spec, kwargs=kwargs)
-        #TODO should be in the PowerTacWholesaleAgent as an inherited thing for all agents
-        self.tb_log_helper = TbWriterHelper("dqn", True)
+    def __init__(self, agent_type, network, action_type, preprocessor_type,reward, tag):
+        rf = reward_functions.__dict__[reward]
+        super().__init__("-".join([agent_type, network, action_type, reward, tag]))
+        agent_spec = create_spec(action_type, agent_type, network)
+        self._tf_agent = Agent.from_spec(agent_spec, {})
+        self.action_translator = get_action_translator(action_type)
+        self.preprocessor = get_observation_preprocessor(preprocessor_type)
 
     def forward(self, env: PowerTacEnv):
-        obs = self.make_observation(env)
+        obs = self.preprocessor(env)
         env.observations.append(obs)
-        nn_action, states, internals = self.agent.act(obs, buffered=False)
-        actions = translate_two_armed(env, nn_action)
-        return actions, nn_action, internals
+        nn_action, states, internals = self._tf_agent.act(obs, buffered=False)
+        action = self.action_translator(env, nn_action)
+        action[1] = env.predictions[-1]*10
+        return action, nn_action, internals
 
-    def make_observation(self, env: PowerTacEnv):
-        purchases = np.array([p.mWh for p in env.purchases])
-        hist_prices = np.array(env._historical_prices)
-        predictions = env.predictions
-        # padding properly to keep same position and size
-        pad = 24 - len(purchases)
-        purchases = np.pad(purchases, (0, pad), 'constant', constant_values=0)
-        pad = 168 - len(hist_prices)
-        hist_prices = np.pad(hist_prices, (0, pad), 'constant', constant_values=0)
-        pad = 24 - len(predictions)
-        predictions = np.pad(predictions, (0, pad), 'constant', constant_values=0)
-        obs = np.concatenate((predictions, hist_prices, purchases))
-        return obs
 
     def backward(self, env: PowerTacEnv, action, reward):
         obs = env.observations[-1]
@@ -78,65 +86,8 @@ class TensorforceAgent(PowerTacWholesaleAgent):
         self.tb_log_helper.write_any(reward, "reward")
 
         try:
-            return self.agent.atomic_observe(obs, action, env.internals[-1], reward, terminal)
+            return self._tf_agent.atomic_observe(obs, action, env.internals[-1], reward, terminal)
         except Exception as e:
             log.exception(e)
 
-
-
-# =========================== Agent configs
-
-model_configs = {
-    'base': dict(
-        states={'shape': NN_INPUT_SHAPE, 'type': "float"},
-        actions={'shape': (2,), 'type': 'float'},
-
-    ),
-    # 
-    'discrete': dict(
-        states={'shape': NN_INPUT_SHAPE, 'type': "float"},
-        actions={'shape': (2,), 'type': 'int'}
-    ),
-
-    'twoarmedbandit': dict(
-        states= {'shape': NN_INPUT_SHAPE, 'type': "float"},
-        actions={'shape':(1,),            'type':'int', 'num_actions': 2}
-    )
-}
-
-model_kwargs = {
-    'random': {**model_configs['base']},
-    'naf': {**model_configs['base'], **{'network': load_spec('mlp2_network')}}, # same as trpo
-    'trpo': {**model_configs['base'], **{'network': load_spec('mlp2_network')}},# suffers from some bug that lets it crash on start
-    'vpg': {**model_configs['base'], **{'network': load_spec('mlp2_network')}}, # not yet tested
-    'ppo': {**model_configs['base'], **{'network': load_spec('mlp2_network')}}, # ppo bug https://github.com/reinforceio/tensorforce/issues/391
-    'dqn': {**model_configs['base'], **{'network': load_spec('mlp2_normalized_network')}}
-    #'dqn': {**model_configs['twoarmedbandit'], **{'network': load_spec('mlp2_normalized_network')}}
-}
-
-
-def translate_two_armed(env: PowerTacEnv, actions):
-    if not actions[0]:
-        log.warning("agent chose random stupid action, shouldn't")
-        return np.random.randint(-100,100, size=2)
-    # we need to buy the opposite of the customers predictions
-    mWh = env.predictions[-1]
-    # but reduce it by what we already purchased
-    bought = np.array([a.mWh for a in env.purchases]).sum()
-    mWh = mWh + bought
-    mWh *= -1
-
-    if len(env.orderbooks) > 0:
-        ob: PBOrderbook = env.orderbooks[-1]
-        price = ob.clearingPrice * 10
-    else:
-        price = env._historical_prices[-24]
-    # if we buy mWh --> negative price
-    if mWh > 0:
-        price = abs(price) * -1 * 10  # offering 10 x the price
-    # else positive price
-    else:
-        price = abs(price) / 10  # asking 1/10th the market price
-
-    return [mWh, price]
 

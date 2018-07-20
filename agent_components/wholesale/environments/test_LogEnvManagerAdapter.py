@@ -1,12 +1,11 @@
+import numpy as np
 import unittest
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, mock_open, patch
 
 import util.config as cfg
-import numpy as np
-
 from agent_components.wholesale.environments.LogEnvManagerAdapter import LogEnvManagerAdapter
+from agent_components.wholesale.util import is_cleared_with_volume_probability, fuzz_forecast_for_training
 from agent_components.wholesale.environments.test_log_environment import make_mock_wholesale_data
-from agent_components.wholesale.learning.baseline import BaselineTrader
 from communication.grpc_messages_pb2 import PBOrder
 from communication.pubsub import signals
 
@@ -15,7 +14,9 @@ class TestLogEnvManagerAdapter(unittest.TestCase):
 
     def setUp(self):
         self.mock_agent = Mock()
-        self.testable = LogEnvManagerAdapter(self.mock_agent)
+        self.reward_mock = Mock()
+        self.reward_mock.return_value = 0
+        self.testable = LogEnvManagerAdapter(self.mock_agent, self.reward_mock)
 
 
 
@@ -43,18 +44,21 @@ class TestLogEnvManagerAdapter(unittest.TestCase):
         #mock_wholesale_data gives 50 timesteps --> expect 50 rounds
         self.testable.step_game()
         assert dispatcher_mock.send.call_args_list[0][0][0] == signals.PB_TIMESLOT_COMPLETE
-        assert dispatcher_mock.send.call_args_list[1][0][0] == signals.PB_TIMESLOT_UPDATE
-        assert dispatcher_mock.send.call_args_list[2][0][0] == signals.COMP_USAGE_EST
+        #30 tariff transactions
+        assert dispatcher_mock.send.call_args_list[1][0][0] == signals.PB_TARIFF_TRANSACTION
+        assert dispatcher_mock.send.call_args_list[30][0][0] == signals.PB_TARIFF_TRANSACTION
+        assert dispatcher_mock.send.call_args_list[30+1][0][0] == signals.PB_TIMESLOT_UPDATE
+        assert dispatcher_mock.send.call_args_list[1+30+1][0][0] == signals.COMP_USAGE_EST
         #assert now next  24 messages to be cleared_trades
-        assert dispatcher_mock.send.call_args_list[3][0][0] == signals.PB_CLEARED_TRADE
+        assert dispatcher_mock.send.call_args_list[1+30+1+1][0][0] == signals.PB_CLEARED_TRADE
         #and 25th to be a new timeslot_update
-        assert dispatcher_mock.send.call_args_list[27][0][0] == signals.PB_TIMESLOT_COMPLETE
+        assert dispatcher_mock.send.call_args_list[1+30+1+1+24][0][0] == signals.PB_TIMESLOT_COMPLETE
         #TODO finish
 
     def test_fuzz_forecast_for_training(self):
         fc = np.arange(24, dtype=np.float64)
         err = cfg.WHOLESALE_FORECAST_ERROR_PER_TS
-        fuzzed = self.testable.fuzz_forecast_for_training(fc)
+        fuzzed = fuzz_forecast_for_training(fc)
         #assert that all fuzzed forecasts are within range of acceptable error
         for i in range(24):
             assert (fc[i] - i*err * fc[i]) <= fuzzed[i]
@@ -90,17 +94,17 @@ class TestLogEnvManagerAdapter(unittest.TestCase):
     def test_is_cleared_with_volume_probability(self):
         order = PBOrder(mWh=10, limitPrice=-10)
         market = [1000000, 5]
-        is_cleared, prob = self.testable.is_cleared_with_volume_probability(order, market)
+        is_cleared, prob = is_cleared_with_volume_probability(order, market)
         assert prob > 0.9 #offering twice the market price and buying very little
 
         order = PBOrder(mWh=10, limitPrice=-3)
         market = [1000000, 5]
-        is_cleared, prob = self.testable.is_cleared_with_volume_probability(order, market)
+        is_cleared, prob = is_cleared_with_volume_probability(order, market)
         assert prob == 0.0 #offering too little
 
         order = PBOrder(mWh=10, limitPrice=-5.1)
         market = [1000000, 5]
-        is_cleared, prob = self.testable.is_cleared_with_volume_probability(order, market)
+        is_cleared, prob = is_cleared_with_volume_probability(order, market)
         assert prob < 0.1 #offering too little
 
 
@@ -109,6 +113,14 @@ class TestLogEnvManagerAdapter(unittest.TestCase):
         _fill_with_mock_data(self.testable)
         fts = self.testable.get_first_timestep()
         assert fts == 363
+
+    @patch('agent_components.wholesale.environments.LogEnvManagerAdapter.dispatcher')
+    def test_simulate_tariff_transactions(self, dispatcher: Mock):
+        self.testable.demand_data = make_mock_demand_data()
+        self.testable.current_timestep = 1
+        for i in range(240):
+            self.testable.simulate_tariff_transactions()
+            assert dispatcher.send.call_count == (i+1)*len(self.testable.demand_data)
 
 
 

@@ -1,10 +1,8 @@
 import pickle
 
-import json
 import numpy as np
 import os
 
-import communication.pubsub.signals as signals
 import unittest
 from google.protobuf.json_format import MessageToJson
 from unittest.mock import patch, Mock
@@ -12,7 +10,7 @@ from unittest.mock import patch, Mock
 from agent_components.demand.estimator import CustomerPredictions
 from communication.grpc_messages_pb2 import PBTimeslotComplete
 from communication.pubsub import signals
-import environment.messages_cache as caches
+import communication.messages_cache as caches
 
 testing_signal = "some_signal"
 
@@ -35,7 +33,7 @@ class TestMessageCache(unittest.TestCase):
         msg = PBTimeslotComplete(timeslotIndex=2)
         MessageToJson(msg)
 
-    @patch('environment.messages_cache.get_file_handler')
+    @patch('communication.messages_cache.get_file_handler')
     def test_log_protobuf(self,gfhm: Mock):
         file_handler_mock = Mock()
         gfhm.return_value  = file_handler_mock
@@ -45,7 +43,7 @@ class TestMessageCache(unittest.TestCase):
         file_handler_mock.write.assert_called_with(MessageToJson(msg).replace("\n", "")+"\n")
 
 
-    @patch('environment.messages_cache.pickle')
+    @patch('communication.messages_cache.pickle')
     def test_log_normal_obj(self, pickle_mock:Mock):
         msg = CustomerPredictions(name="jack", predictions=np.arange(12), first_ts=1)
         caches.log_message(signals.COMP_USAGE_EST, msg)

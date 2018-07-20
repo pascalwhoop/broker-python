@@ -5,7 +5,7 @@ import util.config as cfg
 from communication.grpc_messages_pb2 import PBTariffSpecification, PBTariffRevoke
 from communication.powertac_communication_server import submit_service
 from communication.pubsub import signals
-from communication.pubsub.PubSubTypes import SignalConsumer
+from communication.pubsub.SignalConsumer import SignalConsumer
 from util import id_generator
 
 

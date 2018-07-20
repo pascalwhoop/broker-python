@@ -6,7 +6,7 @@ from agent_components.wholesale.environments.test_log_environment import make_mo
 
 class TestMdp(unittest.TestCase):
     def test_parse_wholesale_file(self):
-        test_file_path = "tests/agent_components/wholesale/test_marketprices.csv"
+        test_file_path = "tests/test_marketprices.csv"
         with open(test_file_path) as f:
             data = parse_wholesale_file(f)
         self.assertEqual(len(data), 400)

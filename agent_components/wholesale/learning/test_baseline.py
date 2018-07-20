@@ -2,7 +2,7 @@ import numpy as np
 import unittest
 import util.config as cfg
 
-from agent_components.wholesale.environments.PowerTacEnv import PowerTacWholesaleObservation
+from agent_components.wholesale.environments.PowerTacWholesaleObservation import PowerTacWholesaleObservation
 from agent_components.wholesale.learning.baseline import BaselineTrader
 from communication.grpc_messages_pb2 import PBOrderbook, PBMarketTransaction
 

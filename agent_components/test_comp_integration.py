@@ -8,7 +8,7 @@ from pydispatch import dispatcher
 from sklearn.preprocessing import MinMaxScaler
 
 from agent_components.demand.estimator import Estimator, CustomerPredictions
-from agent_components.wholesale.environments.PowerTacEnv import WholesaleEnvironmentManager
+from agent_components.wholesale.environments.WholesaleEnvironmentManager import WholesaleEnvironmentManager
 from agent_components.wholesale.learning.baseline import BaselineTrader
 from communication.grpc_messages_pb2 import PBTimeslotComplete, PBTimeslotUpdate
 from communication.pubsub import signals
@@ -31,7 +31,10 @@ class TestIntegration(unittest.TestCase):
         self.e.scalers['jim'] = MinMaxScaler().fit(np.array([1,1000],dtype=np.float64).reshape(-1,1))
 
         #create a new env manager
-        self.wem = WholesaleEnvironmentManager(Mock())
+        self.reward_mock = Mock()
+        self.reward_mock.return_value = 0
+
+        self.wem = WholesaleEnvironmentManager(Mock(), self.reward_mock)
         self.wem.get_historical_prices = Mock()
         self.wem.get_historical_prices.return_value = np.zeros(168)
         self.wem.subscribe()

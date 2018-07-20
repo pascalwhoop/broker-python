@@ -11,7 +11,7 @@ import util.config as cfg
 from agent_components.demand.learning.data import sequence_for_usages
 from communication.grpc_messages_pb2 import PBCustomerBootstrapData, PBSimEnd, PBTariffTransaction, PBTimeslotComplete, \
     PBTxType
-from communication.pubsub.PubSubTypes import SignalConsumer
+from communication.pubsub.SignalConsumer import SignalConsumer
 
 log = logging.getLogger(__name__)
 

@@ -1,3 +1,5 @@
+import time as t
+
 import datetime as dt
 import warnings
 import functools
@@ -29,3 +31,15 @@ def deprecated(func):
         warnings.simplefilter('default', DeprecationWarning)  # reset filter
         return func(*args, **kwargs)
     return new_func
+
+
+def time_function(function, params):
+    start = t.time()
+    function(*params)
+    end = t.time()
+    print(end-start)
+
+
+class Bunch:
+    def __init__(self, **kwds):
+        self.__dict__.update(kwds)

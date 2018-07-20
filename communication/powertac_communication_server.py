@@ -24,7 +24,7 @@ from grpc import _server
 
 import communication.grpc_messages_pb2 as ptac_pb2
 from communication.pubsub import signals
-from communication.pubsub.PubSubTypes import SignalConsumer
+from communication.pubsub.SignalConsumer import SignalConsumer
 import communication.grpc_messages_pb2_grpc as ptac_grpc
 import util.config as cfg
 from communication.pubsub.grpc_adapter import publish_pb_message
