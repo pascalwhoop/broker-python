@@ -32,7 +32,7 @@ def simple_truth_ordering(env, action, market_trades, purchases, realized_usage)
     return -((amount-0.50)**2 + (price-0.60)**2)
 
 def market_relative_prices(env:PowerTacEnv):
-    """Calculates the relationship between the agents prices paid and the average market price"""
+    """Calculates the relationship between the agents prices paid and the average market price at the end of the sessi on"""
     #this only allows the agent to receive feedback at the end of the timeslot, so at the last trading opportunity.
     #if env._step != 25:
     #    return 0
@@ -43,7 +43,7 @@ def market_relative_prices(env:PowerTacEnv):
     average_market = calculate_running_averages(np.array([market_trades]))[0]
 
     balancing_needed = calculate_balancing_needed(purchases, realized_usage)
-    log.info("balancing needed for target ts {}  -- {}".format(env._target_timeslot, balancing_needed))
+    #log.info("balancing needed for target ts {}  -- {}".format(env._target_timeslot, balancing_needed))
 
     # TODO for now just a fixed punishment for every balanced mWh. Later maybe based on balancing stats data
     du_trans = calculate_du_fee(average_market, balancing_needed)
@@ -121,7 +121,15 @@ def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
 #    #trial 1... just the probability of clearing is learned
 #    return r_prob
 
-def unified_step_close_relative_market(env:PowerTacEnv):
+def step_close_relative_mprice(env: PowerTacEnv):
+    #usually negative, the closer to 0 the better
+    r_pred = step_close_to_prediction_reward(env)
+    # usually positive, the larger the better
+    r_rel = market_relative_prices(env)
+    log.info("r_pred {} r_rel {}".format(r_pred, r_rel))
+    return r_pred + r_rel
+
+def unified_step_close_relative_market_rel_mprice(env:PowerTacEnv):
     #TODO add factor \alpha for weighing the components
     #usually negative, the closer to 0 the better
     r_pred = step_close_to_prediction_reward(env)

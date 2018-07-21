@@ -5,6 +5,7 @@ import json
 import logging
 import numpy as np
 import os
+from tensorforce.core.explorations import Exploration
 
 from agent_components.wholesale.learning import reward_functions
 from agent_components.wholesale.learning.postprocessor import get_action_translator
@@ -71,7 +72,10 @@ class TensorforceAgent(PowerTacWholesaleAgent):
     def forward(self, env: PowerTacEnv):
         obs = self.preprocessor(env)
         env.observations.append(obs)
-        nn_action, states, internals = self._tf_agent.act(obs, buffered=False)
+        nn_action, states, internals = self._tf_agent.act(obs, buffered=False, independent=True)
+        self.tb_log_helper.write_any(nn_action[0], "action0")
+        self.tb_log_helper.write_any(nn_action[1], "action1")
+
         action = self.action_translator(env, nn_action)
         action[1] = env.predictions[-1]*10
         return action, nn_action, internals
