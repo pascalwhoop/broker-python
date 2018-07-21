@@ -55,6 +55,16 @@ class TestLogEnvManagerAdapter(unittest.TestCase):
         assert dispatcher_mock.send.call_args_list[1+30+1+1+24][0][0] == signals.PB_TIMESLOT_COMPLETE
         #TODO finish
 
+
+    @patch('agent_components.wholesale.environments.LogEnvManagerAdapter.dispatcher')
+    def test_simulate_cleared_trade(self, dispatcher_mock):
+        self.testable.current_timestep = 1
+        self.testable.wholesale_data = np.arange(24*24*2).reshape((24,24, 2))
+        self.testable.simulate_cleared_trade()
+        assert dispatcher_mock.send.call_args_list[0][1]['msg'].executionPrice == 47
+
+
+
     def test_fuzz_forecast_for_training(self):
         fc = np.arange(24, dtype=np.float64)
         err = cfg.WHOLESALE_FORECAST_ERROR_PER_TS

@@ -26,7 +26,7 @@ class PowerTacEnv(Env):
         self.internals = []
         self.agent = agent
         self.reward_function = reward_function
-        self.realized_usage = 0
+        self.realized_usage = 0 #usage in mWh!
         self._target_timeslot = target_ts
         # changing
         self._historical_prices = deque(maxlen=cfg.WHOLESALE_HISTORICAL_DATA_LENGTH)
@@ -110,7 +110,7 @@ class PowerTacEnv(Env):
         dispatcher.send(signals.OUT_PB_ORDER, msg=order)
 
     def handle_tariff_transaction(self, msg:PBTariffTransaction):
-        self.realized_usage += msg.kWh
+        self.realized_usage += msg.kWh / 1000
         pass
 
 

@@ -157,7 +157,7 @@ def step_close_to_prediction_reward(env: PowerTacEnv):
     purchased_already = np.array([p.mWh for p in env.purchases]).sum()
     needed = latest_news + purchased_already
     action = env.actions[-1] if env.actions else [0,0]
-    return -abs((action[0] - needed)) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
+    return -abs((action[0] - needed) / needed) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
 
 
 

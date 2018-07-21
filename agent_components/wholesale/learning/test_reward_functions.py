@@ -40,6 +40,7 @@ class TestRewardFunctions(unittest.TestCase):
         agent = Mock()
         reward_mock = Mock()
         env = PowerTacEnv(agent, reward_mock, 1, np.zeros(168))
+        env._step = 1
 
         #works even without predictions or actions
         reward = step_close_to_prediction_reward(env)

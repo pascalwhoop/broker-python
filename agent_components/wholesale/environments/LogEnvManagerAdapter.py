@@ -215,7 +215,8 @@ class LogEnvManagerAdapter(SignalConsumer):
             if s not in self.wholesale_data:
                 break
             data = self.wholesale_data[s]
-            cleared_data = data[i]
+            #going from the back because the first cleared_steps step is cleared at its last clearing
+            cleared_data = data[23-i]
             trade = PBClearedTrade(timeslot=s, executionMWh=cleared_data[0], executionPrice=cleared_data[1])
             dispatcher.send(signals.PB_CLEARED_TRADE, msg=trade)
 
