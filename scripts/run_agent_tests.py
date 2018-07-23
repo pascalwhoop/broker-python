@@ -14,7 +14,7 @@ config_map = {
     "--action-type": ["continuous", "discrete", "twoarmedbandit"],
     "--preprocessing": ["simple", "simplenorm"],
     "--reward": ["step_close_relative_mprice", "market_relative_prices"],
-    "--games": ["30"]
+    "--games": ["10"]
 }
 AGENT_EXECUTABLE = "agent --log-level ERROR wholesale --tag automatic_testing"
 
