@@ -6,6 +6,12 @@
         "batch_size": 64,
         "frequency": 4
     },
+    "actions_exploration": {
+        "type": "ornstein_uhlenbeck",
+        "sigma": 0.2,
+        "mu": 0.0,
+        "theta": 0.15
+    },
     "memory": {
         "type": "replay",
         "capacity": 10000,
