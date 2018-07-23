@@ -48,9 +48,15 @@ def call_all(calls):
         reward = lines[-2]
         print(" ---> ".join([c, reward]))
 
+def print_calls(calls):
+    print("-" * 80)
+    for c in calls:
+        print(c)
+    print("-" * 80)
 
 def main():
     calls = generate_calls()
+    print_calls(calls)
     call_all(calls)
 
 
