@@ -13,7 +13,7 @@ config_map = {
     "--network" : ["vnn32x2", "bn_vnn32x2"],
     "--action-type": ["continuous", "discrete", "twoarmedbandit"],
     "--preprocessing": ["simple", "simplenorm"],
-    "--reward": ["step_close_to_prediction_reward", "market_relative_prices"],
+    "--reward": ["step_close_relative_mprice", "market_relative_prices"],
     "--games": ["30"]
 }
 AGENT_EXECUTABLE = "agent --log-level ERROR wholesale --tag automatic_testing"
