@@ -46,7 +46,9 @@ def call_all(calls):
         output = check_output(c.split(' '))
         lines = output.decode('utf-8').split('\n')
         reward = lines[-2]
-        print(" ---> ".join([c, reward]))
+        #remember this for later
+        with open("log/test_all.log", "w+") as f:
+            f.write(" ---> ".join([c, reward]) + "\n")
 
 def print_calls(calls):
     print("-" * 80)
