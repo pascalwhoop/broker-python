@@ -16,7 +16,7 @@ config_map = {
     "--reward": ["step_close_relative_mprice", "market_relative_prices"],
     "--games": ["10"]
 }
-AGENT_EXECUTABLE = "agent --log-level ERROR wholesale --tag automatic_testing"
+AGENT_EXECUTABLE = "agent --log-level ERROR wholesale"
 
 
 #running the agent once each for each possible combination of the above configurations
@@ -26,7 +26,7 @@ def generate_calls():
     loop_through_and_add(calls, AGENT_EXECUTABLE, parameters, 0)
     return calls
 
-
+call_count = 0
 def loop_through_and_add(calls, current_call, params, current_param_index):
     """loops through the config_map and generates a combination of each"""
     current_param = params[current_param_index]
@@ -34,6 +34,9 @@ def loop_through_and_add(calls, current_call, params, current_param_index):
         call = " ".join([current_call, current_param, p])
         if params[current_param_index] == params[-1]:
             #last in line, iterate through all and add each
+            global call_count
+            call_count+=1
+            call+= " --tag auto{}".format(call_count)
             calls.append(call)
         else:
             loop_through_and_add(calls, call, params, current_param_index+1)
