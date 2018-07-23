@@ -232,8 +232,9 @@ def is_cleared_with_volume_probability(order:PBOrder, marketClearing: np.array) 
         # buying for more -> cleared
         price_diff = abs(action_price) - market_price
 
-    if price_diff <= 0:
+    if price_diff <= 0 or market_price == 0:
         #buying too cheap or selling to expensive
+        #or market price is not yet set, because nothing traded
         return False, 0
     price_multiplicator = (price_diff / market_price)
     price_multiplicator = np.array([price_multiplicator, 1]).min()

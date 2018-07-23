@@ -18,8 +18,7 @@ from agent_components.wholesale.learning.preprocessor import get_observation_pre
 
 log = logging.getLogger(__name__)
 
-MODEL_NAME = "cdq_v2_inverse_agent" + str(datetime.datetime.now())
-BATCH_SIZE = 32
+#for now hard coded size of input array
 NN_INPUT_SHAPE = ( cfg.WHOLESALE_HISTORICAL_DATA_LENGTH + cfg.DEMAND_FORECAST_DISTANCE + cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL,)
 
 model_configs = {
@@ -50,7 +49,8 @@ def create_spec(action_type, agent_type, network):
     """Combines all the information to an tensorforce agent spec"""
     agent_spec = load_spec_file(agent_type)
     network = load_spec_file(network)
-    agent_spec['network'] = network
+    if agent_type != "random":
+        agent_spec['network'] = network
     agent_spec = {**agent_spec, **model_configs[action_type]}
     return agent_spec
 
@@ -93,5 +93,16 @@ class TensorforceAgent(PowerTacWholesaleAgent):
             return self._tf_agent.atomic_observe(obs, action, env.internals[-1], reward, terminal)
         except Exception as e:
             log.exception(e)
+
+
+    def save_model(self):
+        save_at = os.path.join(cfg.MODEL_PATH, self.full_name)
+        os.makedirs(save_at, exist_ok=True)
+        self._tf_agent.save_model(directory=save_at, append_timestep=False)
+
+
+    def load_model(self, model_name):
+        saved_at = os.path.join(cfg.MODEL_PATH, model_name)
+        self._tf_agent.restore_model(directory=saved_at)
 
 

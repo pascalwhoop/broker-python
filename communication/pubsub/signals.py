@@ -12,6 +12,7 @@ OUT_PB_ORDER         = "OUT_PB_ORDER"         # wholesale trading action by agen
 OUT_PB_TARIFF_REVOKE = "OUT_PB_TARIFF_REVOKE"
 OUT_PB_TARIFF_SPECIFICATION = "OUT_PB_TARIFF_SPECIFICATION"
 STATE_EXTRACTOR_NEXT = "STATE_EXTRACTOR_NEXT" # sent when the agent requests the next environment parsing
+COMP_WS_REWARD       = "COMP_WS_REWARD"
 
 # any Protobuf message is a signal that can be subscribed to.
 # beware to keep this list up-to-date and using these instead of hard-coding the names in in the listeners

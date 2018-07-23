@@ -46,7 +46,15 @@ def two_armed_bandit_translator(env: PowerTacEnv, actions):
 
 
 def continuous_translator(env: PowerTacEnv, action):
-    return action
+    """similar to discrete translator but with a continuous action space"""
+    assert env.predictions
+    needed = calculate_energy_needed(env.predictions[-1], env.purchases)
+    last_price = env.get_last_known_market_price()
+    #positive if we sell, else negative
+    base_bid = abs(last_price) if needed < 0 else - abs(last_price)
+    base_action = np.array([needed, base_bid])
+    real_action = action / 100 * base_action + base_action
+    return real_action
 
 
 def discrete_translator(env: PowerTacEnv, action):

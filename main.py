@@ -1,25 +1,13 @@
 """The main entrance file for the agent. Here, commands and parameters can be defined according to the [click api](click.pocoo.org)"""
 import time
-
 import click
 # !/usr/bin/env python
 import importlib
 import logging
 import logging.config
 import os
-
-# import util.make_xml_collection as mxc
-# import communication.powertac_communication as comm
 import util.config as cfg
-from agent_components.demand.estimator import Estimator
-from agent_components.tariffs.publisher import TariffPublisher
-from agent_components.wholesale.environments.LogEnvManagerAdapter import LogEnvManagerAdapter
-from agent_components.wholesale.environments.WholesaleEnvironmentManager import WholesaleEnvironmentManager
-from agent_components.wholesale.learning import reward_functions
-from agent_components.wholesale.learning.baseline import BaselineTrader
-from agent_components.wholesale.learning.tensorforce import TensorforceAgent
-from communication import messages_cache
-from util.learning_utils import ModelWriter
+
 
 
 
@@ -50,15 +38,24 @@ def learn(component, model, tag):
 @click.option('--action-type',   default='discrete',                          help="What kind of action the agent decies upon. ")
 @click.option('--preprocessing', default='simple',                            help="pass the input through a defined preprocessing function")
 @click.option('--reward',        default='step_close_relative_mprice', help="define the reward function to use")
+@click.option('--games',        default=None, help="How many games to train for")
 @click.option('--tag',                                                        help="add a tag to the learning session to keep track of them easier")
-def wholesale(agent_type, network, action_type, preprocessing, reward, tag):
+def wholesale(agent_type, network, action_type, preprocessing, reward, games, tag):
     """CLI option to train the wholesale component of the broker. It trains the broker offline, based on historical data """
+    from agent_components.wholesale.environments.LogEnvManagerAdapter import LogEnvManagerAdapter
+    from agent_components.wholesale.learning.tensorforce import TensorforceAgent
+    from agent_components.wholesale.learning import reward_functions
+
     agent = TensorforceAgent(agent_type, network, action_type, preprocessing, reward, tag)
     reward_function = reward_functions.__dict__[reward]
     offline_adapter = LogEnvManagerAdapter(agent, reward_function)
     offline_adapter.subscribe()
-    offline_adapter.start()
+    avg_last_game = offline_adapter.start(max_games=int(games))
     agent.save_model()
+    #print the last average as a normal print, then exit
+    print("===========================================")
+    print("average reward")
+    print(avg_last_game)
 
 
 def get_learner_config(component):
@@ -82,6 +79,13 @@ def get_learner_config(component):
 @click.option('--wholesale-model', help="name of the model to apply to the wholesale learner")
 def compete(continuous, demand_model, wholesale_model):
     """take part in a powertac competition"""
+
+    from agent_components.wholesale.environments.WholesaleEnvironmentManager import WholesaleEnvironmentManager
+    from agent_components.wholesale.learning.baseline import BaselineTrader
+    from agent_components.demand.estimator import Estimator
+    from agent_components.tariffs.publisher import TariffPublisher
+    from util.learning_utils import ModelWriter
+    from communication import messages_cache
 
     # bootstrapping logging and caching of messages
     messages_cache.subscribe()

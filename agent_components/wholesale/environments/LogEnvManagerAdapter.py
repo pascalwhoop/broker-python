@@ -94,9 +94,13 @@ class LogEnvManagerAdapter(SignalConsumer):
         self._demand_files = get_usage_file_paths()
         self.game_numbers = self._make_random_game_order()
 
+        self.reward_average = 0
+        self.reward_count = 0
+
     def subscribe(self):
         # need to catch all orders and determine if they lead to clearing
         dispatcher.connect(self.handle_order, signal=signals.OUT_PB_ORDER)
+        dispatcher.connect(self.handle_reward, signal=signals.COMP_WS_REWARD)
 
     def unsubscribe(self):
         dispatcher.disconnect(self.handle_order, signal=signals.OUT_PB_ORDER)
@@ -104,11 +108,21 @@ class LogEnvManagerAdapter(SignalConsumer):
     def handle_order(self, sender, signal, msg: PBOrder):
         self.orders.append(msg)
 
+    def handle_reward(self, sender, signal, msg: float):
+        now = self.reward_count
+        next = self.reward_count+ 1
+
+        self.reward_average = self.reward_average * (now / next) + msg * (1 / next)
+        self.reward_count += 1
+
+
     def start(self, max_games=None):
         """Starts the learning, with control coming 'from the server', not from the agent"""
         # take random game
         # start stepping through timeslots, 24 at a time
         while self.game_numbers:
+            self.reward_count = 0
+            self.reward_average = 0
             #pops one from numbers
             self.new_game()
             self.current_timestep = self.get_first_timestep()
@@ -119,8 +133,9 @@ class LogEnvManagerAdapter(SignalConsumer):
             self.step_game()
             #while self.current_timestep < self.wholesale_data
             self.games_played +=1
-            if max_games and max_games < self.games_played:
+            if max_games and max_games <= self.games_played:
                 break
+        return self.reward_average
 
     def step_game(self):
         """loop per game. simulates all events coming from server and by listening to the PBOrder events,

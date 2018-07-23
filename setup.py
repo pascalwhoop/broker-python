@@ -21,7 +21,7 @@ setup(
         'scikit-learn',
         'beautifulsoup4',
         'lxml',
-        #'tensorflow-gpu',
+        'tensorflow',
         ],
     extras_require = {
         'visualize':[

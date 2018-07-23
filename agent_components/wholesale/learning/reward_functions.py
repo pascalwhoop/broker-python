@@ -157,49 +157,54 @@ def step_close_to_prediction_reward(env: PowerTacEnv):
     purchased_already = np.array([p.mWh for p in env.purchases]).sum()
     needed = latest_news + purchased_already
     action = env.actions[-1] if env.actions else [0,0]
+    # actual function
+    #     neg diff between bought and needed, normalized by needed, weighted by "urgency"
+    if needed == 0:
+        return 0
     return -abs((action[0] - needed) / needed) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
+    #     --> large diff --> more negative reward
 
 
 
-def shifting_balancing_price(env:PowerTacEnv):
-    """Gives back a relation between the average market price for the target timeslot and the average price the broker achieved"""
-    market_trades = [[tr.executionMWh, tr.executionPrice] for tr in env.cleared_trades]
-    purchases = [[p.mWh, p.price] for p in env.purchases]
-    realized_usage = env.realized_usage
-
-
-    average_market = calculate_running_averages(np.array([market_trades]))[0]
-
-    balancing_needed = calculate_balancing_needed(purchases, realized_usage)
-
-    # TODO for now just a fixed punishment for every balanced mWh. Later maybe based on balancing stats data
-    du_trans = calculate_du_fee(average_market, balancing_needed)
-    if du_trans:
-        purchases.append(du_trans)
-
-    type_, average_agent = average_price_for_power_paid(purchases)
-    market_relative_prices = 0
-    if type_ == 'ask':
-        # broker is overall selling --> higher is better
-        market_relative_prices = average_agent / average_market
-    if type_ == 'bid':
-        #broker is overall buyer --> lower is better
-        market_relative_prices = average_market / average_agent
-
-    #reward is made up of several components
-    # priority one: getting the mWh that are predicted
-    # priority number two: getting those cheaply
-
-    #if balancing high --> ratio close to 1
-    bn_abs = abs(balancing_needed)
-    weight_balancing = bn_abs / (abs(realized_usage) + bn_abs)
-    weight_price = 1 - weight_balancing
-    # the two components of the reward function
-    balancing_reward_component = weight_balancing * (1 / balancing_needed ** 2)
-    price_reward_component = weight_price * market_relative_prices
-    # making sure we don't have nan's or inf's
-    balancing_reward_component = balancing_reward_component if not math.isnan(balancing_reward_component) else 0
-    price_reward_component = price_reward_component if not math.isnan(price_reward_component) else 0
-    reward = balancing_reward_component + price_reward_component
-    return reward
-    #rdreturn market_relative_prices - (balancing_needed/ (balancing_needed + energy_sum))
+#def shifting_balancing_price(env:PowerTacEnv):
+#    """Gives back a relation between the average market price for the target timeslot and the average price the broker achieved"""
+#    market_trades = [[tr.executionMWh, tr.executionPrice] for tr in env.cleared_trades]
+#    purchases = [[p.mWh, p.price] for p in env.purchases]
+#    realized_usage = env.realized_usage
+#
+#
+#    average_market = calculate_running_averages(np.array([market_trades]))[0]
+#
+#    balancing_needed = calculate_balancing_needed(purchases, realized_usage)
+#
+#    # TODO for now just a fixed punishment for every balanced mWh. Later maybe based on balancing stats data
+#    du_trans = calculate_du_fee(average_market, balancing_needed)
+#    if du_trans:
+#        purchases.append(du_trans)
+#
+#    type_, average_agent = average_price_for_power_paid(purchases)
+#    market_relative_prices = 0
+#    if type_ == 'ask':
+#        # broker is overall selling --> higher is better
+#        market_relative_prices = average_agent / average_market
+#    if type_ == 'bid':
+#        #broker is overall buyer --> lower is better
+#        market_relative_prices = average_market / average_agent
+#
+#    #reward is made up of several components
+#    # priority one: getting the mWh that are predicted
+#    # priority number two: getting those cheaply
+#
+#    #if balancing high --> ratio close to 1
+#    bn_abs = abs(balancing_needed)
+#    weight_balancing = bn_abs / (abs(realized_usage) + bn_abs)
+#    weight_price = 1 - weight_balancing
+#    # the two components of the reward function
+#    balancing_reward_component = weight_balancing * (1 / balancing_needed ** 2)
+#    price_reward_component = weight_price * market_relative_prices
+#    # making sure we don't have nan's or inf's
+#    balancing_reward_component = balancing_reward_component if not math.isnan(balancing_reward_component) else 0
+#    price_reward_component = price_reward_component if not math.isnan(price_reward_component) else 0
+#    reward = balancing_reward_component + price_reward_component
+#    return reward
+#    #rdreturn market_relative_prices - (balancing_needed/ (balancing_needed + energy_sum))

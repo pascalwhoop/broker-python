@@ -63,6 +63,7 @@ class PowerTacEnv(Env):
         last_action = self.actions[-1] if self.actions else None
         last_observation = self.observations[-1] if self.observations else None
         reward = self.reward_function(self)
+        dispatcher.send(signals.COMP_WS_REWARD, msg=reward)
         #crashes because realized_usage is 0 ... why?
         if last_observation is None or last_action is None or self.realized_usage == 0:
             return
@@ -70,6 +71,7 @@ class PowerTacEnv(Env):
         #this doesn't get reached after a few iterations. must be the if above.
         obs_pred = last_observation[24+168:]
         self.agent.backward(self, last_action, reward)
+        return reward
 
 
     def handle_prediction(self, prediction):
