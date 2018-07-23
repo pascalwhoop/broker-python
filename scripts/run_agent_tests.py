@@ -40,27 +40,18 @@ def loop_through_and_add(calls, current_call, params, current_param_index):
 
 
 def call_all(calls):
-    rewards = {}
     for c in calls:
         print("CALLING: ")
         print(c)
         output = check_output(c.split(' '))
         lines = output.decode('utf-8').split('\n')
         reward = lines[-2]
-        rewards[c] = reward
-    return rewards
+        print(" ---> ".join([c, reward]))
 
 
 def main():
     calls = generate_calls()
-    rewards = call_all(calls)
-    print_rewards(rewards)
-
-
-def print_rewards(rewards):
-    for c in rewards:
-        rew = rewards[c]
-        print(" ---> ".join([c, rew]))
+    call_all(calls)
 
 
 if __name__ == "__main__":
