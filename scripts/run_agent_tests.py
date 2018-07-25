@@ -51,7 +51,7 @@ def call_all(calls):
         lines = output.decode('utf-8').split('\n')
         reward = lines[-2]
         #remember this for later
-        with open("log/test_all.log", "w+") as f:
+        with open("log/test_all.log", "a") as f:
             f.write(" ---> ".join([c, reward]) + "\n")
 
 def print_calls(calls):
