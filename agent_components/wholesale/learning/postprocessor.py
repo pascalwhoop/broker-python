@@ -9,6 +9,8 @@ log = logging.getLogger(__name__)
 
 def get_action_translator(action_type):
     """based on the action type, the output of the NN means something different!"""
+    if action_type == 'direct':
+        return direct_translator
     if action_type == 'continuous':
         return continuous_translator
     if action_type == 'discrete':
@@ -18,6 +20,8 @@ def get_action_translator(action_type):
     #if we arrive here, it's not present
     raise NotImplementedError
 
+def direct_translator(env: PowerTacEnv, actions):
+    return actions
 
 def two_armed_bandit_translator(env: PowerTacEnv, actions):
     if not actions[0]:

@@ -12,7 +12,7 @@ from subprocess import check_output
 config_map = {
     "--games": ["5"],
     "--network": ["vnn32x2", "bn_vnn32x2"],
-    "--reward": ["step_close_relative_mprice", "market_relative_prices"],
+    "--reward": ["step_close_relative_mprice", "only_final_step"],
     "--preprocessing": ["simple", "simplenorm"],
     "--action-type": ["continuous", "discrete", "twoarmedbandit"],
     "--agent-type": ["dqn", "vpg", "random"],

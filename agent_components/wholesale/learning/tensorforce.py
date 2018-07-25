@@ -22,6 +22,11 @@ log = logging.getLogger(__name__)
 NN_INPUT_SHAPE = ( cfg.WHOLESALE_HISTORICAL_DATA_LENGTH + cfg.DEMAND_FORECAST_DISTANCE + cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL,)
 
 model_configs = {
+    'direct': dict(
+        states={'shape': NN_INPUT_SHAPE, 'type': "float"},
+        actions={'shape': (2,), 'type': 'float'},
+
+    ),
     'continuous': dict(
         states={'shape': NN_INPUT_SHAPE, 'type': "float"},
         actions={'shape': (2,), 'type': 'float'},
@@ -89,7 +94,6 @@ class TensorforceAgent(PowerTacWholesaleAgent):
         last_purchase = env.purchases[-1].mWh if env.purchases else 0
         if reward != 0:
             self.tb_log_helper.write_any(reward, "reward")
-
         try:
             return self._tf_agent.atomic_observe(obs, action, env.internals[-1], reward, terminal)
         except Exception as e:

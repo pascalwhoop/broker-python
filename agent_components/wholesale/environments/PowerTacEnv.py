@@ -65,6 +65,7 @@ class PowerTacEnv(Env):
         last_action = self.actions[-1] if self.actions else None
         last_observation = self.observations[-1] if self.observations else None
         reward = self.reward_function(self)
+        reward *= 1000
         log.debug("reward at TS {} is {}".format(self._step, reward))
         dispatcher.send(signals.COMP_WS_REWARD, msg=reward)
         #crashes because realized_usage is 0 ... why?

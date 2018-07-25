@@ -120,6 +120,8 @@ def balancing_reward(env: PowerTacEnv):
     """punishes balancing required by the DU to encourage good purchasing ahead of time"""
     balanced_mWh = env.balancing_tx.kWh / 1000 * -1
     overall_consume = env.realized_usage
+    if overall_consume == 0:
+        return 1 if balanced_mWh != 0 else 0
     part_balanced = abs(balanced_mWh / overall_consume)
     env.agent.tb_log_helper.write_any(part_balanced, "part_balanced")
     return -part_balanced
