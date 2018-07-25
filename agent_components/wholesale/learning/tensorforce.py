@@ -73,8 +73,9 @@ class TensorforceAgent(PowerTacWholesaleAgent):
         obs = self.preprocessor(env)
         env.observations.append(obs)
         nn_action, states, internals = self._tf_agent.act(obs, buffered=False, independent=True)
-        self.tb_log_helper.write_any(nn_action[0], "action0")
-        self.tb_log_helper.write_any(nn_action[1], "action1")
+        if len(nn_action == 2):
+            self.tb_log_helper.write_any(nn_action[0], "action0")
+            self.tb_log_helper.write_any(nn_action[1], "action1")
 
         action = self.action_translator(env, nn_action)
         action[1] = env.predictions[-1]*10
