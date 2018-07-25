@@ -37,29 +37,23 @@ def market_relative_prices(env:PowerTacEnv):
     #if env._step != 25:
     #    return 0
     market_trades = [[tr.executionMWh, tr.executionPrice] for tr in env.cleared_trades]
+    #all purchases as list
     purchases = [[p.mWh, p.price] for p in env.purchases]
-    realized_usage = env.realized_usage
+    #adding balancing TX
+    purchases.append([env.balancing_tx.kWh / 1000 * -1, env.balancing_tx.charge])
 
+    #getting the averages for market and broker purchases
     average_market = calculate_running_averages(np.array([market_trades]))[0]
-
-    balancing_needed = calculate_balancing_needed(purchases, realized_usage)
-    #log.info("balancing needed for target ts {}  -- {}".format(env._target_timeslot, balancing_needed))
-
-    # TODO for now just a fixed punishment for every balanced mWh. Later maybe based on balancing stats data
-    du_trans = calculate_du_fee(average_market, balancing_needed)
-    if du_trans:
-        purchases.append(du_trans)
-
     type_, average_agent = average_price_for_power_paid(purchases)
-    market_relative_prices = 0
+
+    mrp = 0
     if type_ == 'ask' and average_market != 0:
         # broker is overall selling --> higher is better
-        market_relative_prices = average_agent / average_market
+        mrp = average_agent / average_market
     if type_ == 'bid' and average_agent != 0:
         # broker is overall buyer --> lower is better
-        market_relative_prices = average_market / average_agent
-    #large market_relative_prices --> good
-    return market_relative_prices
+        mrp = average_market / average_agent
+    return mrp
 
 
 @deprecated
@@ -121,14 +115,31 @@ def direct_cash_reward(env, action, market_trades, purchases, realized_usage):
 #    #trial 1... just the probability of clearing is learned
 #    return r_prob
 
-def step_close_relative_mprice(env: PowerTacEnv):
-    #usually negative, the closer to 0 the better
-    r_pred = step_close_to_prediction_reward(env)
-    # usually positive, the larger the better
-    r_rel = market_relative_prices(env)
-    log.info("r_pred {} r_rel {}".format(r_pred, r_rel))
-    return r_pred + r_rel
+def balancing_reward(env: PowerTacEnv):
+    """punishes balancing required by the DU to encourage good purchasing ahead of time"""
+    balanced_mWh = env.balancing_tx.kWh / 1000 * -1
+    overall_consume = env.realized_usage
+    part_balanced = abs(balanced_mWh / overall_consume)
+    return -part_balanced
 
+
+def step_close_relative_mprice(env: PowerTacEnv):
+    """2 part reward function:
+        in the first 24 timesteps, it encourages to step close to the missing energy
+        in the last step, it encourages to have little balancing and gives feedback on the average price paid for the TS
+    """
+    if env._step >= 25:
+        # usually positive, the larger the better
+        r_rel = market_relative_prices(env)
+        #usually negative, the closer to 0 the better
+        r_balancing = balancing_reward(env)
+        #final step
+        return r_rel + r_balancing
+    else:
+        #usually negative, the closer to 0 the better
+        return step_close_to_prediction_reward(env)
+
+@deprecated
 def unified_step_close_relative_market_rel_mprice(env:PowerTacEnv):
     #TODO add factor \alpha for weighing the components
     #usually negative, the closer to 0 the better
@@ -157,11 +168,14 @@ def step_close_to_prediction_reward(env: PowerTacEnv):
     purchased_already = np.array([p.mWh for p in env.purchases]).sum()
     needed = latest_news + purchased_already
     action = env.actions[-1] if env.actions else [0,0]
+    if needed == 0:
+        #absolute punishmeht per action if prediction is 0
+        return -abs((action[0] - needed)) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
+    else:
+        #normalized by missing to avoid large negative rewards when lots of customers present
+        return -abs((action[0] - needed) / needed) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
     # actual function
     #     neg diff between bought and needed, normalized by needed, weighted by "urgency"
-    if needed == 0:
-        return 0
-    return -abs((action[0] - needed) / needed) * (env._step/ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL)
     #     --> large diff --> more negative reward
 
 

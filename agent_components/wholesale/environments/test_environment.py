@@ -1,30 +1,17 @@
-import asyncio
+from collections import Generator
+
+import numpy as np
+import pytest
 import unittest
-from collections import Coroutine, Generator
 from typing import List
 from unittest.mock import Mock, patch
 
-from pydispatch import dispatcher
-
 from agent_components.demand.estimator import CustomerPredictions
 from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
-from agent_components.wholesale.environments.PowerTacWholesaleAgent import PowerTacWholesaleAgent
-from agent_components.wholesale.environments.PowerTacWholesaleObservation import PowerTacWholesaleObservation
 from agent_components.wholesale.environments.WholesaleEnvironmentManager import WholesaleEnvironmentManager
-from agent_components.wholesale.environments.PowerTacMDPEnvironment import PowerTacMDPEnvironment
-from agent_components.wholesale.learning.baseline import BaselineTrader
-from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade, PBMarketBootstrapData
-import numpy as np
+from communication.grpc_messages_pb2 import PBClearedTrade, PBMarketBootstrapData, PBMarketTransaction, \
+    PBTimeslotUpdate, PBBalancingTransaction
 
-from communication.pubsub import signals
-
-
-class TestPowerTacMDPEnvironment(unittest.TestCase):
-    def setUp(self):
-        self.e = PowerTacMDPEnvironment(360)
-
-    def test_subscribe(self):
-        self.e.subscribe()
 
 class TestWholesaleEnvironmentManager(unittest.TestCase):
     def setUp(self):
@@ -171,7 +158,15 @@ class TestWholesaleEnvironmentManager(unittest.TestCase):
 
 class TestPowerTacEnv(unittest.TestCase):
     def setUp(self):
-        self.testable: PowerTacEnv = PowerTacEnv(Mock(), target_ts=360, historical_prices=np.arange(168))
+        self.testable: PowerTacEnv = PowerTacEnv(Mock(), Mock(), target_ts=360, historical_prices=np.arange(168))
+
+
+
+    def test_handle_balancing_transaction(self):
+        self.testable.purchases.append(PBMarketTransaction(mWh=1, price=-1))
+        self.testable.handle_balancing_transaction(PBBalancingTransaction(kWh=-1000, charge=1))
+        with pytest.raises(ValueError):
+            self.testable.handle_balancing_transaction(PBBalancingTransaction(kWh=-1001, charge=1))
 
 
 

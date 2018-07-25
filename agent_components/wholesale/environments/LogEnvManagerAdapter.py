@@ -12,19 +12,20 @@ from typing import List
 
 from agent_components.demand.estimator import CustomerPredictions
 from agent_components.demand.learning import data as demand_data
+from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
 from agent_components.wholesale.environments.PowerTacWholesaleAgent import PowerTacWholesaleAgent
 from agent_components.wholesale.environments.WholesaleEnvironmentManager import WholesaleEnvironmentManager
 from agent_components.wholesale.util import parse_wholesale_file, is_cleared_with_volume_probability, \
-    fuzz_forecast_for_training
+    fuzz_forecast_for_training, calculate_running_averages, calculate_balancing_needed_obj
 from communication.grpc_messages_pb2 import PBClearedTrade, PBMarketTransaction, PBOrder, PBTimeslotComplete, \
-    PBTimeslotUpdate, PBTariffTransaction, PRODUCE, CONSUME
+    PBTimeslotUpdate, PBTariffTransaction, PRODUCE, CONSUME, PBBalancingTransaction
 from communication.pubsub import signals
 from communication.pubsub.SignalConsumer import SignalConsumer
 from util import config as cfg
 from util.learning_utils import get_usage_file_paths, get_wholesale_file_paths
 
-
 log = logging.getLogger(__name__)
+
 
 class LogEnvManagerAdapter(SignalConsumer):
     """This class simulates a powertac trading environment but is based on logs of historical games.  It assumes that
@@ -110,11 +111,10 @@ class LogEnvManagerAdapter(SignalConsumer):
 
     def handle_reward(self, sender, signal, msg: float):
         now = self.reward_count
-        next = self.reward_count+ 1
+        next = self.reward_count + 1
 
         self.reward_average = self.reward_average * (now / next) + msg * (1 / next)
         self.reward_count += 1
-
 
     def start(self, max_games=None):
         """Starts the learning, with control coming 'from the server', not from the agent"""
@@ -123,16 +123,16 @@ class LogEnvManagerAdapter(SignalConsumer):
         while self.game_numbers:
             self.reward_count = 0
             self.reward_average = 0
-            #pops one from numbers
+            # pops one from numbers
             self.new_game()
             self.current_timestep = self.get_first_timestep()
             self.first_timestep = self.current_timestep
-            #create env_manager
+            # create env_manager
             self.env_manager = WholesaleEnvironmentManager(self.agent, self.reward_function)
             self.env_manager.subscribe()
             self.step_game()
-            #while self.current_timestep < self.wholesale_data
-            self.games_played +=1
+            # while self.current_timestep < self.wholesale_data
+            self.games_played += 1
             if max_games and max_games <= self.games_played:
                 break
         return self.reward_average
@@ -141,26 +141,29 @@ class LogEnvManagerAdapter(SignalConsumer):
         """loop per game. simulates all events coming from server and by listening to the PBOrder events,
         responds to agent actions"""
         while self.wholesale_data:
-            #evaluate any orders received in previous step and send PBMarketTransaction
+            # evaluate any orders received in previous step and send PBMarketTransaction
             self.evaluate_orders_received()
-            #normally triggers demand forecasting --> predictions
+            # normally triggers demand forecasting --> predictions
             self.simulate_timeslot_complete()
             # ----- Timeslot cut -----
-            #send out Transactions by customers
+            # send out Transactions by customers
             self.simulate_tariff_transactions()
-            #send out PBTimeslotUpdate --> triggers wholesale backward learning cycle
+            # send out PBTimeslotUpdate --> triggers wholesale backward learning cycle
             self.simulate_timeslot_update()
-            #send out Predictions based on DemandData --> triggers wholesale trader (forward)
+            # send out Predictions based on DemandData --> triggers wholesale trader (forward)
             self.simulate_predictions()
-            #send out PBClearedTrade for the next 24h timesteps
+            # send out PBClearedTrade for the next 24h timesteps
             self.simulate_cleared_trade()
+
+            # simulate balancing_transactions
+            self.simulate_balancing_transactions()
 
             # the stepping is sort of "half dependent" on previous data.
             # in Timestep 363, ClearedTrades and MarketTransactions that refer to 362 are given out.
             # therefore at THE END of the step, the PREVIOUS timestep data is deleted
-            if self.current_timestep-1 in self.wholesale_data:
-                del self.wholesale_data[self.current_timestep-1]
-            self.current_timestep+=1
+            if self.current_timestep - 1 in self.wholesale_data:
+                del self.wholesale_data[self.current_timestep - 1]
+            self.current_timestep += 1
 
     def new_game(self):
         """load data for new game into object"""
@@ -201,9 +204,9 @@ class LogEnvManagerAdapter(SignalConsumer):
         idx = np.random.randint(0, high=len(demand), size=30)
         demand = demand[idx, :]
 
-        #make the demand smaller (1/10th) to simulate the broker only having 1/10th of the selected customers demand.
-        #this is because a large portion of the customer demand is actually generated by population scale models.
-        #and the broker only gets a part of that demand
+        # make the demand smaller (1/10th) to simulate the broker only having 1/10th of the selected customers demand.
+        # this is because a large portion of the customer demand is actually generated by population scale models.
+        # and the broker only gets a part of that demand
         demand = demand / 10
 
         self.demand_data = demand
@@ -224,28 +227,61 @@ class LogEnvManagerAdapter(SignalConsumer):
 
     def simulate_cleared_trade(self):
         """simulates the sending of PBClearedTrade messages for the next [t-1,t-1+24] timesteps"""
-        last_step = self.current_timestep -1
-        cleared_steps = list(range(last_step, last_step+ cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL))
+        last_step = self.current_timestep - 1
+        cleared_steps = list(range(last_step, last_step + cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL))
         for i, s in enumerate(cleared_steps):
             if s not in self.wholesale_data:
                 break
             data = self.wholesale_data[s]
-            #going from the back because the first cleared_steps step is cleared at its last clearing
-            cleared_data = data[23-i]
+            # going from the back because the first cleared_steps step is cleared at its last clearing
+            cleared_data = data[23 - i]
             trade = PBClearedTrade(timeslot=s, executionMWh=cleared_data[0], executionPrice=cleared_data[1])
             dispatcher.send(signals.PB_CLEARED_TRADE, msg=trade)
 
     def simulate_timeslot_update(self):
         """Simulates the TimeslotUpdate message"""
         now = self.current_timestep
-        dispatcher.send(signals.PB_TIMESLOT_UPDATE, msg=PBTimeslotUpdate(firstEnabled=now, lastEnabled=now+cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL))
+        dispatcher.send(signals.PB_TIMESLOT_UPDATE, msg=PBTimeslotUpdate(firstEnabled=now,
+                                                                         lastEnabled=now + cfg.WHOLESALE_OPEN_FOR_TRADING_PARALLEL))
+
+    def simulate_balancing_transactions(self):
+        # get env where the final step has been completed
+        envs = [e for e in self.env_manager.environments.values() if e._step >= 24]
+        if not envs:
+            return
+        env: PowerTacEnv = envs[0]
+        tx = self.generate_du_balancing_tx(env)
+        dispatcher.send(signals.PB_BALANCING_TRANSACTION, msg=tx)
+
+
+    def generate_du_balancing_tx(self, env: PowerTacEnv) -> PBBalancingTransaction:
+        """Helper function that simulates the DU fee for offline based training"""
+        market_trades = [[tr.executionMWh, tr.executionPrice] for tr in env.cleared_trades]
+        realized_usage = env.realized_usage
+        average_market = calculate_running_averages(np.array([market_trades]))[0]
+        balancing_needed = calculate_balancing_needed_obj(env.purchases, realized_usage)
+        #log.info("balancing needed for target ts {}  -- {}".format(env._target_timeslot, balancing_needed))
+
+        # seen as a "forced transaction" of similar logic as the Market TX
+        du_trans = []
+        if balancing_needed > 0:
+            # being forced to buy for 5x the market price! try and get your kWh in ahead of time is what it learns
+            du_trans = [balancing_needed, -1 * average_market * 5]
+        if balancing_needed < 0:
+            # getting only a 0.5 of what the normal market price was
+            du_trans = [balancing_needed, 0.5 * average_market]  # TODO to config
+        if balancing_needed == 0:
+            du_trans = [0, 0]
+        #but the BalancingTX is actually kWh and the energy sign is reverse (positive for surplus, not negative)
+        return PBBalancingTransaction(postedTimeslot=env._target_timeslot, kWh=du_trans[0] * 1000 * -1, charge=du_trans[1])
+
 
     def evaluate_orders_received(self):
         """Evaluate order and check if it should be cleared"""
         cleared_mask = []
         for o in self.orders:
 
-            #ignore orders at the end of a game
+            # ignore orders at the end of a game
             if o.timeslot not in self.wholesale_data:
                 continue
             distance = o.timeslot - self.current_timestep
@@ -254,35 +290,36 @@ class LogEnvManagerAdapter(SignalConsumer):
             cleared, prob = is_cleared_with_volume_probability(o, market_clearing)
             cleared_mask.append((cleared, distance))
             if cleared:
-                #price is positive only when mWh is smaller 0
+                # price is positive only when mWh is smaller 0
                 price = market_clearing[1] * -1 if o.mWh > 0 else market_clearing[1]
-                volume_received = o.mWh * prob #assuming we only get a part of what we want
-                #sending out message
+                volume_received = o.mWh * prob  # assuming we only get a part of what we want
+                # sending out message
                 dispatcher.send(signal=signals.PB_MARKET_TRANSACTION,
                                 msg=PBMarketTransaction(price=market_clearing[1],
                                                         mWh=volume_received,
                                                         timeslot=o.timeslot))
             else:
-                #not cleared
+                # not cleared
                 pass
         log.info("Cleared timesteps: " + ' '.join([str(i[1]) for i in cleared_mask if i[0]]))
         self.orders = []
 
     def simulate_timeslot_complete(self):
-        dispatcher.send(signals.PB_TIMESLOT_COMPLETE, PBTimeslotComplete(timeslotIndex=self.current_timestep-1))
+        dispatcher.send(signals.PB_TIMESLOT_COMPLETE, PBTimeslotComplete(timeslotIndex=self.current_timestep - 1))
 
     def simulate_predictions(self):
         dd = self.demand_data
         fts = self.first_timestep
-        start = self.current_timestep+1
+        start = self.current_timestep + 1
         end = start + cfg.DEMAND_FORECAST_DISTANCE
-        demand_data = dd[:,start-fts:end-fts]
-        demand_data = demand_data / 1000 #dividing by 1000 to turn kWh into mWh
+        demand_data = dd[:, start - fts:end - fts]
+        demand_data = demand_data / 1000  # dividing by 1000 to turn kWh into mWh
         if cfg.WHOLESALE_FORECAST_ERROR_PER_TS > 0:
             demand_data = np.array([fuzz_forecast_for_training(customer_data) for customer_data in demand_data])
         preds = []
         for cust_number, customer_data in enumerate(demand_data):
-            customer_pred_obj = CustomerPredictions("customer{}".format(cust_number), predictions=customer_data, first_ts=start)
+            customer_pred_obj = CustomerPredictions("customer{}".format(cust_number), predictions=customer_data,
+                                                    first_ts=start)
             preds.append(customer_pred_obj)
         dispatcher.send(signals.COMP_USAGE_EST, msg=preds)
 
@@ -297,4 +334,5 @@ class LogEnvManagerAdapter(SignalConsumer):
                 t = CONSUME
             else:
                 t = PRODUCE
-            dispatcher.send(signals.PB_TARIFF_TRANSACTION, msg=PBTariffTransaction(txType=t, kWh=u, postedTimeslot=self.current_timestep))
+            dispatcher.send(signals.PB_TARIFF_TRANSACTION,
+                            msg=PBTariffTransaction(txType=t, kWh=u, postedTimeslot=self.current_timestep))

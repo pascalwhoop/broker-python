@@ -37,8 +37,8 @@ def learn(component, model, tag):
 @click.option('--network',       default='mlp2_normalized_network',           help="What network configuration to use for this agent")
 @click.option('--action-type',   default='discrete',                          help="What kind of action the agent decies upon. ")
 @click.option('--preprocessing', default='simple',                            help="pass the input through a defined preprocessing function")
-@click.option('--reward',        default='step_close_relative_mprice', help="define the reward function to use")
-@click.option('--games',        default=None, help="How many games to train for")
+@click.option('--reward',        default='step_close_relative_mprice',        help="define the reward function to use")
+@click.option('--games',        default=1,                                    help="How many games to train for")
 @click.option('--tag',                                                        help="add a tag to the learning session to keep track of them easier")
 def wholesale(agent_type, network, action_type, preprocessing, reward, games, tag):
     """CLI option to train the wholesale component of the broker. It trains the broker offline, based on historical data """

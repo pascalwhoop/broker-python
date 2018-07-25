@@ -10,6 +10,7 @@ from sklearn import preprocessing
 from communication.grpc_messages_pb2 import PBMarketTransaction, PBOrder, PBClearedTrade
 from util import config as cfg
 from util.config import MIN_PRICE_SCALE, MAX_PRICE_SCALE, MIN_DEMAND, MAX_DEMAND
+from util.utils import deprecated
 
 """Utility functions for the wholesale trading component"""
 
@@ -94,6 +95,8 @@ def average_price_for_power_paid(purchases):
     return 'bid', 0
 
 
+#use generate_du_balancing_tx in the Environment instead
+@deprecated
 def calculate_du_fee(average_market, balancing_needed):
     du_trans = []
     if balancing_needed > 0:
@@ -157,8 +160,11 @@ def calculate_du_fee(average_market, balancing_needed):
 #    # default, didn't buy anything or no price
 #    return False
 
+def calculate_balancing_needed_obj(purchases: List[PBMarketTransaction], realized_usage: float):
+    purchases = [[p.mWh, p.price] for p in purchases]
+    return calculate_balancing_needed(purchases, realized_usage)
 
-def calculate_balancing_needed(purchases, realized_usage):
+def calculate_balancing_needed(purchases: np.array, realized_usage: float):
     # appending final balancing costs for broker for any missing energy
     if len(purchases) == 0:
         balancing_needed = -1 * realized_usage

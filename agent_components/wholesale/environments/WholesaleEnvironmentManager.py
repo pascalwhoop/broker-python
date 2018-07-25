@@ -7,7 +7,7 @@ from agent_components.wholesale.environments.PowerTacEnv import log, PowerTacEnv
 from agent_components.wholesale.environments.PowerTacWholesaleAgent import PowerTacWholesaleAgent
 from agent_components.wholesale.util import calculate_running_average
 from communication.grpc_messages_pb2 import PBMarketTransaction, PBTimeslotUpdate, PBClearedTrade, \
-    PBMarketBootstrapData, PBTariffTransaction, PBTxType
+    PBMarketBootstrapData, PBTariffTransaction, PBTxType, PBBalancingTransaction
 from communication.pubsub import signals as signals
 from communication.pubsub.SignalConsumer import SignalConsumer
 from util import config as cfg
@@ -32,9 +32,10 @@ class WholesaleEnvironmentManager(SignalConsumer):
         dispatcher.connect(self.handle_market_transaction, signal=signals.PB_MARKET_TRANSACTION)
         dispatcher.connect(self.handle_timeslot_update, signal=signals.PB_TIMESLOT_UPDATE)
         dispatcher.connect(self.handle_cleared_trade, signal=signals.PB_CLEARED_TRADE)
+        dispatcher.connect(self.handle_market_bootstrap_data, signal=signals.PB_MARKET_BOOTSTRAP_DATA)
         dispatcher.connect(self.handle_predictions, signal=signals.COMP_USAGE_EST)
         dispatcher.connect(self.handle_tariff_transaction, signal=signals.PB_TARIFF_TRANSACTION)
-        dispatcher.connect(self.handle_market_bootstrap_data, signal=signals.PB_MARKET_BOOTSTRAP_DATA)
+        dispatcher.connect(self.handle_balancing_transaction, signal=signals.PB_BALANCING_TRANSACTION)
         log.info("env manager is listenening")
         # TODO
         # tells imbalance after DU has performed balancing
@@ -48,7 +49,9 @@ class WholesaleEnvironmentManager(SignalConsumer):
         dispatcher.disconnect(self.handle_timeslot_update, signal=signals.PB_TIMESLOT_UPDATE)
         dispatcher.disconnect(self.handle_cleared_trade, signal=signals.PB_CLEARED_TRADE)
         dispatcher.disconnect(self.handle_market_bootstrap_data, signal=signals.PB_MARKET_BOOTSTRAP_DATA)
+        dispatcher.disconnect(self.handle_predictions, signal=signals.COMP_USAGE_EST)
         dispatcher.disconnect(self.handle_tariff_transaction, signal=signals.PB_TARIFF_TRANSACTION)
+        dispatcher.disconnect(self.handle_balancing_transaction, signal=signals.PB_BALANCING_TRANSACTION)
 
     def handle_market_transaction(self, sender, signal: str, msg: PBMarketTransaction):
         if msg.timeslot in self.environments:
@@ -105,6 +108,14 @@ class WholesaleEnvironmentManager(SignalConsumer):
     def handle_tariff_transaction(self, sender, signal: str, msg: PBTariffTransaction):
         if (msg.txType is PBTxType.Value("CONSUME") or msg.txType is PBTxType.Value("PRODUCE")) and msg.postedTimeslot in self.environments:
             self.environments[msg.postedTimeslot].handle_tariff_transaction(msg)
+
+    def handle_balancing_transaction(self, sender, signal: str, msg:PBBalancingTransaction):
+        """Handles the balancing transacitons that the DU sends after all rounds have been completed"""
+        try:
+            self.environments[msg.postedTimeslot].handle_balancing_transaction(msg)
+        except ValueError as e:
+            log.warning(e)
+
 
 
     def get_avg_for_ts(self, ts):

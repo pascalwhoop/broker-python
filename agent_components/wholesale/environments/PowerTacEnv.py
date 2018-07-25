@@ -10,8 +10,9 @@ import communication.pubsub.signals as signals
 import util.config as cfg
 from agent_components.wholesale.environments.PowerTacWholesaleAgent import PowerTacWholesaleAgent
 from agent_components.wholesale.environments.PowerTacWholesaleObservation import PowerTacWholesaleObservation
+from agent_components.wholesale.util import calculate_running_averages, calculate_balancing_needed
 from communication.grpc_messages_pb2 import PBClearedTrade, PBMarketTransaction, PBOrder, \
-    PBOrderbook, PBTimeslotUpdate, PBTariffTransaction
+    PBOrderbook, PBTimeslotUpdate, PBTariffTransaction, PBBalancingTransaction
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class PowerTacEnv(Env):
         self._step = 0
         self.orderbooks: List[PBOrderbook] = []  #
         self.purchases: List[PBMarketTransaction] = []
+        self.balancing_tx: PBBalancingTransaction = None
         self.cleared_trades: List[PBClearedTrade] = []
         self.observations: List[PowerTacWholesaleObservation] = []
         #the functional (powertac logic) actions, i.e. mWh, price
@@ -63,6 +65,7 @@ class PowerTacEnv(Env):
         last_action = self.actions[-1] if self.actions else None
         last_observation = self.observations[-1] if self.observations else None
         reward = self.reward_function(self)
+        log.debug("reward at TS {} is {}".format(self._step, reward))
         dispatcher.send(signals.COMP_WS_REWARD, msg=reward)
         #crashes because realized_usage is 0 ... why?
         if last_observation is None or last_action is None or self.realized_usage == 0:
@@ -126,3 +129,15 @@ class PowerTacEnv(Env):
             return self._historical_prices[-1]
         #else 0
         return 0
+
+    def handle_balancing_transaction(self, msg: PBBalancingTransaction):
+        """The DU balancing. For all intents of this component, it's just another transaction. But we'll store it as a separate value in the object"""
+        sum_power_flow = np.array([p.mWh for p in self.purchases]).sum()
+        bal_should = self.realized_usage + sum_power_flow
+        self.balancing_tx = msg
+        if abs(bal_should +  msg.kWh / 1000 * -1) > 0.00001:
+            print(" bal {} --- bought {}".format(msg.kWh / 1000 * -1, sum_power_flow))
+            raise ValueError("balancing_tx not correct")
+
+
+

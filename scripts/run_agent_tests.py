@@ -8,13 +8,14 @@ from subprocess import check_output
 
 # ENTER ALL COMBINATIONS HERE
 # Any combination of the parameters is added to the queue and executed one after another
+#the first item gets changed last, the last element gets rotated through the most
 config_map = {
-    "--agent-type": ["dqn", "vpg", "random"],
-    "--network" : ["vnn32x2", "bn_vnn32x2"],
-    "--action-type": ["continuous", "discrete", "twoarmedbandit"],
-    "--preprocessing": ["simple", "simplenorm"],
+    "--games": ["5"],
+    "--network": ["vnn32x2", "bn_vnn32x2"],
     "--reward": ["step_close_relative_mprice", "market_relative_prices"],
-    "--games": ["10"]
+    "--preprocessing": ["simple", "simplenorm"],
+    "--action-type": ["continuous", "discrete", "twoarmedbandit"],
+    "--agent-type": ["dqn", "vpg", "random"],
 }
 AGENT_EXECUTABLE = "agent --log-level ERROR wholesale"
 

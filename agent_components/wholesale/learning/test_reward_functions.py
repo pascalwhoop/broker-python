@@ -55,11 +55,12 @@ class TestRewardFunctions(unittest.TestCase):
 
         env.predictions.append(-5)
         reward = step_close_to_prediction_reward(env)
-        assert round(reward, 3) == round(-8 * 1/24, 3)
+        #pred is not 0 --> normalizing by 5
+        assert round(reward, 3) == round(-(8 / 5) * 1/24, 3)
 
         env.predictions.append(6)
         reward = step_close_to_prediction_reward(env)
-        assert round(reward, 3) == round(-3 * 1/24, 3)
+        assert round(reward, 3) == round(-(3/6) * 1/24, 3)
 
         #also with other way around
         action[0] = -3
@@ -67,4 +68,4 @@ class TestRewardFunctions(unittest.TestCase):
 
         env.predictions.append(6)
         reward = step_close_to_prediction_reward(env)
-        assert round(reward, 3) == -round(9 * 1/24, 3)
+        assert round(reward, 3) == round(-(9/6) * 1/24, 3)

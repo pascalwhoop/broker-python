@@ -4,9 +4,11 @@ from unittest.mock import Mock, mock_open, patch
 
 import util.config as cfg
 from agent_components.wholesale.environments.LogEnvManagerAdapter import LogEnvManagerAdapter
+from agent_components.wholesale.environments.PowerTacEnv import PowerTacEnv
+from agent_components.wholesale.environments.WholesaleEnvironmentManager import WholesaleEnvironmentManager
 from agent_components.wholesale.util import is_cleared_with_volume_probability, fuzz_forecast_for_training
 from agent_components.wholesale.environments.test_log_environment import make_mock_wholesale_data
-from communication.grpc_messages_pb2 import PBOrder
+from communication.grpc_messages_pb2 import PBOrder, PBBalancingTransaction
 from communication.pubsub import signals
 
 
@@ -42,7 +44,9 @@ class TestLogEnvManagerAdapter(unittest.TestCase):
         _fill_with_mock_data(self.testable)
         self.testable.current_timestep = 364
         #mock_wholesale_data gives 50 timesteps --> expect 50 rounds
-        self.testable.step_game()
+        with patch.object(self.testable, "generate_du_balancing_tx") as gen_mock:
+            gen_mock.return_value = PBBalancingTransaction(kWh=1, charge=2)
+            self.testable.step_game()
         assert dispatcher_mock.send.call_args_list[0][0][0] == signals.PB_TIMESLOT_COMPLETE
         #30 tariff transactions
         assert dispatcher_mock.send.call_args_list[1][0][0] == signals.PB_TARIFF_TRANSACTION
@@ -51,9 +55,11 @@ class TestLogEnvManagerAdapter(unittest.TestCase):
         assert dispatcher_mock.send.call_args_list[1+30+1][0][0] == signals.COMP_USAGE_EST
         #assert now next  24 messages to be cleared_trades
         assert dispatcher_mock.send.call_args_list[1+30+1+1][0][0] == signals.PB_CLEARED_TRADE
-        #and 25th to be a new timeslot_update
-        assert dispatcher_mock.send.call_args_list[1+30+1+1+24][0][0] == signals.PB_TIMESLOT_COMPLETE
-        #TODO finish
+        #then one that balances the current closed TS
+        assert dispatcher_mock.send.call_args_list[1+30+1+1+24][0][0] == signals.PB_BALANCING_TRANSACTION
+        #and then to be a new timeslot_update
+        assert dispatcher_mock.send.call_args_list[1+30+1+1+24+1][0][0] == signals.PB_TIMESLOT_COMPLETE
+
 
 
     @patch('agent_components.wholesale.environments.LogEnvManagerAdapter.dispatcher')
@@ -141,6 +147,10 @@ def _fill_with_mock_data(testable:LogEnvManagerAdapter):
          patch('agent_components.wholesale.environments.LogEnvManagerAdapter.demand_data') as demand_data_mock, \
          patch("builtins.open", mock_open(read_data="data")) as mock_file:
         parse_mock.return_value = make_mock_wholesale_data()
+        testable.env_manager = Mock()
+        e = PowerTacEnv(testable.agent, None, target_ts=364, historical_prices=[])
+        e._step = 24
+        testable.env_manager.environments = {364: e}
         demand_data_mock.get_demand_data_values.return_value = make_mock_demand_data()
         testable.make_wholesale_data("some")
         testable.make_demand_data("some")
