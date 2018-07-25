@@ -87,7 +87,8 @@ class TensorforceAgent(PowerTacWholesaleAgent):
         action = env.nn_actions[-1]
         terminal = env._step > 23
         last_purchase = env.purchases[-1].mWh if env.purchases else 0
-        self.tb_log_helper.write_any(reward, "reward")
+        if reward != 0:
+            self.tb_log_helper.write_any(reward, "reward")
 
         try:
             return self._tf_agent.atomic_observe(obs, action, env.internals[-1], reward, terminal)

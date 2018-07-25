@@ -8,9 +8,9 @@
     },
     "actions_exploration": {
         "type": "ornstein_uhlenbeck",
-        "sigma": 0.2,
+        "sigma": 0.02,
         "mu": 0.0,
-        "theta": 0.15
+        "theta": 0.015
     },
     "memory": {
         "type": "replay",

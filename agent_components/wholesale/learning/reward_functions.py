@@ -40,7 +40,8 @@ def market_relative_prices(env:PowerTacEnv):
     #all purchases as list
     purchases = [[p.mWh, p.price] for p in env.purchases]
     #adding balancing TX
-    purchases.append([env.balancing_tx.kWh / 1000 * -1, env.balancing_tx.charge])
+    #TEST removing the balancing charge --> only dependent on what the broker actually bought
+    #purchases.append([env.balancing_tx.kWh / 1000 * -1, env.balancing_tx.charge])
 
     #getting the averages for market and broker purchases
     average_market = calculate_running_averages(np.array([market_trades]))[0]
@@ -120,7 +121,23 @@ def balancing_reward(env: PowerTacEnv):
     balanced_mWh = env.balancing_tx.kWh / 1000 * -1
     overall_consume = env.realized_usage
     part_balanced = abs(balanced_mWh / overall_consume)
+    env.agent.tb_log_helper.write_any(part_balanced, "part_balanced")
     return -part_balanced
+
+
+def only_final_step(env:PowerTacEnv):
+     if env._step >= 25:
+        # usually positive, the larger the better
+        r_rel = market_relative_prices(env)
+        #usually negative, the closer to 0 the better
+        r_balancing = balancing_reward(env)
+        part_balancing = - r_balancing
+        #final step
+        #if lots of balancing --> r_balancing is important
+        #if little balancing --> relative price is important
+        return r_rel * (1-part_balancing) + r_balancing * (part_balancing)
+     else:
+        return 0
 
 
 def step_close_relative_mprice(env: PowerTacEnv):
