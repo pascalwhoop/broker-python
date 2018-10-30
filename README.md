@@ -25,10 +25,6 @@ installed as well as a proper limit for file watches [like so](https://unix.stac
   messages to each other
 - `data` and `Graph` are to be ignored in git and they hold training data and tensorboard logs respectively
 
-## Tests
-
-execute `run_tests.sh` which watches the files in the local folder and executes the unit tests when changes have been
-detected
 
 ## Starting Jupyter Notebooks
 start them with `jupyter notebook`. The first cell adds the project to the sys.path so we can include local path
